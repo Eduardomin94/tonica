@@ -301,7 +301,7 @@ Si es perfil izquierdo, mostrar claramente el lado izquierdo del cuerpo y de la 
 Si es perfil derecho, mostrar claramente el lado derecho del cuerpo y de la prenda.
 Encuadre cuerpo entero, centrado.
 `.trim();
-<div style={styles.header}></div>
+
 
     const parts = [
       { text: viewPrompt },
