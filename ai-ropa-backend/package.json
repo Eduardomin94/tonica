@@ -1,0 +1,28 @@
+{
+  "name": "ai-ropa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+  "start": "node server.js",
+  "dev": "nodemon server.js"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
+    "@prisma/extension-accelerate": "^3.0.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "form-data": "^4.0.5",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.18.0",
+    "prisma": "^7.4.0"
+  }
+}
