@@ -5,10 +5,24 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wallet     Wallet?
+  generations Generation[]
+}
+
 
 model Wallet {
   id        String   @id @default(cuid())
   userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   balance   Int      @default(0)
 
   createdAt DateTime @default(now())
@@ -24,10 +38,36 @@ enum CreditEntryType {
   GRANT
 }
 
+enum GenerationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Generation {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mode        String           // "model" | "product"
+  promptUsed  String?
+  status      GenerationStatus @default(PENDING)
+
+  costCredits Int              @default(0)
+  imageUrls   Json?
+  error       String?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId, createdAt])
+}
+
 model CreditEntry {
   id             String          @id @default(cuid())
   walletId       String
-  wallet         Wallet          @relation(fields: [walletId], references: [id])
+  wallet         Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   type           CreditEntryType
   amount         Int
@@ -40,4 +80,5 @@ model CreditEntry {
   createdAt      DateTime        @default(now())
 
   @@index([walletId, createdAt])
+  @@index([walletId, idempotencyKey])
 }
