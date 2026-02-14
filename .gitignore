@@ -1,0 +1,18 @@
+# Node
+node_modules/
+ai-ropa-backend/node_modules/
+ai-ropa-frontend/node_modules/
+
+# Next build
+.next/
+ai-ropa-frontend/.next/
+
+# Env
+.env
+*.env
+ai-ropa-backend/.env
+ai-ropa-frontend/.env.local
+
+# Uploads
+ai-ropa-backend/uploads/
+ai-ropa-backend/outputs/
