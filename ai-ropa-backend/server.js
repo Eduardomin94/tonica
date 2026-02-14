@@ -8,7 +8,7 @@ import path from "path";
 dotenv.config();
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -381,5 +381,5 @@ app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => res.json({ status: "OK" }));
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
