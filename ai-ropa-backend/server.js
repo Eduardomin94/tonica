@@ -402,6 +402,8 @@ app.post("/mp/webhook", async (req, res) => {
       req.body?.data?.id ||
       req.query?.id ||
       req.query?.["data.id"];
+      console.log("🔎 paymentId detectado:", paymentId);
+
 
     if (!paymentId) return res.sendStatus(200);
 
