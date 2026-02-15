@@ -374,10 +374,10 @@ const preference = await mpPreference.create({
 });
 
     return res.json({
-      init_point: preference.init_point,
-      sandbox_init_point: preference.sandbox_init_point,
-      id: preference.id,
-    });
+  init_point: preference.sandbox_init_point,
+  id: preference.id,
+});
+
   } catch (err) {
     console.error("MP ERROR:", err);
     return res.status(500).json({ error: "MercadoPago preference error" });
