@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -81,4 +82,6 @@ model CreditEntry {
 
   @@index([walletId, createdAt])
   @@index([walletId, idempotencyKey])
+
+  @@unique([refType, refId]) // ✅ idempotencia fuerte por MP_PAYMENT + paymentId
 }
