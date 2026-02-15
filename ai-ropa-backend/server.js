@@ -448,7 +448,7 @@ app.post("/mp/webhook", async (req, res) => {
       await tx.creditEntry.create({
         data: {
           walletId: user.wallet.id,
-          type: "TOPUP", // si tu enum no tiene TOPUP, cambialo por el que uses
+          type: "REFUND", // si tu enum no tiene TOPUP, cambialo por el que uses
           amount: credits,
           idempotencyKey: `mp:${paymentId}`,
           refType: "MP_PAYMENT",
