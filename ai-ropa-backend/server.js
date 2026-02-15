@@ -363,10 +363,11 @@ const preference = await mpPreference.create({
   // 👇 clave: obliga a MP a llamarte al webhook
   notification_url: `${be}/mp/webhook?source_news=webhooks`,
   back_urls: {
-  success: "http://localhost:3000/pago-exitoso",
-  failure: "http://localhost:3000/pago-fallido",
-  pending: "http://localhost:3000/pago-pendiente",
+  success: "https://gleaming-rejoicing-production.up.railway.app/pago-exitoso",
+  failure: "https://gleaming-rejoicing-production.up.railway.app/pago-fallido",
+  pending: "https://gleaming-rejoicing-production.up.railway.app/pago-pendiente",
 },
+
 
 
 
@@ -424,6 +425,22 @@ app.post("/mp/webhook", express.json({ type: "*/*" }), (req, res) => {
 // =====================
 app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => res.json({ status: "OK" }));
+
+// =====================
+// MP RETURN ROUTES (DEV)
+// =====================
+app.get("/pago-exitoso", (req, res) => {
+  res.redirect("http://localhost:3000/");
+});
+
+app.get("/pago-fallido", (req, res) => {
+  res.redirect("http://localhost:3000/");
+});
+
+app.get("/pago-pendiente", (req, res) => {
+  res.redirect("http://localhost:3000/");
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
