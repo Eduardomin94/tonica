@@ -514,20 +514,46 @@ app.get("/", (req, res) => res.json({ status: "OK" }));
 // =====================
 // MERCADOPAGO WEBHOOK
 // =====================
-app.post("/mp/webhook", express.json(), (req, res) => {
-  try {
-    console.log("MP WEBHOOK HEADERS:", req.headers);
-    console.log("MP WEBHOOK BODY:", req.body);
-    console.log("MP WEBHOOK QUERY:", req.query);
 
-    // IMPORTANTE: responder rápido
+app.post("/mp/webhook", express.json({ type: "*/*" }), (req, res) => {
+  try {
+    const secret = process.env.MP_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error("Missing MP_WEBHOOK_SECRET");
+      return res.sendStatus(200);
+    }
+
+    // MercadoPago manda la firma en header x-signature
+    const xSignature = req.headers["x-signature"];
+    const xRequestId = req.headers["x-request-id"];
+
+    if (!xSignature || !xRequestId) {
+      console.warn("Missing signature headers");
+      return res.sendStatus(200);
+    }
+
+    // El string a firmar depende del request_id y el body
+    const rawBody = JSON.stringify(req.body);
+
+    const manifest = `id:${xRequestId};body:${rawBody};`;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(manifest)
+      .digest("hex");
+
+    if (!String(xSignature).includes(expected)) {
+      console.warn("Invalid webhook signature");
+      return res.sendStatus(200);
+    }
+
+    console.log("✅ MP WEBHOOK OK:", req.body);
+
     return res.sendStatus(200);
   } catch (err) {
     console.error("MP WEBHOOK ERROR:", err);
     return res.sendStatus(200);
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
