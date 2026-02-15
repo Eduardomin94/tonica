@@ -2,14 +2,21 @@ import express from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+/* ================================
+   LOGIN GOOGLE
+================================ */
+
 router.post("/google", async (req, res) => {
   try {
     const { idToken } = req.body ?? {};
-    if (!idToken) return res.status(400).json({ error: "Missing idToken" });
+    if (!idToken) {
+      return res.status(400).json({ error: "Missing idToken" });
+    }
 
     const ticket = await googleClient.verifyIdToken({
       idToken,
@@ -17,10 +24,14 @@ router.post("/google", async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    if (!payload) return res.status(401).json({ error: "Invalid Google token payload" });
+    if (!payload) {
+      return res.status(401).json({ error: "Invalid Google token payload" });
+    }
 
     const { email, name, picture } = payload;
-    if (!email) return res.status(400).json({ error: "Google token missing email" });
+    if (!email) {
+      return res.status(400).json({ error: "Google token missing email" });
+    }
 
     const user = await prisma.$transaction(async (tx) => {
       const u = await tx.user.upsert({
@@ -33,14 +44,25 @@ router.post("/google", async (req, res) => {
           email,
           name: name ?? null,
           image: picture ?? null,
-          wallet: { create: { balance: 0 } },
+          wallet: {
+            create: { balance: 0 },
+          },
         },
         include: { wallet: true },
       });
 
       if (!u.wallet) {
-        await tx.wallet.create({ data: { userId: u.id, balance: 0 } });
-        return tx.user.findUnique({ where: { id: u.id }, include: { wallet: true } });
+        await tx.wallet.create({
+          data: {
+            userId: u.id,
+            balance: 0,
+          },
+        });
+
+        return tx.user.findUnique({
+          where: { id: u.id },
+          include: { wallet: true },
+        });
       }
 
       return u;
@@ -60,11 +82,50 @@ router.post("/google", async (req, res) => {
         name: user.name,
         image: user.image,
       },
-      wallet: { balance: user.wallet?.balance ?? 0 },
+      wallet: {
+        balance: user.wallet?.balance ?? 0,
+      },
     });
   } catch (error) {
     console.error("AUTH /google error:", error);
-    return res.status(401).json({ error: error?.message || "Invalid Google token" });
+    return res.status(401).json({
+      error: error?.message || "Invalid Google token",
+    });
+  }
+});
+
+/* ================================
+   ME (usuario actual)
+================================ */
+
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: {
+        wallet: {
+          include: {
+            entries: {
+              orderBy: { createdAt: "desc" },
+              take: 20,
+            },
+          },
+        },
+        generations: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json(user);
+  } catch (err) {
+    console.error("AUTH /me error:", err);
+    return res.status(500).json({ error: "Error fetching user" });
   }
 });
 

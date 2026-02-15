@@ -39,6 +39,10 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number>(0);
+  const [loadingMe, setLoadingMe] = useState(false);
+
+  
 
 
 React.useEffect(() => {
@@ -100,6 +104,8 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
           setUser(data.user);
           setAccessToken(data.accessToken);
           localStorage.setItem("accessToken", data.accessToken);
+          setBalance(data?.wallet?.balance ?? 0);
+
         } catch (err) {
           console.error(err);
           alert("Error login Google");
@@ -205,6 +211,10 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
   setProductFiles([]);
 
 }, [mode]);
+
+React.useEffect(() => {
+  fetchMe();
+}, [API]);
 
 
   // ============ VALIDACIÓN por paso ============
@@ -327,6 +337,27 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
         if (!bodyType) return setStep(9);
         break;
     }
+  }
+}
+
+async function fetchMe() {
+  if (!API) return;
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  setLoadingMe(true);
+  try {
+    const res = await fetch(`${API}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+    if (!res.ok) return;
+
+    setUser(data);
+    setBalance(data?.wallet?.balance ?? 0);
+  } finally {
+    setLoadingMe(false);
   }
 }
 
@@ -482,9 +513,14 @@ if (mode === "product") {
   fd.append("body_type", bodyType);
 }
 
+const token = localStorage.getItem("accessToken");
 
-
-      const res = await fetch(`${API}/generate`, { method: "POST", body: fd });
+const res = await fetch(`${API}/generate`, {
+  method: "POST",
+  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  body: fd,
+});
+    
 
 const text = await res.text();
 let data: any = null;
@@ -916,12 +952,13 @@ case "scene":
       </div>
 
     <Button
-        onClick={handleGenerate}
-        disabled={loading}
-        style={{ width: "100%", padding: "14px 16px" }}
-      >
-        {loading ? "Generando..." : "Generar (1 crédito)"}
-      </Button>
+  onClick={handleGenerate}
+  disabled={loading || balance < 1}
+  style={{ width: "100%", padding: "14px 16px" }}
+>
+  {loading ? "Generando..." : balance < 1 ? "Sin créditos" : "Generar (1 crédito)"}
+</Button>
+
 
       {result && (
         <div style={{ marginTop: 16 }}>
@@ -1059,7 +1096,52 @@ if (!user) {
 
             <div style={styles.h2}>1 crédito = 4 imágenes (frente / espalda / costados)</div>
           </div>
-          <div style={styles.badge}>Demo local</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+  <div style={styles.badge}>
+    {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
+  </div>
+
+  <button
+    type="button"
+    onClick={async () => {
+  try {
+    console.log("API:", API);
+
+    const token = localStorage.getItem("accessToken");
+
+    const res = await fetch(`${API}/mp/create-preference`, {
+
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ credits: 10 }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+
+    if (!data?.init_point) {
+  alert("No init_point recibido");
+  return;
+}
+
+window.location.href = data.init_point;
+
+
+  } catch (e) {
+    alert(String(e?.message || e));
+  }
+}}
+
+    style={styles.btnSecondary}
+  >
+    💳 Comprar créditos
+  </button>
+</div>
+
+
         </div>
 
         {/* Main */}

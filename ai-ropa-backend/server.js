@@ -323,27 +323,45 @@ Mantener exactamente el mismo producto, color y textura.
 // =====================
 app.post("/mp/create-preference", requireAuth, async (req, res) => {
   try {
-    const { credits = 10 } = req.body || {};
-    const unitPrice = credits * 100;
+    const userId = req.userId;
+const credits = Number(req.body?.credits ?? 10);
+const unitPrice = credits * 100;
 
-    const preference = await mpPreference.create({
-      body: {
-        items: [
-          {
-            title: `Créditos AI Ropa (${credits})`,
-            quantity: 1,
-            unit_price: unitPrice,
-            currency_id: "ARS",
-          },
-        ],
-        metadata: { userId: req.userId, credits },
-        back_urls: {
-          success: "https://gleaming-rejoicing-production.up.railway.app",
-          failure: "https://gleaming-rejoicing-production.up.railway.app",
-          pending: "https://gleaming-rejoicing-production.up.railway.app",
-        },
-      },
-    });
+const backendBase = process.env.BACKEND_URL;   // ej: https://gleaming-rejoicing-production.up.railway.app
+const frontendBase = process.env.FRONTEND_URL; // ej: https://tu-frontend.com
+
+const externalReference = `u:${userId}|c:${credits}|t:${Date.now()}`;
+
+const preference = await mpPreference.create({
+  body: {
+  items: [
+    {
+      title: `Créditos AI Ropa (${credits})`,
+      quantity: 1,
+      unit_price: unitPrice,
+      currency_id: "ARS",
+    },
+  ],
+
+  // 👇 clave para mapear y debug
+  external_reference: `u:${req.userId}|c:${credits}|t:${Date.now()}`,
+
+  // 👇 clave para acreditar en webhook (lo vamos a usar)
+  metadata: { userId: req.userId, credits },
+
+  // 👇 clave: obliga a MP a llamarte al webhook
+  notification_url: `${process.env.BACKEND_URL}/mp/webhook?source_news=webhooks`,
+
+  back_urls: {
+    success: `${process.env.FRONTEND_URL}/pago-exitoso`,
+    failure: `${process.env.FRONTEND_URL}/pago-fallido`,
+    pending: `${process.env.FRONTEND_URL}/pago-pendiente`,
+  },
+
+  auto_return: "approved",
+},
+
+});
 
     return res.json({
       init_point: preference.init_point,
