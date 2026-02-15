@@ -5,9 +5,18 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import authRoutes from "./routes/auth.js";
+import { requireAuth } from "./middleware/requireAuth.js";
+import mercadopago from "mercadopago";
+
+
 
 
 dotenv.config();
+
+mercadopago.configure({
+  access_token: process.env.MP_ACCESS_TOKEN,
+});
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -163,6 +172,7 @@ function extractImageBase64(data) {
 // =====================
 app.post(
   "/generate",
+  requireAuth,
   upload.fields([
     { name: "front", maxCount: 1 },
     { name: "back", maxCount: 1 },
@@ -170,6 +180,43 @@ app.post(
   ]),
   async (req, res) => {
     try {
+      // ====== COBRO 1 CRÉDITO (ATÓMICO) ======
+const COST = 1;
+const userId = req.userId;
+
+// idempotency key opcional pero recomendado
+const idem = req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
+
+const { wallet } = await prisma.user.findUnique({
+  where: { id: userId },
+  include: { wallet: true },
+});
+
+if (!wallet) {
+  return res.status(400).json({ error: "Wallet not found" });
+}
+
+// 1) Intentar descontar balance de forma segura
+const updated = await prisma.wallet.updateMany({
+  where: { id: wallet.id, balance: { gte: COST } },
+  data: { balance: { decrement: COST } },
+});
+
+if (updated.count === 0) {
+  return res.status(402).json({ error: "Sin créditos" });
+}
+
+// 2) Registrar en ledger (CONSUME)
+const consumeEntry = await prisma.creditEntry.create({
+  data: {
+    walletId: wallet.id,
+    type: "CONSUME",
+    amount: -COST,
+    idempotencyKey: String(idem),
+    refType: "GENERATION",
+  },
+});
+
       const mode = String(req.body?.mode || "model");
 
       if (mode === "product") {
@@ -367,12 +414,38 @@ return res.json({ imageUrls, promptUsed: basePrompt });
 
 
     } catch (err) {
-      console.error("GENERATE ERROR:", err);
-      return res.status(500).json({
-        error: "Error en generate",
-        details: String(err?.message || err),
+
+  console.error("GENERATE ERROR:", err);
+
+  // ===== REFUND SI FALLÓ =====
+  try {
+    if (wallet && COST) {
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: COST } },
+      });
+
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "REFUND",
+          amount: COST,
+          idempotencyKey: `refund:${idem}`,
+          refType: "GENERATION",
+          refId: consumeEntry?.id || null,
+        },
       });
     }
+  } catch (refundError) {
+    console.error("REFUND FAILED:", refundError);
+  }
+
+  return res.status(500).json({
+    error: "Error en generate",
+    details: String(err?.message || err),
+  });
+}
+
   }
 );
 
@@ -383,6 +456,61 @@ return res.json({ imageUrls, promptUsed: basePrompt });
 app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => res.json({ status: "OK" }));
+
+// =====================
+// MERCADO PAGO
+// =====================
+
+app.post("/mp/create-preference", requireAuth, async (req, res) => {
+  try {
+    const { credits = 10 } = req.body || {};
+    const unitPrice = credits * 100; // 100 ARS por crédito (ejemplo)
+
+    const preference = await mercadopago.preferences.create({
+      items: [
+        {
+          title: `Créditos AI Ropa (${credits})`,
+          quantity: 1,
+          unit_price: unitPrice,
+          currency_id: "ARS",
+        },
+      ],
+      metadata: {
+        userId: req.userId,
+        credits,
+      },
+      back_urls: {
+        success: "http://localhost:3000",
+        failure: "http://localhost:3000",
+        pending: "http://localhost:3000",
+      },
+      auto_return: "approved",
+    });
+
+    return res.json({
+      init_point: preference.body.init_point,
+      sandbox_init_point: preference.body.sandbox_init_point,
+      id: preference.body.id,
+    });
+  } catch (err) {
+    console.error("MP ERROR:", err);
+    return res.status(500).json({ error: "MercadoPago preference error" });
+  }
+});
+
+
+// =====================
+// STATIC + HEALTH
+// =====================
+
+app.use("/uploads", express.static("uploads"));
+
+app.get("/", (req, res) => res.json({ status: "OK" }));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
