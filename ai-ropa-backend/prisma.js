@@ -1,6 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
+
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
+
 
 const { Pool } = pg;
 
