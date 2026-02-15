@@ -4,10 +4,11 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
+
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 import { prisma } from "./prisma.js";
+
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
 dotenv.config();
@@ -41,7 +42,6 @@ app.use(
     },
   })
 );
-
 app.options(/.*/, cors());
 app.use(express.json({ limit: "10mb" }));
 
@@ -51,7 +51,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/auth", authRoutes);
 
 // =====================
-// GEMINI
+// GEMINI (tu parte original)
 // =====================
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_TEXT = "gemini-flash-latest";
@@ -80,9 +80,7 @@ async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
     return { status: res.status, data };
   } catch (err) {
     const msg =
-      err?.name === "AbortError"
-        ? `Timeout (${timeoutMs}ms)`
-        : String(err?.message || err);
+      err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
     return { status: 599, data: { error: msg } };
   } finally {
     clearTimeout(t);
@@ -99,6 +97,7 @@ function extractImageBase64(data) {
       p?.inline_data?.data ||
       p?.fileData?.data ||
       p?.file_data?.data;
+
     if (typeof b64 === "string" && b64.length > 1000) return b64;
   }
 
@@ -119,10 +118,13 @@ app.post("/suggest-background", async (req, res) => {
     const { category, model_type, vibe } = req.body;
 
     const prompt = `
-Devolvé SOLO JSON válido: {"option":"..."}
+Devolvé SOLO JSON válido:
+{"option":"..."}
+
 Sugerí 1 solo fondo para fotos e-commerce.
 Solo describí el lugar.
 Máximo 10 palabras.
+
 Categoría: ${category}
 Modelo: ${model_type}
 Vibe: ${vibe}
@@ -130,21 +132,15 @@ Vibe: ${vibe}
 
     const { status, data } = await geminiGenerate({
       model: MODEL_TEXT,
-      body: {
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      },
+      body: { contents: [{ role: "user", parts: [{ text: prompt }] }] },
       timeoutMs: 15000,
     });
 
     if (status >= 400) {
-      return res.json({
-        options: ["estudio blanco seamless con luz suave"],
-      });
+      return res.json({ options: ["estudio blanco seamless con luz suave"] });
     }
 
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     let parsed = {};
     try {
       parsed = JSON.parse(text);
@@ -159,14 +155,12 @@ Vibe: ${vibe}
     return res.json({ options: [finalOption] });
   } catch (err) {
     console.error(err);
-    return res.json({
-      options: ["estudio blanco seamless con luz suave"],
-    });
+    return res.json({ options: ["estudio blanco seamless con luz suave"] });
   }
 });
 
 // =====================
-// GENERATE (PROTEGIDO + COBRO)
+// GENERATE (PROTEGIDO + COBRO)  (tu parte original)
 // =====================
 app.post(
   "/generate",
@@ -180,10 +174,10 @@ app.post(
     let wallet = null;
     let consumeEntry = null;
     const COST = 1;
+
     const userId = req.userId;
     const idem =
-      req.headers["x-idempotency-key"] ||
-      `${userId}:${Date.now()}:${Math.random()}`;
+      req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
 
     try {
       const user = await prisma.user.findUnique({
@@ -192,8 +186,7 @@ app.post(
       });
 
       wallet = user?.wallet;
-      if (!wallet)
-        return res.status(400).json({ error: "Wallet not found" });
+      if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
       const updated = await prisma.wallet.updateMany({
         where: { id: wallet.id, balance: { gte: COST } },
@@ -221,33 +214,21 @@ app.post(
         const files = req.files?.product_images || [];
         const scene = String(req.body?.scene || "").trim();
 
-        if (!files.length)
-          return res
-            .status(400)
-            .json({ error: "Faltan fotos del producto" });
-
-        if (!scene)
-          return res
-            .status(400)
-            .json({ error: "Falta escena" });
+        if (!files.length) return res.status(400).json({ error: "Faltan fotos del producto" });
+        if (!scene) return res.status(400).json({ error: "Falta escena" });
 
         const imagesParts = files.slice(0, 8).map((f) => ({
           inlineData: {
             mimeType: f.mimetype,
-            data: fs.readFileSync(f.path, {
-              encoding: "base64",
-            }),
+            data: fs.readFileSync(f.path, { encoding: "base64" }),
           },
         }));
 
         const basePrompt = `
-Foto de producto e-commerce premium, fotorealista,
-iluminación de estudio suave.
-Solo el producto, sin personas, sin manos,
-sin texto, sin marcas de agua.
+Foto de producto e-commerce premium, fotorealista, iluminación de estudio suave.
+Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
 Escena: ${scene}.
-Mantener exactamente el mismo producto,
-color y textura.
+Mantener exactamente el mismo producto, color y textura.
 `.trim();
 
         const views = [
@@ -260,49 +241,24 @@ color y textura.
         const settled = await Promise.allSettled(
           views.map(async (v) => {
             const viewPrompt = `${basePrompt}\n\nCámara: ${v.label}.`;
+            const parts = [{ text: viewPrompt }, ...imagesParts];
 
-            const parts = [
-              { text: viewPrompt },
-              ...imagesParts,
-            ];
+            const { status, data } = await geminiGenerate({
+              model: MODEL_IMAGE,
+              body: { contents: [{ role: "user", parts }] },
+              timeoutMs: 60000,
+            });
 
-            const { status, data } =
-              await geminiGenerate({
-                model: MODEL_IMAGE,
-                body: {
-                  contents: [
-                    { role: "user", parts },
-                  ],
-                },
-                timeoutMs: 60000,
-              });
+            if (status >= 400) throw new Error("Gemini product error");
 
-            if (status >= 400)
-              throw new Error(
-                "Gemini product error"
-              );
-
-            const imgB64 =
-              extractImageBase64(data);
-
-            if (!imgB64)
-              throw new Error(
-                "No product image returned"
-              );
+            const imgB64 = extractImageBase64(data);
+            if (!imgB64) throw new Error("No product image returned");
 
             const fileName = `generated-product-${v.key}-${Date.now()}-${Math.random()
               .toString(16)
               .slice(2)}.png`;
-
-            const filePath = path.join(
-              "uploads",
-              fileName
-            );
-
-            fs.writeFileSync(
-              filePath,
-              Buffer.from(imgB64, "base64")
-            );
+            const filePath = path.join("uploads", fileName);
+            fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
 
             return `/uploads/${fileName}`;
           })
@@ -315,29 +271,17 @@ color y textura.
         }
 
         const imageUrls = settled
-          .filter(
-            (r) => r.status === "fulfilled"
-          )
+          .filter((r) => r.status === "fulfilled")
           .map((r) => r.value);
 
         if (!imageUrls.length) {
-          return res.status(500).json({
-            error:
-              "No se pudo generar ninguna imagen de producto",
-          });
+          return res.status(500).json({ error: "No se pudo generar ninguna imagen de producto" });
         }
 
-        return res.json({
-          imageUrls,
-          promptUsed: basePrompt,
-        });
+        return res.json({ imageUrls, promptUsed: basePrompt });
       }
 
-      // ---- MODEL MODE (tu lógica existente)
-      return res.status(400).json({
-        error:
-          "Modo model no incluido en este snippet",
-      });
+      return res.status(400).json({ error: "Modo model no incluido en este snippet" });
     } catch (err) {
       console.error("GENERATE ERROR:", err);
 
@@ -346,9 +290,7 @@ color y textura.
         if (wallet) {
           await prisma.wallet.update({
             where: { id: wallet.id },
-            data: {
-              balance: { increment: COST },
-            },
+            data: { balance: { increment: COST } },
           });
 
           await prisma.creditEntry.create({
@@ -358,23 +300,17 @@ color y textura.
               amount: COST,
               idempotencyKey: `refund:${idem}`,
               refType: "GENERATION",
-              refId:
-                consumeEntry?.id || null,
+              refId: consumeEntry?.id || null,
             },
           });
         }
       } catch (refundError) {
-        console.error(
-          "REFUND FAILED:",
-          refundError
-        );
+        console.error("REFUND FAILED:", refundError);
       }
 
       return res.status(500).json({
         error: "Error en generate",
-        details: String(
-          err?.message || err
-        ),
+        details: String(err?.message || err),
       });
     }
   }
@@ -383,204 +319,106 @@ color y textura.
 // =====================
 // MERCADO PAGO: CREATE PREFERENCE
 // =====================
-app.post(
-  "/mp/create-preference",
-  requireAuth,
-  async (req, res) => {
-    try {
-      console.log(
-        "MP ACCESS TOKEN:",
-        process.env.MP_ACCESS_TOKEN?.slice(
-          0,
-          10
-        )
-      );
+app.post("/mp/create-preference", requireAuth, async (req, res) => {
+  try {
+    const credits = Number(req.body?.credits ?? 10);
+    const unitPrice = credits * 100;
 
-      const userId = req.userId;
-      const credits = Number(
-        req.body?.credits ?? 10
-      );
-      const unitPrice = credits * 100;
+    const fe = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+    const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
 
-      const fe = String(
-        process.env.FRONTEND_URL || ""
-      )
-        .trim()
-        .replace(/\/$/, "");
-
-      const be = String(
-        process.env.BACKEND_URL || ""
-      )
-        .trim()
-        .replace(/\/$/, "");
-
-      const preference =
-        await mpPreference.create({
-          body: {
-            items: [
-              {
-                title: `Créditos AI Ropa (${credits})`,
-                quantity: 1,
-                unit_price: unitPrice,
-                currency_id: "ARS",
-              },
-            ],
-            external_reference: String(
-              req.userId
-            ),
-            metadata: {
-              user_id: req.userId,
-              credits,
-            },
-            notification_url: `${be}/mp/webhook?source_news=webhooks`,
-            back_urls: {
-              success: `${fe}/pago-exitoso`,
-              failure: `${fe}/pago-fallido`,
-              pending: `${fe}/pago-pendiente`,
-            },
-            auto_return: "approved",
+    const preference = await mpPreference.create({
+      body: {
+        items: [
+          {
+            title: `Créditos AI Ropa (${credits})`,
+            quantity: 1,
+            unit_price: unitPrice,
+            currency_id: "ARS",
           },
-        });
+        ],
 
-      return res.json({
-        init_point: preference.init_point,
-        id: preference.id,
-      });
-    } catch (err) {
-      console.error("MP ERROR:", err);
-      return res.status(500).json({
-        error:
-          "MercadoPago preference error",
-      });
-    }
+        // para mapear usuario robusto
+        external_reference: String(req.userId),
+        metadata: { user_id: req.userId, credits },
+
+        notification_url: `${be}/mp/webhook?source_news=webhooks`,
+
+        back_urls: {
+          success: `${be}/pago-exitoso`,
+          failure: `${be}/pago-fallido`,
+          pending: `${be}/pago-pendiente`,
+        },
+
+        auto_return: "approved",
+      },
+    });
+
+    return res.json({
+      init_point: preference.init_point,
+      id: preference.id,
+    });
+  } catch (err) {
+    console.error("MP ERROR:", err);
+    return res.status(500).json({ error: "MercadoPago preference error" });
   }
-);
+});
 
 // =====================
-// MERCADOPAGO WEBHOOK
+// MERCADOPAGO WEBHOOK (ACREDITA)
 // =====================
 app.post("/mp/webhook", async (req, res) => {
   try {
-    const paymentId =
-      req.body?.data?.id ||
-      req.query?.id ||
-      req.query?.["data.id"];
+    const paymentId = req.body?.data?.id || req.query?.id || req.query?.["data.id"];
+    if (!paymentId) return res.sendStatus(200);
 
-    console.log(
-      "🔔 WEBHOOK HIT:",
-      req.body
-    );
-    console.log(
-      "🔔 paymentId detectado:",
-      paymentId
-    );
-
-    if (!paymentId)
-      return res.sendStatus(200);
-
-    const r = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-        },
-      }
-    );
-
-    const payment = await r
-      .json()
-      .catch(() => null);
-
-    console.log(
-      "💳 payment status:",
-      r.status,
-      payment?.status
-    );
-
-    if (!r.ok || !payment)
-      return res.sendStatus(200);
-
-    if (payment.status !== "approved")
-      return res.sendStatus(200);
-
-    const userId =
-      payment?.metadata?.user_id ||
-      payment?.external_reference;
-
-    const credits = Number(
-      payment?.metadata?.credits || 0
-    );
-
-    console.log("🧾 metadata:", {
-      userId,
-      credits,
+    // consultar pago real a MP
+    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
     });
+    const payment = await r.json().catch(() => null);
+    if (!r.ok || !payment) return res.sendStatus(200);
+    if (payment.status !== "approved") return res.sendStatus(200);
 
-    if (
-      !userId ||
-      !Number.isFinite(credits) ||
-      credits <= 0
-    )
-      return res.sendStatus(200);
+    const userId = payment?.metadata?.user_id || payment?.external_reference;
+    const credits = Number(payment?.metadata?.credits || 0);
 
-    const existing =
-      await prisma.creditEntry.findFirst({
-        where: {
+    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
+
+    // idempotencia: no acreditar dos veces el mismo paymentId
+    const existing = await prisma.creditEntry.findFirst({
+      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
+      select: { id: true },
+    });
+    if (existing) return res.sendStatus(200);
+
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: String(userId) },
+        include: { wallet: true },
+      });
+      if (!user?.wallet) throw new Error("Wallet not found");
+
+      await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { increment: credits } },
+      });
+
+      await tx.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "PURCHASE",
+          amount: credits,
+          idempotencyKey: `mp:${paymentId}`,
           refType: "MP_PAYMENT",
           refId: String(paymentId),
         },
-        select: { id: true },
       });
-
-    if (existing)
-      return res.sendStatus(200);
-
-    await prisma.$transaction(
-      async (tx) => {
-        const user =
-          await tx.user.findUnique({
-            where: { id: userId },
-            include: { wallet: true },
-          });
-
-        if (!user?.wallet)
-          throw new Error(
-            "Wallet not found"
-          );
-
-        await tx.wallet.update({
-          where: { id: user.wallet.id },
-          data: {
-            balance: {
-              increment: credits,
-            },
-          },
-        });
-
-        await tx.creditEntry.create({
-          data: {
-            walletId: user.wallet.id,
-            type: "PURCHASE",
-            amount: credits,
-            idempotencyKey: `mp:${paymentId}`,
-            refType: "MP_PAYMENT",
-            refId: String(paymentId),
-          },
-        });
-      }
-    );
-
-    console.log(
-      "✅ Créditos acreditados:",
-      { paymentId, userId, credits }
-    );
+    });
 
     return res.sendStatus(200);
   } catch (err) {
-    console.error(
-      "MP WEBHOOK ERROR:",
-      err
-    );
+    console.error("MP WEBHOOK ERROR:", err);
     return res.sendStatus(200);
   }
 });
@@ -588,32 +426,16 @@ app.post("/mp/webhook", async (req, res) => {
 // =====================
 // STATIC + HEALTH
 // =====================
-app.use(
-  "/uploads",
-  express.static("uploads")
-);
-
-app.get("/", (req, res) =>
-  res.json({ status: "OK" })
-);
+app.use("/uploads", express.static("uploads"));
+app.get("/", (req, res) => res.json({ status: "OK" }));
 
 // =====================
 // MP RETURN ROUTES (DEV)
 // =====================
-app.get("/pago-exitoso", (req, res) => {
-  res.redirect("http://localhost:3000/");
-});
-
-app.get("/pago-fallido", (req, res) => {
-  res.redirect("http://localhost:3000/");
-});
-
-app.get("/pago-pendiente", (req, res) => {
-  res.redirect("http://localhost:3000/");
-});
+app.get("/pago-exitoso", (req, res) => res.redirect("http://localhost:3000/"));
+app.get("/pago-fallido", (req, res) => res.redirect("http://localhost:3000/"));
+app.get("/pago-pendiente", (req, res) => res.redirect("http://localhost:3000/"));
 
 app.listen(PORT, () => {
-  console.log(
-    `Server running on port ${PORT}`
-  );
+  console.log(`Server running on port ${PORT}`);
 });
