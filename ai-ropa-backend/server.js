@@ -393,32 +393,70 @@ const preference = await mpPreference.create({
 // =====================
 // MERCADOPAGO WEBHOOK (por ahora solo log + firma)
 // =====================
-app.post("/mp/webhook", express.json({ type: "*/*" }), (req, res) => {
+app.post("/mp/webhook", async (req, res) => {
   try {
-    const secret = process.env.MP_WEBHOOK_SECRET;
-    if (!secret) return res.sendStatus(200);
+    const paymentId =
+      req.body?.data?.id ||
+      req.query?.id ||
+      req.query?.["data.id"];
 
-    const xSignature = req.headers["x-signature"];
-    const xRequestId = req.headers["x-request-id"];
-    if (!xSignature || !xRequestId) return res.sendStatus(200);
+    if (!paymentId) return res.sendStatus(200);
 
-    const rawBody = JSON.stringify(req.body);
-    const manifest = `id:${xRequestId};body:${rawBody};`;
+    // 1) anti-duplicado: si ya procesamos este paymentId, no repetir
+    const existing = await prisma.creditEntry.findFirst({
+      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
+      select: { id: true },
+    });
+    if (existing) return res.sendStatus(200);
 
-    const expected = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+    // 2) consultar pago real a MercadoPago (fuente de verdad)
+    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+    });
+    const payment = await r.json().catch(() => null);
+    if (!r.ok || !payment) return res.sendStatus(200);
 
-    if (!String(xSignature).includes(expected)) {
-      console.warn("Invalid webhook signature");
-      return res.sendStatus(200);
-    }
+    // 3) acreditar solo si está aprobado
+    if (payment.status !== "approved") return res.sendStatus(200);
 
-    console.log("✅ MP WEBHOOK OK:", req.body);
+    // 4) sacar userId y credits desde metadata
+    const userId = payment?.metadata?.userId;
+    const credits = Number(payment?.metadata?.credits || 0);
+    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
+
+    // 5) sumar créditos en wallet + registrar movimiento
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: { wallet: true },
+      });
+      if (!user?.wallet) throw new Error("Wallet not found");
+
+      await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { increment: credits } },
+      });
+
+      await tx.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "TOPUP", // si tu enum no tiene TOPUP, cambiá por el que uses para carga
+          amount: credits,
+          idempotencyKey: `mp:${paymentId}`,
+          refType: "MP_PAYMENT",
+          refId: String(paymentId),
+        },
+      });
+    });
+
+    console.log("✅ Créditos acreditados:", { paymentId, userId, credits });
     return res.sendStatus(200);
   } catch (err) {
     console.error("MP WEBHOOK ERROR:", err);
     return res.sendStatus(200);
   }
 });
+
 
 // =====================
 // STATIC + HEALTH (UNA SOLA VEZ)
