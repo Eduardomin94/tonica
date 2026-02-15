@@ -68,9 +68,9 @@ router.post("/google", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    return res.status(401).json({ error: "Invalid Google token" });
-  }
+  console.error("GOOGLE VERIFY ERROR:", error);
+  return res.status(401).json({ error: error.message || "Invalid Google token" });
+}
 });
 
 export default router;

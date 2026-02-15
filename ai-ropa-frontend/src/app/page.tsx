@@ -84,7 +84,6 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
 (window as any).google.accounts.id.initialize({
   client_id: GOOGLE_CLIENT_ID,
   callback: async (response: any) => {
-
         try {
           const res = await fetch(`${API}/auth/google`, {
             method: "POST",
@@ -106,12 +105,18 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
           alert("Error login Google");
         }
       },
+      ux_mode: "popup",
+      auto_select: false,
+
     });
 
     (window as any).google.accounts.id.renderButton(
       document.getElementById("googleLoginDiv"),
       { theme: "outline", size: "large" }
     );
+
+    (window as any).google.accounts.id.prompt();
+
   }, 300);
 
   return () => clearInterval(interval);
