@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import authRoutes from "./routes/auth.js";
+
 
 dotenv.config();
 
@@ -32,6 +34,8 @@ app.use(
 );
 app.options(/.*/, cors());
 app.use(express.json({ limit: "10mb" }));
+app.use("/auth", authRoutes);
+
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 

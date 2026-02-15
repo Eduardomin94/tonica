@@ -33,8 +33,13 @@ function wordCount(s: string) {
 
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+  console.log("API BASE:", API);
+
 
   const [isMobile, setIsMobile] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
 
 React.useEffect(() => {
   const calc = () => setIsMobile(window.innerWidth < 640);
@@ -65,6 +70,53 @@ React.useEffect(() => {
     cadera: "",
     largo: "",
   });
+
+ React.useEffect(() => {
+  const interval = setInterval(() => {
+    if (!(window as any).google) return;
+
+    clearInterval(interval);
+
+    const GOOGLE_CLIENT_ID = "177285831628-o6shn4e85ecub5jilj6tj02njbt9r6jf.apps.googleusercontent.com";
+
+console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
+
+(window as any).google.accounts.id.initialize({
+  client_id: GOOGLE_CLIENT_ID,
+  callback: async (response: any) => {
+
+        try {
+          const res = await fetch(`${API}/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: response.credential }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data?.error || "Login error");
+          }
+
+          setUser(data.user);
+          setAccessToken(data.accessToken);
+          localStorage.setItem("accessToken", data.accessToken);
+        } catch (err) {
+          console.error(err);
+          alert("Error login Google");
+        }
+      },
+    });
+
+    (window as any).google.accounts.id.renderButton(
+      document.getElementById("googleLoginDiv"),
+      { theme: "outline", size: "large" }
+    );
+  }, 300);
+
+  return () => clearInterval(interval);
+}, [API]);
+
 
   const [modelType, setModelType] = useState<(typeof MODEL_TYPES)[number] | "">("");
   const [ethnicity, setEthnicity] = useState<(typeof ETHNICITIES)[number] | "">("");
@@ -924,6 +976,21 @@ case "scene":
     handleSuggestBackground,
     handleGenerate,
   ]);
+
+if (!user) {
+  return (
+    <div style={styles.page}>
+      <div style={{ ...styles.shell, maxWidth: 400, textAlign: "center" }}>
+        <div style={{ marginBottom: 20, fontSize: 22, fontWeight: 700 }}>
+          Iniciar sesión
+        </div>
+
+        <div id="googleLoginDiv"></div>
+      </div>
+    </div>
+  );
+}
+
 
   if (!mode) {
   return (
