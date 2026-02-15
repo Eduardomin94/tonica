@@ -391,70 +391,11 @@ const preference = await mpPreference.create({
 });
 
 // =====================
-// MERCADOPAGO WEBHOOK (por ahora solo log + firma)
+// MERCADOPAGO WEBHOOK (DEBUG)
 // =====================
 app.post("/mp/webhook", async (req, res) => {
-  try {
-    const paymentId =
-      req.body?.data?.id ||
-      req.query?.id ||
-      req.query?.["data.id"];
-
-    if (!paymentId) return res.sendStatus(200);
-
-    // 1) anti-duplicado: si ya procesamos este paymentId, no repetir
-    const existing = await prisma.creditEntry.findFirst({
-      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
-      select: { id: true },
-    });
-    if (existing) return res.sendStatus(200);
-
-    // 2) consultar pago real a MercadoPago (fuente de verdad)
-    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
-    });
-    const payment = await r.json().catch(() => null);
-    if (!r.ok || !payment) return res.sendStatus(200);
-
-    // 3) acreditar solo si está aprobado
-    if (payment.status !== "approved") return res.sendStatus(200);
-
-    // 4) sacar userId y credits desde metadata
-    const userId = payment?.metadata?.userId;
-    const credits = Number(payment?.metadata?.credits || 0);
-    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
-
-    // 5) sumar créditos en wallet + registrar movimiento
-    await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        include: { wallet: true },
-      });
-      if (!user?.wallet) throw new Error("Wallet not found");
-
-      await tx.wallet.update({
-        where: { id: user.wallet.id },
-        data: { balance: { increment: credits } },
-      });
-
-      await tx.creditEntry.create({
-        data: {
-          walletId: user.wallet.id,
-          type: "TOPUP", // si tu enum no tiene TOPUP, cambiá por el que uses para carga
-          amount: credits,
-          idempotencyKey: `mp:${paymentId}`,
-          refType: "MP_PAYMENT",
-          refId: String(paymentId),
-        },
-      });
-    });
-
-    console.log("✅ Créditos acreditados:", { paymentId, userId, credits });
-    return res.sendStatus(200);
-  } catch (err) {
-    console.error("MP WEBHOOK ERROR:", err);
-    return res.sendStatus(200);
-  }
+  console.log("🔥 WEBHOOK RECIBIDO:", req.body);
+  return res.sendStatus(200);
 });
 
 
