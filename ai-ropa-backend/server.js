@@ -51,6 +51,42 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/auth", authRoutes);
 
 // =====================
+// WALLET: CREDIT ENTRIES (HISTORIAL)
+// =====================
+app.get("/wallet/entries", requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { wallet: true },
+    });
+
+    if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
+
+    const entries = await prisma.creditEntry.findMany({
+      where: { walletId: user.wallet.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        refType: true,
+        refId: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({ entries });
+  } catch (err) {
+    console.error("WALLET ENTRIES ERROR:", err);
+    return res.status(500).json({ error: "Error cargando historial" });
+  }
+});
+
+
+// =====================
 // GEMINI (tu parte original)
 // =====================
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
