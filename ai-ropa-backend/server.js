@@ -6,16 +6,19 @@ import fs from "fs";
 import path from "path";
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
-import mercadopago from "mercadopago";
+import { MercadoPagoConfig, Preference } from "mercadopago";
+
 
 
 
 
 dotenv.config();
 
-mercadopago.configure({
-  access_token: process.env.MP_ACCESS_TOKEN,
+const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN,
 });
+const mpPreference = new Preference(mpClient);
+
 
 
 const app = express();
@@ -466,32 +469,33 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     const { credits = 10 } = req.body || {};
     const unitPrice = credits * 100; // 100 ARS por crédito (ejemplo)
 
-    const preference = await mercadopago.preferences.create({
-      items: [
-        {
-          title: `Créditos AI Ropa (${credits})`,
-          quantity: 1,
-          unit_price: unitPrice,
-          currency_id: "ARS",
-        },
-      ],
-      metadata: {
-        userId: req.userId,
-        credits,
+    const preference = await mpPreference.create({
+  body: {
+    items: [
+      {
+        title: `Créditos AI Ropa (${credits})`,
+        quantity: 1,
+        unit_price: unitPrice,
+        currency_id: "ARS",
       },
-      back_urls: {
-        success: "http://localhost:3000",
-        failure: "http://localhost:3000",
-        pending: "http://localhost:3000",
-      },
-      auto_return: "approved",
-    });
+    ],
+    metadata: { userId: req.userId, credits },
+    back_urls: {
+      success: "http://localhost:3000",
+      failure: "http://localhost:3000",
+      pending: "http://localhost:3000",
+    },
+    auto_return: "approved",
+  },
+});
 
-    return res.json({
-      init_point: preference.body.init_point,
-      sandbox_init_point: preference.body.sandbox_init_point,
-      id: preference.body.id,
-    });
+return res.json({
+  init_point: preference.init_point,
+  sandbox_init_point: preference.sandbox_init_point,
+  id: preference.id,
+});
+
+    
   } catch (err) {
     console.error("MP ERROR:", err);
     return res.status(500).json({ error: "MercadoPago preference error" });
