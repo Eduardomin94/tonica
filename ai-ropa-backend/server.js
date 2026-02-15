@@ -481,11 +481,12 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     ],
     metadata: { userId: req.userId, credits },
     back_urls: {
-      success: "http://localhost:3000",
-      failure: "http://localhost:3000",
-      pending: "http://localhost:3000",
-    },
-    auto_return: "approved",
+  success: "https://gleaming-rejoicing-production.up.railway.app",
+  failure: "https://gleaming-rejoicing-production.up.railway.app",
+  pending: "https://gleaming-rejoicing-production.up.railway.app",
+},
+auto_return: "approved",
+
   },
 });
 
