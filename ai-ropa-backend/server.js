@@ -331,6 +331,14 @@ const backendBase = process.env.BACKEND_URL;   // ej: https://gleaming-rejoicing
 const frontendBase = process.env.FRONTEND_URL; // ej: https://tu-frontend.com
 
 const externalReference = `u:${userId}|c:${credits}|t:${Date.now()}`;
+console.log("MP BACK_URLS:", {
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  success: `${process.env.FRONTEND_URL}/pago-exitoso`,
+  failure: `${process.env.FRONTEND_URL}/pago-fallido`,
+  pending: `${process.env.FRONTEND_URL}/pago-pendiente`,
+});
+const fe = String(process.env.FRONTEND_URL || "").replace(/\/$/, "");
+const be = String(process.env.BACKEND_URL || "").replace(/\/$/, "");
 
 const preference = await mpPreference.create({
   body: {
@@ -350,13 +358,13 @@ const preference = await mpPreference.create({
   metadata: { userId: req.userId, credits },
 
   // 👇 clave: obliga a MP a llamarte al webhook
-  notification_url: `${process.env.BACKEND_URL}/mp/webhook?source_news=webhooks`,
-
+  notification_url: `${be}/mp/webhook?source_news=webhooks`,
   back_urls: {
-    success: `${process.env.FRONTEND_URL}/pago-exitoso`,
-    failure: `${process.env.FRONTEND_URL}/pago-fallido`,
-    pending: `${process.env.FRONTEND_URL}/pago-pendiente`,
+    success: `${fe}/pago-exitoso`,
+    failure: `${fe}/pago-fallido`,
+    pending: `${fe}/pago-pendiente`,
   },
+
 
   auto_return: "approved",
 },
