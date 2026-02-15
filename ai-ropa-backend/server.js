@@ -512,11 +512,25 @@ app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => res.json({ status: "OK" }));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// =====================
+// MERCADOPAGO WEBHOOK
+// =====================
+app.post("/mp/webhook", express.json(), (req, res) => {
+  try {
+    console.log("MP WEBHOOK HEADERS:", req.headers);
+    console.log("MP WEBHOOK BODY:", req.body);
+    console.log("MP WEBHOOK QUERY:", req.query);
+
+    // IMPORTANTE: responder rápido
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("MP WEBHOOK ERROR:", err);
+    return res.sendStatus(200);
+  }
 });
 
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
