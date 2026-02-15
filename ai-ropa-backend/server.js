@@ -363,10 +363,11 @@ const preference = await mpPreference.create({
   // 👇 clave: obliga a MP a llamarte al webhook
   notification_url: `${be}/mp/webhook?source_news=webhooks`,
   back_urls: {
-  success: `${fe}/pago-exitoso`,
-  failure: `${fe}/pago-fallido`,
-  pending: `${fe}/pago-pendiente`,
+  success: "http://localhost:3000/pago-exitoso",
+  failure: "http://localhost:3000/pago-fallido",
+  pending: "http://localhost:3000/pago-pendiente",
 },
+
 
 
 
