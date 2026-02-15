@@ -31,8 +31,9 @@ const mpPreference = new Preference(mpClient);
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
-  process.env.FRONTEND_URL, // producción (si lo usás)
+  (process.env.FRONTEND_URL || "").trim(), // producción (si lo usás)
 ].filter(Boolean);
+
 
 app.use(
   cors({
