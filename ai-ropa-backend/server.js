@@ -391,13 +391,47 @@ const preference = await mpPreference.create({
 });
 
 // =====================
-// MERCADOPAGO WEBHOOK (DEBUG)
+// MERCADOPAGO WEBHOOK
 // =====================
-app.post("/mp/webhook", async (req, res) => {
-  console.log("🔥 WEBHOOK RECIBIDO:", req.body);
-  return res.sendStatus(200);
-});
 
+app.post("/mp/webhook", async (req, res) => {
+  try {
+    const paymentId =
+      req.body?.data?.id ||
+      req.query?.id ||
+      req.query?.["data.id"];
+
+    if (!paymentId) return res.sendStatus(200);
+
+    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      },
+    });
+
+    const payment = await r.json().catch(() => null);
+    if (!r.ok || !payment) return res.sendStatus(200);
+
+    if (payment.status !== "approved") return res.sendStatus(200);
+
+    const userId = payment?.metadata?.userId;
+    const credits = Number(payment?.metadata?.credits || 0);
+
+    if (!userId || credits <= 0) return res.sendStatus(200);
+
+    await prisma.wallet.update({
+      where: { userId },
+      data: { balance: { increment: credits } },
+    });
+
+    console.log("✅ Créditos acreditados:", credits);
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("MP WEBHOOK ERROR:", err);
+    return res.sendStatus(200);
+  }
+});
 
 // =====================
 // STATIC + HEALTH (UNA SOLA VEZ)
