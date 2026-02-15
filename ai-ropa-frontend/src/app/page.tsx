@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from "react";
 
 /* ================== CONSTANTES ================== */
-
 const CATEGORIES = [
   "Remera/Top",
   "Abrigo/Campera/Buzo",
@@ -16,25 +15,18 @@ const CATEGORIES = [
 ] as const;
 
 const MODEL_TYPES = ["Bebé recién nacido", "Niño", "Niña", "Hombre", "Mujer"] as const;
-
 const ETHNICITIES = ["Caucásico/a", "Latino/a", "Asiatico/a", "Negro/a", "Mediterraneo/a"] as const;
-
 const POSES = ["Sentado/a", "Parado/a", "Caminando"] as const;
-
 const BODY_TYPES = ["Estandar", "Plus Size"] as const;
-
 
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
-
 /* ================== APP ================== */
-
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
   console.log("API BASE:", API);
-
 
   const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -42,16 +34,12 @@ export default function Home() {
   const [balance, setBalance] = useState<number>(0);
   const [loadingMe, setLoadingMe] = useState(false);
 
-  
-
-
-React.useEffect(() => {
-  const calc = () => setIsMobile(window.innerWidth < 640);
-  calc();
-  window.addEventListener("resize", calc);
-  return () => window.removeEventListener("resize", calc);
-}, []);
-
+  React.useEffect(() => {
+    const calc = () => setIsMobile(window.innerWidth < 640);
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
 
   const [mode, setMode] = useState<"model" | "product" | null>(null);
 
@@ -60,12 +48,10 @@ React.useEffect(() => {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [productFiles, setProductFiles] = useState<File[]>([]);
 
-
   // form
   const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
   const [otherCategory, setOtherCategory] = useState("");
   const [pockets, setPockets] = useState<"si" | "no" | "">("");
-
   const [measures, setMeasures] = useState({
     hombros: "",
     pecho: "",
@@ -75,59 +61,51 @@ React.useEffect(() => {
     largo: "",
   });
 
- React.useEffect(() => {
-  const interval = setInterval(() => {
-    if (!(window as any).google) return;
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (!(window as any).google) return;
+      clearInterval(interval);
 
-    clearInterval(interval);
+      const GOOGLE_CLIENT_ID =
+        "177285831628-o6shn4e85ecub5jilj6tj02njbt9r6jf.apps.googleusercontent.com";
+      console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
 
-    const GOOGLE_CLIENT_ID = "177285831628-o6shn4e85ecub5jilj6tj02njbt9r6jf.apps.googleusercontent.com";
-
-console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
-
-(window as any).google.accounts.id.initialize({
-  client_id: GOOGLE_CLIENT_ID,
-  callback: async (response: any) => {
-        try {
-          const res = await fetch(`${API}/auth/google`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ idToken: response.credential }),
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data?.error || "Login error");
+      (window as any).google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response: any) => {
+          try {
+            const res = await fetch(`${API}/auth/google`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idToken: response.credential }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data?.error || "Login error");
+            }
+            setUser(data.user);
+            setAccessToken(data.accessToken);
+            localStorage.setItem("accessToken", data.accessToken);
+            setBalance(data?.wallet?.balance ?? 0);
+          } catch (err) {
+            console.error(err);
+            alert("Error login Google");
           }
+        },
+        ux_mode: "popup",
+        auto_select: false,
+      });
 
-          setUser(data.user);
-          setAccessToken(data.accessToken);
-          localStorage.setItem("accessToken", data.accessToken);
-          setBalance(data?.wallet?.balance ?? 0);
+      (window as any).google.accounts.id.renderButton(document.getElementById("googleLoginDiv"), {
+        theme: "outline",
+        size: "large",
+      });
 
-        } catch (err) {
-          console.error(err);
-          alert("Error login Google");
-        }
-      },
-      ux_mode: "popup",
-      auto_select: false,
+      (window as any).google.accounts.id.prompt();
+    }, 300);
 
-    });
-
-    (window as any).google.accounts.id.renderButton(
-      document.getElementById("googleLoginDiv"),
-      { theme: "outline", size: "large" }
-    );
-
-    (window as any).google.accounts.id.prompt();
-
-  }, 300);
-
-  return () => clearInterval(interval);
-}, [API]);
-
+    return () => clearInterval(interval);
+  }, [API]);
 
   const [modelType, setModelType] = useState<(typeof MODEL_TYPES)[number] | "">("");
   const [ethnicity, setEthnicity] = useState<(typeof ETHNICITIES)[number] | "">("");
@@ -153,142 +131,133 @@ console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
   }, [modelType]);
 
   const steps = useMemo(() => {
-  if (mode === "product") {
-  return [
-    { title: "Fotos", key: "upload" },
-    { title: "Escena", key: "scene" },
-    { title: "Generar", key: "generate" },
-  ];
-}
-
-
-  return [
-    { title: "Subir fotos", key: "upload" },
-    { title: "Categoría", key: "category" },
-    { title: "Bolsillos", key: "pockets" },
-    { title: "Medidas (opcional)", key: "measures" },
-    { title: "Modelo", key: "model" },
-    { title: "Etnia", key: "ethnicity" },
-    { title: "Edad", key: "age" },
-    { title: "Fondo", key: "background" },
-    { title: "Pose", key: "pose" },
-    { title: "Tipo de cuerpo", key: "bodyType" },
-    { title: "Generar", key: "generate" },
-  ];
-}, [mode]);
-
-
-  
+    if (mode === "product") {
+      return [
+        { title: "Fotos", key: "upload" },
+        { title: "Escena", key: "scene" },
+        { title: "Generar", key: "generate" },
+      ];
+    }
+    return [
+      { title: "Subir fotos", key: "upload" },
+      { title: "Categoría", key: "category" },
+      { title: "Bolsillos", key: "pockets" },
+      { title: "Medidas (opcional)", key: "measures" },
+      { title: "Modelo", key: "model" },
+      { title: "Etnia", key: "ethnicity" },
+      { title: "Edad", key: "age" },
+      { title: "Fondo", key: "background" },
+      { title: "Pose", key: "pose" },
+      { title: "Tipo de cuerpo", key: "bodyType" },
+      { title: "Generar", key: "generate" },
+    ];
+  }, [mode]);
 
   React.useEffect(() => {
-  if (!mode) return;
-  setScene("");
-  setStep(0);
-  setError(null);
-  setResult(null);
+    if (!mode) return;
+    setScene("");
+    setStep(0);
+    setError(null);
+    setResult(null);
 
-  // opcional pero recomendable: limpiar inputs cuando cambia el modo
-  setFrontFile(null);
-  setBackFile(null);
-  setCategory("");
-  setOtherCategory("");
-  setPockets("");
-  setMeasures({
-    hombros: "",
-    pecho: "",
-    manga: "",
-    cintura: "",
-    cadera: "",
-    largo: "",
-  });
-  setModelType("");
-  setEthnicity("");
-  setAgeRange("");
-  setBackground("");
-  setPose("");
-  setBodyType("");
-  setBgSuggestions([]);
-  setProductFiles([]);
+    // opcional pero recomendable: limpiar inputs cuando cambia el modo
+    setFrontFile(null);
+    setBackFile(null);
+    setCategory("");
+    setOtherCategory("");
+    setPockets("");
+    setMeasures({
+      hombros: "",
+      pecho: "",
+      manga: "",
+      cintura: "",
+      cadera: "",
+      largo: "",
+    });
+    setModelType("");
+    setEthnicity("");
+    setAgeRange("");
+    setBackground("");
+    setPose("");
+    setBodyType("");
+    setBgSuggestions([]);
+    setProductFiles([]);
+  }, [mode]);
 
-}, [mode]);
-
-React.useEffect(() => {
-  fetchMe();
-}, [API]);
-
+  React.useEffect(() => {
+    fetchMe();
+  }, [API]);
 
   // ============ VALIDACIÓN por paso ============
   const stepError = useMemo(() => {
-  const key = steps[step]?.key;
+    const key = steps[step]?.key;
 
-  // upload
-  if (key === "upload") {
-  if (mode === "product") {
-    return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
-  }
-  return !frontFile ? "Subí la foto FRONT (obligatorio)." : null;
-}
-
-
-  // category
-  if (key === "category") {
-    if (!category) return "Elegí una categoría.";
-    if (category === "otro") {
-      if (!otherCategory.trim()) return "Completá 'Otro' (máx 4 palabras).";
-      if (wordCount(otherCategory) > 4) return "'Otro' debe tener máximo 4 palabras.";
+    // upload
+    if (key === "upload") {
+      if (mode === "product") {
+        return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
+      }
+      return !frontFile ? "Subí la foto FRONT (obligatorio)." : null;
     }
+
+    // category
+    if (key === "category") {
+      if (!category) return "Elegí una categoría.";
+      if (category === "otro") {
+        if (!otherCategory.trim()) return "Completá 'Otro' (máx 4 palabras).";
+        if (wordCount(otherCategory) > 4) return "'Otro' debe tener máximo 4 palabras.";
+      }
+      return null;
+    }
+
+    // pockets
+    if (key === "pockets") {
+      return pockets ? null : "Indicá si tiene bolsillos (si/no).";
+    }
+
+    // measures optional
+    if (key === "measures") return null;
+
+    // scene (solo product)
+    if (key === "scene") {
+      if (!scene.trim()) return "Escribí la escena (máx 10 palabras).";
+      if (wordCount(scene) > 10) return "La escena debe tener máximo 10 palabras.";
+      return null;
+    }
+
+    // model-only steps
+    if (key === "model") return modelType ? null : "Elegí el tipo de modelo.";
+    if (key === "ethnicity") return ethnicity ? null : "Elegí la etnia.";
+    if (key === "age") return ageRange ? null : "Elegí la edad.";
+    if (key === "pose") return pose ? null : "Elegí la pose.";
+    if (key === "bodyType") return bodyType ? null : "Elegí el tipo de cuerpo.";
+
+    // background (en ambos modos)
+    if (key === "background") {
+      if (!background.trim()) return "Escribí el fondo (máx 10 palabras).";
+      if (wordCount(background) > 10) return "El fondo debe tener máximo 10 palabras.";
+      return null;
+    }
+
+    // generate
     return null;
-  }
-
-  // pockets
-  if (key === "pockets") {
-    return pockets ? null : "Indicá si tiene bolsillos (si/no).";
-  }
-
-  // measures optional
-  if (key === "measures") return null;
-
-  // scene (solo product)
-  if (key === "scene") {
-    if (!scene.trim()) return "Escribí la escena (máx 10 palabras).";
-    if (wordCount(scene) > 10) return "La escena debe tener máximo 10 palabras.";
-    return null;
-  }
-
-  // model-only steps
-  if (key === "model") return modelType ? null : "Elegí el tipo de modelo.";
-  if (key === "ethnicity") return ethnicity ? null : "Elegí la etnia.";
-  if (key === "age") return ageRange ? null : "Elegí la edad.";
-  if (key === "pose") return pose ? null : "Elegí la pose.";
-  if (key === "bodyType") return bodyType ? null : "Elegí el tipo de cuerpo.";
-
-  // background (en ambos modos)
-  if (key === "background") {
-    if (!background.trim()) return "Escribí el fondo (máx 10 palabras).";
-    if (wordCount(background) > 10) return "El fondo debe tener máximo 10 palabras.";
-    return null;
-  }
-
-  // generate
-  return null;
-}, [
-  steps,
-  step,
-  mode,
-  frontFile,
-  productFiles,
-  category,
-  otherCategory,
-  pockets,
-  modelType,
-  ethnicity,
-  ageRange,
-  background,
-  pose,
-  bodyType,
-  scene,
-]);
-
+  }, [
+    steps,
+    step,
+    mode,
+    frontFile,
+    productFiles,
+    category,
+    otherCategory,
+    pockets,
+    modelType,
+    ethnicity,
+    ageRange,
+    background,
+    pose,
+    bodyType,
+    scene,
+  ]);
 
   const canGoNext = !stepError && !loading;
   const isLast = step === steps.length - 1;
@@ -298,75 +267,72 @@ React.useEffect(() => {
     if (!canGoNext) return;
     setStep((s) => Math.min(s + 1, steps.length - 1));
   }
+
   function prev() {
     setError(null);
     setStep((s) => Math.max(s - 1, 0));
   }
- 
+
   function goToFirstErrorStep() {
-  for (let i = 0; i < steps.length - 1; i++) {
-    switch (i) {
-      case 0:
-      return setStep(0);
-        break;
-      case 1:
-        if (!category) return setStep(1);
-        if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
-          return setStep(1);
-        break;
-      case 2:
-        if (!pockets) return setStep(2);
-        break;
-      case 4:
-        if (!modelType) return setStep(4);
-        break;
-      case 5:
-        if (!ethnicity) return setStep(5);
-        break;
-      case 6:
-        if (!ageRange) return setStep(6);
-        break;
-      case 7:
-        if (!background.trim() || wordCount(background) > 10)
-          return setStep(7);
-        break;
-      case 8:
-        if (!pose) return setStep(8);
-        break;
-      case 9:
-        if (!bodyType) return setStep(9);
-        break;
+    for (let i = 0; i < steps.length - 1; i++) {
+      switch (i) {
+        case 0:
+          return setStep(0);
+          break;
+        case 1:
+          if (!category) return setStep(1);
+          if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
+          break;
+        case 2:
+          if (!pockets) return setStep(2);
+          break;
+        case 4:
+          if (!modelType) return setStep(4);
+          break;
+        case 5:
+          if (!ethnicity) return setStep(5);
+          break;
+        case 6:
+          if (!ageRange) return setStep(6);
+          break;
+        case 7:
+          if (!background.trim() || wordCount(background) > 10) return setStep(7);
+          break;
+        case 8:
+          if (!pose) return setStep(8);
+          break;
+        case 9:
+          if (!bodyType) return setStep(9);
+          break;
+      }
     }
   }
-}
 
-async function fetchMe() {
-  if (!API) return;
-  const token = localStorage.getItem("accessToken");
-  if (!token) return;
+  async function fetchMe() {
+    if (!API) return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
 
-  setLoadingMe(true);
-  try {
-    const res = await fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (!res.ok) return;
-
-    setUser(data);
-    setBalance(data?.wallet?.balance ?? 0);
-  } finally {
-    setLoadingMe(false);
+    setLoadingMe(true);
+    try {
+      const res = await fetch(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+      setUser(data);
+      setBalance(data?.wallet?.balance ?? 0);
+    } finally {
+      setLoadingMe(false);
+    }
   }
-}
 
   async function handleSuggestBackground() {
     setError(null);
     if (!API) {
-  setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-  return;
-}
+      setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+      return;
+    }
     setHelpLoading(true);
     setBgSuggestions([]);
     try {
@@ -405,153 +371,141 @@ async function fetchMe() {
     }
 
     // chequeos obligatorios finales
+    if (mode === "product") {
+      if (productFiles.length === 0) {
+        setStep(0);
+        return setError("Subí al menos 1 foto del producto.");
+      }
+      if (!scene.trim() || wordCount(scene) > 10) {
+        setStep(1);
+        return setError("Escribí la escena (máx 10 palabras).");
+      }
+    }
 
     if (mode === "product") {
-  if (productFiles.length === 0) {
-    setStep(0);
-    return setError("Subí al menos 1 foto del producto.");
-  }
-
-  if (!scene.trim() || wordCount(scene) > 10) {
-    setStep(1);
-    return setError("Escribí la escena (máx 10 palabras).");
-  }
-}
-
-if (mode === "product") {
-  // En modo producto no validamos campos de modelo
-} else {
-
-if (!frontFile) {
-  goToFirstErrorStep();
-  return setError("Falta foto FRONT.");
-}
-
-if (!category) {
-  goToFirstErrorStep();
-  return setError("Falta categoría.");
-}
-
-if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) {
-  goToFirstErrorStep();
-  return setError("Revisá 'Otro' (máx 4 palabras).");
-}
-
-if (!pockets) {
-  goToFirstErrorStep();
-  return setError("Falta bolsillos.");
-}
-
-if (!modelType) {
-  goToFirstErrorStep();
-  return setError("Falta modelo.");
-}
-
-if (!ethnicity) {
-  goToFirstErrorStep();
-  return setError("Falta etnia.");
-}
-
-if (!ageRange) {
-  goToFirstErrorStep();
-  return setError("Falta edad.");
-}
-
-if (!background.trim() || wordCount(background) > 10) {
-  goToFirstErrorStep();
-  return setError("Falta fondo o excede 10 palabras.");
-}
-
-if (!pose) {
-  goToFirstErrorStep();
-  return setError("Falta pose.");
-}
-
-if (!bodyType) {
-  goToFirstErrorStep();
-  return setError("Falta tipo de cuerpo.");
-}
-}
+      // En modo producto no validamos campos de modelo
+    } else {
+      if (!frontFile) {
+        goToFirstErrorStep();
+        return setError("Falta foto FRONT.");
+      }
+      if (!category) {
+        goToFirstErrorStep();
+        return setError("Falta categoría.");
+      }
+      if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) {
+        goToFirstErrorStep();
+        return setError("Revisá 'Otro' (máx 4 palabras).");
+      }
+      if (!pockets) {
+        goToFirstErrorStep();
+        return setError("Falta bolsillos.");
+      }
+      if (!modelType) {
+        goToFirstErrorStep();
+        return setError("Falta modelo.");
+      }
+      if (!ethnicity) {
+        goToFirstErrorStep();
+        return setError("Falta etnia.");
+      }
+      if (!ageRange) {
+        goToFirstErrorStep();
+        return setError("Falta edad.");
+      }
+      if (!background.trim() || wordCount(background) > 10) {
+        goToFirstErrorStep();
+        return setError("Falta fondo o excede 10 palabras.");
+      }
+      if (!pose) {
+        goToFirstErrorStep();
+        return setError("Falta pose.");
+      }
+      if (!bodyType) {
+        goToFirstErrorStep();
+        return setError("Falta tipo de cuerpo.");
+      }
+    }
 
     setLoading(true);
     try {
       const fd = new FormData();
 
-// ✅ siempre mandamos el modo
-fd.append("mode", mode || "model");
+      // ✅ siempre mandamos el modo
+      fd.append("mode", mode || "model");
 
-if (mode === "product") {
-  // ✅ muchas fotos
-  productFiles.forEach((f) => fd.append("product_images", f));
-  // ✅ escena
-  fd.append("scene", scene.trim());
-} else {
-  // ✅ modo modelo (como antes)
-  if (!frontFile) {
-    goToFirstErrorStep();
-    throw new Error("Falta foto FRONT.");
-  }
-  fd.append("front", frontFile);
-  if (backFile) fd.append("back", backFile);
+      if (mode === "product") {
+        // ✅ muchas fotos
+        productFiles.forEach((f) => fd.append("product_images", f));
+        // ✅ escena
+        fd.append("scene", scene.trim());
+      } else {
+        // ✅ modo modelo (como antes)
+        if (!frontFile) {
+          goToFirstErrorStep();
+          throw new Error("Falta foto FRONT.");
+        }
+        fd.append("front", frontFile);
+        if (backFile) fd.append("back", backFile);
 
-  fd.append("category", category);
-  if (category === "otro") fd.append("other_category", otherCategory.trim());
-  fd.append("pockets", pockets);
+        fd.append("category", category);
+        if (category === "otro") fd.append("other_category", otherCategory.trim());
 
-  fd.append("hombros", measures.hombros);
-  fd.append("pecho", measures.pecho);
-  fd.append("manga", measures.manga);
-  fd.append("cintura", measures.cintura);
-  fd.append("cadera", measures.cadera);
-  fd.append("largo", measures.largo);
+        fd.append("pockets", pockets);
 
-  fd.append("model_type", modelType);
-  fd.append("ethnicity", ethnicity);
-  fd.append("age_range", ageRange);
-  fd.append("background", background.trim());
-  fd.append("pose", pose);
-  fd.append("body_type", bodyType);
-}
+        fd.append("hombros", measures.hombros);
+        fd.append("pecho", measures.pecho);
+        fd.append("manga", measures.manga);
+        fd.append("cintura", measures.cintura);
+        fd.append("cadera", measures.cadera);
+        fd.append("largo", measures.largo);
 
-const token = localStorage.getItem("accessToken");
+        fd.append("model_type", modelType);
+        fd.append("ethnicity", ethnicity);
+        fd.append("age_range", ageRange);
+        fd.append("background", background.trim());
+        fd.append("pose", pose);
+        fd.append("body_type", bodyType);
+      }
 
-const res = await fetch(`${API}/generate`, {
-  method: "POST",
-  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  body: fd,
-});
-    
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(`${API}/generate`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: fd,
+      });
 
-const text = await res.text();
-let data: any = null;
-try {
-  data = JSON.parse(text);
-} catch {
-  data = { raw: text };
-}
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { raw: text };
+      }
 
-if (!res.ok) {
-  setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
-  return;
-}
-
+      if (!res.ok) {
+        setError(
+          data?.error ||
+            data?.message ||
+            `Error ${res.status}: ${String(text).slice(0, 200)}`
+        );
+        return;
+      }
 
       let urls: string[] = [];
+      if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
+      else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
 
-if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
-else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
+      if (!urls.length) {
+        setError("El servidor no devolvió imágenes.");
+        return;
+      }
 
-if (!urls.length) {
-  setError("El servidor no devolvió imágenes.");
-  return;
-}
+      const absolute = urls.map((u) =>
+        u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`
+      );
 
-const absolute = urls.map((u) =>
-  u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`
-);
-
-setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
-
+      setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -563,76 +517,67 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
   const panel = useMemo(() => {
     switch (steps[step].key) {
       case "upload":
-  return (
-    <>
-      <FieldTitle>1) Subí fotos</FieldTitle>
+        return (
+          <>
+            <FieldTitle>1) Subí fotos</FieldTitle>
 
-      {mode === "product" ? (
-        <Box>
-          <Label>Fotos del producto (cuantas más, mejor)</Label>
-          <InputFiles onChange={setProductFiles} />
-          {productFiles.length > 0 && (
-            <SmallMuted>
-              {productFiles.length} archivo(s): {productFiles.map((f) => f.name).join(", ")}
-            </SmallMuted>
-          )}
-        </Box>
-      ) : (
-        <TwoCols>
-          <Box>
-            <Label>Delantera (obligatorio)</Label>
-            <InputFile onChange={(f) => setFrontFile(f)} />
-            {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
-          </Box>
-          <Box>
-            <Label>Espalda (opcional)</Label>
-            <InputFile onChange={(f) => setBackFile(f)} />
-            {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
-          </Box>
-        </TwoCols>
-      )}
-    </>
-  );
-
+            {mode === "product" ? (
+              <Box>
+                <Label>Fotos del producto (cuantas más, mejor)</Label>
+                <InputFiles onChange={setProductFiles} />
+                {productFiles.length > 0 && (
+                  <SmallMuted>
+                    {productFiles.length} archivo(s): {productFiles.map((f) => f.name).join(", ")}
+                  </SmallMuted>
+                )}
+              </Box>
+            ) : (
+              <TwoCols>
+                <Box>
+                  <Label>Delantera (obligatorio)</Label>
+                  <InputFile onChange={(f) => setFrontFile(f)} />
+                  {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
+                </Box>
+                <Box>
+                  <Label>Espalda (opcional)</Label>
+                  <InputFile onChange={(f) => setBackFile(f)} />
+                  {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
+                </Box>
+              </TwoCols>
+            )}
+          </>
+        );
 
       case "category":
-  return (
-    <>
-      <FieldTitle>2) Elegí la categoría</FieldTitle>
-      <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => setCategory(c as any)}
-            style={{
-  ...styles.pill,
-  ...(isMobile ? styles.pillMobile : {}),
-  ...(category === c ? styles.pillActive : {}),
-}}
+        return (
+          <>
+            <FieldTitle>2) Elegí la categoría</FieldTitle>
+            <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
+              {CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategory(c as any)}
+                  style={{
+                    ...styles.pill,
+                    ...(isMobile ? styles.pillMobile : {}),
+                    ...(category === c ? styles.pillActive : {}),
+                  }}
+                >
+                  {c === "otro" ? "Otro" : c}
+                </button>
+              ))}
+            </div>
 
-          >
-            {c === "otro" ? "Otro" : c}
-          </button>
-        ))}
-      </div>
-
-      {category === "otro" && (
-        <div style={{ marginTop: 12 }}>
-          <Label>Especificá “Otro” (máx 4 palabras)</Label>
-          <TextInput
-            value={otherCategory}
-            onChange={setOtherCategory}
-            placeholder="Ej: Chaleco sastrero corto"
-          />
-          <SmallMuted>
-            Palabras: {wordCount(otherCategory)} / 4
-          </SmallMuted>
-        </div>
-      )}
-    </>
-  );
-
+            {category === "otro" && (
+              <div style={{ marginTop: 12 }}>
+                <Label>Especificá “Otro” (máx 4 palabras)</Label>
+                <TextInput value={otherCategory} onChange={setOtherCategory} placeholder="Ej: Chaleco sastrero corto" />
+                <SmallMuted>Palabras: {wordCount(otherCategory)} / 4</SmallMuted>
+              </div>
+            )}
+          </>
+        );
 
       case "pockets":
         return (
@@ -658,7 +603,11 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
               {Object.entries(measures).map(([k, v]) => (
                 <div key={k}>
                   <Label style={{ textTransform: "capitalize" }}>{k}</Label>
-                  <TextInput value={v} onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))} placeholder="Ej: 52cm" />
+                  <TextInput
+                    value={v}
+                    onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))}
+                    placeholder="Ej: 52cm"
+                  />
                 </div>
               ))}
             </Grid3>
@@ -670,16 +619,13 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
           <>
             <FieldTitle>5) Tipo de modelo</FieldTitle>
             <RadioPills
-            value={modelType}
-            onChange={(v) => {
-              setModelType(v as any);
-              setAgeRange("");
-            }}
-            options={MODEL_TYPES.map((m) => ({
-              value: m,
-              label: m,
-            }))}
-          />
+              value={modelType}
+              onChange={(v) => {
+                setModelType(v as any);
+                setAgeRange("");
+              }}
+              options={MODEL_TYPES.map((m) => ({ value: m, label: m }))}
+            />
           </>
         );
 
@@ -694,11 +640,10 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
                   type="button"
                   onClick={() => setEthnicity(e as any)}
                   style={{
-  ...styles.pill,
-  ...(isMobile ? styles.pillMobile : {}),
-  ...(ethnicity === e ? styles.pillActive : {}),
-}}
-
+                    ...styles.pill,
+                    ...(isMobile ? styles.pillMobile : {}),
+                    ...(ethnicity === e ? styles.pillActive : {}),
+                  }}
                 >
                   {e}
                 </button>
@@ -707,21 +652,19 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
           </>
         );
 
-
       case "age":
         return (
           <>
             <FieldTitle>7) Edad</FieldTitle>
             {!modelType ? (
-          <SmallMuted>Elegí primero el modelo</SmallMuted>
-        ) : (
-          <RadioPills
-            value={ageRange}
-            onChange={(v) => setAgeRange(v)}
-            options={ageOptions.map((a) => ({ value: a, label: a }))}
-          />
-        )}
-
+              <SmallMuted>Elegí primero el modelo</SmallMuted>
+            ) : (
+              <RadioPills
+                value={ageRange}
+                onChange={(v) => setAgeRange(v)}
+                options={ageOptions.map((a) => ({ value: a, label: a }))}
+              />
+            )}
           </>
         );
 
@@ -729,11 +672,8 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
         return (
           <>
             <FieldTitle>8) Fondo (máx 10 palabras)</FieldTitle>
-            <TextInput
-              value={background}
-              onChange={setBackground}
-              placeholder='Ej: "estudio gris con luz suave"'
-            />
+            <TextInput value={background} onChange={setBackground} placeholder='Ej: "estudio gris con luz suave"' />
+
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>Palabras: {wordCount(background)} / 10</SmallMuted>
               <Button
@@ -760,237 +700,197 @@ setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
       case "pose":
         return (
           <>
-          <FieldTitle>9) Pose</FieldTitle>
-          <RadioPills
-            value={pose}
-            onChange={(v) => setPose(v as any)}
-            options={POSES.map((p) => ({
-              value: p,
-              label: p,
-            }))}
-          />
-        </>
-      );
+            <FieldTitle>9) Pose</FieldTitle>
+            <RadioPills value={pose} onChange={(v) => setPose(v as any)} options={POSES.map((p) => ({ value: p, label: p }))} />
+          </>
+        );
 
-
-        case "bodyType":
-  return (
-    <>
-      <FieldTitle>Tipo de cuerpo</FieldTitle>
-      <RadioPills
-        value={bodyType}
-        onChange={(v) => setBodyType(v as any)}
-        options={BODY_TYPES.map((b) => ({
-          value: b,
-          label: b,
-        }))}
-      />
-    </>
-  );
-
-case "scene":
-  return (
-    <>
-      <FieldTitle>Escena del producto (máx 10 palabras)</FieldTitle>
-
-      <TextInput
-        value={scene}
-        onChange={setScene}
-        placeholder='Ej: "colgado en percha de madera", "sobre arena húmeda"'
-      />
-
-      <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
-        <SmallMuted>Palabras: {wordCount(scene)} / 10</SmallMuted>
-
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            if (!API) return setError("Falta NEXT_PUBLIC_API_BASE");
-            setHelpLoading(true);
-            try {
-              const res = await fetch(`${API}/suggest-background`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  category: "producto",
-                  model_type: "sin modelo",
-                  vibe: "foto producto e-commerce premium",
-                }),
-              });
-
-              const data = await res.json();
-              if (Array.isArray(data?.options) && data.options.length > 0) {
-                setScene(data.options[0]);
-              }
-            } catch (err: any) {
-              setError(String(err?.message || err));
-            } finally {
-              setHelpLoading(false);
-            }
-          }}
-          disabled={helpLoading}
-        >
-          {helpLoading ? "Buscando..." : "Ayudame a elegir"}
-        </Button>
-      </Row>
-    </>
-  );
-
-    
-
-     case "generate":
-  return (
-    <>
-      <FieldTitle>11) Generar imágenes</FieldTitle>
-
-      <div style={styles.summaryCard}>
-        <div style={styles.summaryTitle}>Resumen</div>
-
-        {mode === "product" ? (
+      case "bodyType":
+        return (
           <>
-            <div style={{ ...styles.summaryGrid, gridTemplateColumns: "1fr" }}>
-              <SummaryItem label="Escena" value={scene} />
-              <SummaryItem
-                label="Fotos cargadas"
-                value={`${productFiles.length} archivo(s)`}
-              />
+            <FieldTitle>Tipo de cuerpo</FieldTitle>
+            <RadioPills value={bodyType} onChange={(v) => setBodyType(v as any)} options={BODY_TYPES.map((b) => ({ value: b, label: b }))} />
+          </>
+        );
+
+      case "scene":
+        return (
+          <>
+            <FieldTitle>Escena del producto (máx 10 palabras)</FieldTitle>
+            <TextInput value={scene} onChange={setScene} placeholder='Ej: "colgado en percha de madera", "sobre arena húmeda"' />
+
+            <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
+              <SmallMuted>Palabras: {wordCount(scene)} / 10</SmallMuted>
+
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  if (!API) return setError("Falta NEXT_PUBLIC_API_BASE");
+                  setHelpLoading(true);
+                  try {
+                    const res = await fetch(`${API}/suggest-background`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        category: "producto",
+                        model_type: "sin modelo",
+                        vibe: "foto producto e-commerce premium",
+                      }),
+                    });
+                    const data = await res.json();
+                    if (Array.isArray(data?.options) && data.options.length > 0) {
+                      setScene(data.options[0]);
+                    }
+                  } catch (err: any) {
+                    setError(String(err?.message || err));
+                  } finally {
+                    setHelpLoading(false);
+                  }
+                }}
+                disabled={helpLoading}
+              >
+                {helpLoading ? "Buscando..." : "Ayudame a elegir"}
+              </Button>
+            </Row>
+          </>
+        );
+
+      case "generate":
+        return (
+          <>
+            <FieldTitle>11) Generar imágenes</FieldTitle>
+
+            <div style={styles.summaryCard}>
+              <div style={styles.summaryTitle}>Resumen</div>
+
+              {mode === "product" ? (
+                <>
+                  <div style={{ ...styles.summaryGrid, gridTemplateColumns: "1fr" }}>
+                    <SummaryItem label="Escena" value={scene} />
+                    <SummaryItem label="Fotos cargadas" value={`${productFiles.length} archivo(s)`} />
+                  </div>
+
+                  {productFiles.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        display: "grid",
+                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gap: 10,
+                      }}
+                    >
+                      {productFiles.slice(0, 8).map((f, idx) => (
+                        <div key={idx} style={styles.imgCard}>
+                          <img
+                            src={URL.createObjectURL(f)}
+                            alt={`prod-${idx}`}
+                            style={{
+                              width: "100%",
+                              display: "block",
+                              height: 180,
+                              objectFit: "contain" as any,
+                              background: "#fff",
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {productFiles.length > 8 && (
+                    <SmallMuted style={{ marginTop: 8 } as any}>Mostrando 8 de {productFiles.length} fotos.</SmallMuted>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={styles.summaryGrid}>
+                    <SummaryItem
+                      label="Categoría"
+                      value={category === "otro" ? `Otro: ${otherCategory}` : category}
+                    />
+                    <SummaryItem label="Bolsillos" value={pockets} />
+                    <SummaryItem label="Modelo" value={modelType} />
+                    <SummaryItem label="Etnia" value={ethnicity} />
+                    <SummaryItem label="Edad" value={ageRange} />
+                    <SummaryItem label="Fondo" value={background} />
+                    <SummaryItem label="Pose" value={pose} />
+                    <SummaryItem label="Tipo de cuerpo" value={bodyType} />
+                  </div>
+
+                  {(frontFile || backFile) && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, 1fr)",
+                        gap: 10,
+                      }}
+                    >
+                      {frontFile && (
+                        <div style={styles.imgCard}>
+                          <img
+                            src={URL.createObjectURL(frontFile)}
+                            alt="front"
+                            style={{
+                              width: "100%",
+                              display: "block",
+                              height: 180,
+                              objectFit: "contain" as any,
+                              background: "#fff",
+                            }}
+                          />
+                        </div>
+                      )}
+                      {backFile && (
+                        <div style={styles.imgCard}>
+                          <img
+                            src={URL.createObjectURL(backFile)}
+                            alt="back"
+                            style={{
+                              width: "100%",
+                              display: "block",
+                              height: 180,
+                              objectFit: "contain" as any,
+                              background: "#fff",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-       {productFiles.length > 0 && (
-              <div
-                style={{
-                  marginTop: 12,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 10,
-                }}
-                >
-          {productFiles.slice(0, 8).map((f, idx) => (
-                  <div key={idx} style={styles.imgCard}>
-                    <img
-                      src={URL.createObjectURL(f)}
-                      alt={`prod-${idx}`}
-                      style={{
-  width: "100%",
-  display: "block",
-  height: 180,
-  objectFit: "contain" as any,
-  background: "#fff",
-}}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || balance < 1}
+              style={{ width: "100%", padding: "14px 16px" }}
+            >
+              {loading ? "Generando..." : balance < 1 ? "Sin créditos" : "Generar (1 crédito)"}
+            </Button>
 
-      {productFiles.length > 8 && (
-              <SmallMuted style={{ marginTop: 8 } as any}>
-                Mostrando 8 de {productFiles.length} fotos.
-              </SmallMuted>
-            )}
-          </>
-        ) : (
-          <>
-            <div style={styles.summaryGrid}>
-              <SummaryItem
-                label="Categoría"
-                value={category === "otro" ? `Otro: ${otherCategory}` : category}
-              />
-              <SummaryItem label="Bolsillos" value={pockets} />
-              <SummaryItem label="Modelo" value={modelType} />
-              <SummaryItem label="Etnia" value={ethnicity} />
-              <SummaryItem label="Edad" value={ageRange} />
-              <SummaryItem label="Fondo" value={background} />
-              <SummaryItem label="Pose" value={pose} />
-              <SummaryItem label="Tipo de cuerpo" value={bodyType} />
-            </div>
+            {result && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
+                <div style={styles.resultGrid}>
+                  {result.imageUrls.map((u, idx) => (
+                    <div key={idx} style={styles.imgCard}>
+                      <img src={u} alt={`img-${idx}`} style={{ width: "100%", display: "block" }} />
+                    </div>
+                  ))}
+                </div>
 
-    {(frontFile || backFile) && (
-              <div
-                style={{
-                  marginTop: 12,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: 10,
-                }}
-              >
-                {frontFile && (
-                  <div style={styles.imgCard}>
-                    <img
-                      src={URL.createObjectURL(frontFile)}
-                      alt="front"
-                      style={{
-  width: "100%",
-  display: "block",
-  height: 180,
-  objectFit: "contain" as any,
-  background: "#fff",
-}}
-                    />
-                  </div>
-                )}
-
-            {backFile && (
-                  <div style={styles.imgCard}>
-                    <img
-                      src={URL.createObjectURL(backFile)}
-                        alt="back"
-                          style={{
-                            width: "100%",
-                            display: "block",
-                            height: 180,
-                            objectFit: "contain" as any,
-                            background: "#fff",
-                          }}
-                    />
-                  </div>
+                {result.promptUsed && (
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ cursor: "pointer" }}>Ver prompt usado</summary>
+                    <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{result.promptUsed}</pre>
+                  </details>
                 )}
               </div>
             )}
           </>
-        )}
-      </div>
-
-    <Button
-  onClick={handleGenerate}
-  disabled={loading || balance < 1}
-  style={{ width: "100%", padding: "14px 16px" }}
->
-  {loading ? "Generando..." : balance < 1 ? "Sin créditos" : "Generar (1 crédito)"}
-</Button>
-
-
-      {result && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
-          <div style={styles.resultGrid}>
-            {result.imageUrls.map((u, idx) => (
-              <div key={idx} style={styles.imgCard}>
-                <img
-                  src={u}
-                  alt={`img-${idx}`}
-                  style={{ width: "100%", display: "block" }}
-                />
-              </div>
-            ))}
-          </div>
-
-          {result.promptUsed && (
-            <details style={{ marginTop: 12 }}>
-              <summary style={{ cursor: "pointer" }}>
-                Ver prompt usado
-              </summary>
-              <pre
-                style={{ whiteSpace: "pre-wrap", marginTop: 8 }}
-              >
-                {result.promptUsed}
-              </pre>
-            </details>
-          )}
-        </div>
-      )}
-    </>
-  );
+        );
 
       default:
         return null;
@@ -1017,57 +917,60 @@ case "scene":
     result,
     handleSuggestBackground,
     handleGenerate,
+    isMobile,
+    mode,
+    scene,
+    balance,
+    error,
+    loadingMe,
+    API,
   ]);
 
-if (!user) {
-  return (
-    <div style={styles.page}>
-      <div style={{ ...styles.shell, maxWidth: 400, textAlign: "center" }}>
-        <div style={{ marginBottom: 20, fontSize: 22, fontWeight: 700 }}>
-          Iniciar sesión
+  if (!user) {
+    return (
+      <div style={styles.page}>
+        <div style={{ ...styles.shell, maxWidth: 400, textAlign: "center" }}>
+          <div style={{ marginBottom: 20, fontSize: 22, fontWeight: 700 }}>Iniciar sesión</div>
+          <div id="googleLoginDiv"></div>
         </div>
-
-        <div id="googleLoginDiv"></div>
       </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   if (!mode) {
-  return (
-    <div style={styles.page}>
-      <div style={{ ...styles.shell, maxWidth: 600 }}>
-        <div style={styles.header}>
-          <div>
-            <div style={styles.h1}>AI Ropa — Generador</div>
-            <div style={styles.h2}>Elegí el tipo de imagen que querés generar</div>
+    return (
+      <div style={styles.page}>
+        <div style={{ ...styles.shell, maxWidth: 600 }}>
+          <div style={styles.header}>
+            <div>
+              <div style={styles.h1}>AI Ropa — Generador</div>
+              <div style={styles.h2}>Elegí el tipo de imagen que querés generar</div>
+            </div>
           </div>
-        </div>
 
-        <div style={styles.panel}>
-          <div style={{ display: "grid", gap: 14 }}>
-            <button
-              type="button"
-              onClick={() => setMode("model")}
-              style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}
-            >
-              📸 Foto con modelo
-            </button>
+          <div style={styles.panel}>
+            <div style={{ display: "grid", gap: 14 }}>
+              <button
+                type="button"
+                onClick={() => setMode("model")}
+                style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}
+              >
+                📸 Foto con modelo
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setMode("product")}
-              style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}
-            >
-              🛍 Foto producto (sin modelo)
-            </button>
+              <button
+                type="button"
+                onClick={() => setMode("product")}
+                style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}
+              >
+                🛍 Foto producto (sin modelo)
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div style={styles.page}>
@@ -1077,71 +980,54 @@ if (!user) {
           <div>
             <div style={styles.h1}>AI Ropa — Generador</div>
             <div>
-  {mode === "model" ? (
-    <button
-      onClick={() => setMode("product")}
-      style={{ ...styles.btnSecondary, marginTop: 8 }}
-    >
-      🛍 Cambiar a Foto producto
-    </button>
-  ) : (
-    <button
-      onClick={() => setMode("model")}
-      style={{ ...styles.btnSecondary, marginTop: 8 }}
-    >
-      📸 Cambiar a Foto con modelo
-    </button>
-  )}
-</div>
-
+              {mode === "model" ? (
+                <button onClick={() => setMode("product")} style={{ ...styles.btnSecondary, marginTop: 8 }}>
+                  🛍 Cambiar a Foto producto
+                </button>
+              ) : (
+                <button onClick={() => setMode("model")} style={{ ...styles.btnSecondary, marginTop: 8 }}>
+                  📸 Cambiar a Foto con modelo
+                </button>
+              )}
+            </div>
             <div style={styles.h2}>1 crédito = 4 imágenes (frente / espalda / costados)</div>
           </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-  <div style={styles.badge}>
-    {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
-  </div>
 
-  <button
-    type="button"
-    onClick={async () => {
-  try {
-    console.log("API:", API);
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
 
-    const token = localStorage.getItem("accessToken");
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  console.log("API:", API);
+                  const token = localStorage.getItem("accessToken");
 
-    const res = await fetch(`${API}/mp/create-preference`, {
+                  const res = await fetch(`${API}/mp/create-preference`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ credits: 10 }),
+                  });
 
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ credits: 10 }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-
-    if (!data?.init_point) {
-  alert("No init_point recibido");
-  return;
-}
-
-window.location.href = data.init_point;
-
-
-  } catch (e) {
-    alert(String(e?.message || e));
-  }
-}}
-
-    style={styles.btnSecondary}
-  >
-    💳 Comprar créditos
-  </button>
-</div>
-
-
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+                  if (!data?.init_point) {
+                    alert("No init_point recibido");
+                    return;
+                  }
+                  window.location.href = data.init_point;
+                } catch (e: any) {
+                  alert(String(e?.message || e));
+                }
+              }}
+              style={styles.btnSecondary}
+            >
+              💳 Comprar créditos
+            </button>
+          </div>
         </div>
 
         {/* Main */}
@@ -1151,22 +1037,20 @@ window.location.href = data.init_point;
             <div style={styles.sidebarTitle}>Pasos</div>
             <div style={{ display: "grid", gap: 8 }}>
               {steps.map((s, i) => {
-  const active = i === step;
-  const done = i < step;
-  
-
-  return (
-    <button
-  key={s.key}
-  onClick={() => setStep(i)}
-  style={{
-    ...styles.stepBtn,
-    ...(active ? styles.stepBtnActive : {}),
-  }}
->
-
-
-                    <span style={{ ...styles.stepDot, ...(done ? styles.stepDotDone : active ? styles.stepDotActive : {}) }}>
+                const active = i === step;
+                const done = i < step;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setStep(i)}
+                    style={{ ...styles.stepBtn, ...(active ? styles.stepBtnActive : {}) }}
+                  >
+                    <span
+                      style={{
+                        ...styles.stepDot,
+                        ...(done ? styles.stepDotDone : active ? styles.stepDotActive : {}),
+                      }}
+                    >
                       {done ? "✓" : i + 1}
                     </span>
                     <span style={{ fontWeight: active ? 700 : 600 }}>{s.title}</span>
@@ -1188,9 +1072,7 @@ window.location.href = data.init_point;
               <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
                 Atrás
               </Button>
-
               <div style={{ flex: 1 }} />
-
               {!isLast ? (
                 <Button onClick={next} disabled={!canGoNext}>
                   Siguiente
@@ -1211,21 +1093,16 @@ window.location.href = data.init_point;
 }
 
 /* ================== UI COMPONENTS ================== */
-
 function FieldTitle({ children }: { children: React.ReactNode }) {
   return <div style={styles.fieldTitle}>{children}</div>;
 }
 
 function Label({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div style={{ ...styles.label, ...(style || {}) }}>
-      {children}
-    </div>
-  );
+  return <div style={{ ...styles.label, ...(style || {}) }}>{children}</div>;
 }
 
-function SmallMuted({ children }: { children: React.ReactNode }) {
-  return <div style={styles.smallMuted}>{children}</div>;
+function SmallMuted({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div style={{ ...styles.smallMuted, ...(style || {}) }}>{children}</div>;
 }
 
 function Row({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -1263,7 +1140,6 @@ function TextInput({
   );
 }
 
-
 function InputFile({ onChange }: { onChange: (f: File | null) => void }) {
   return (
     <input
@@ -1286,7 +1162,6 @@ function InputFiles({ onChange }: { onChange: (files: File[]) => void }) {
     />
   );
 }
-
 
 function RadioPills({
   value,
@@ -1347,7 +1222,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 }
 
 /* ================== STYLES ================== */
-
 const styles: Record<string, React.CSSProperties> = {
   page: {
     background: "#ffffff",
@@ -1356,10 +1230,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#0f172a",
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
   },
-  shell: {
-    maxWidth: 1100,
-    margin: "0 auto",
-  },
+  shell: { maxWidth: 1100, margin: "0 auto" },
   header: {
     display: "flex",
     alignItems: "flex-end",
@@ -1369,16 +1240,16 @@ const styles: Record<string, React.CSSProperties> = {
   h1: { fontSize: 28, fontWeight: 800, letterSpacing: -0.2 },
   h2: { marginTop: 6, color: "#475569" },
   badge: {
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  borderWidth: 1,
-  borderStyle: "solid",
-  borderColor: "#bfdbfe",
-  padding: "6px 10px",
-  borderRadius: 999,
-  fontWeight: 700,
-  fontSize: 12,
-},
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#bfdbfe",
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontWeight: 700,
+    fontSize: 12,
+  },
   main: {
     display: "grid",
     gridTemplateColumns: "280px 1fr",
@@ -1392,7 +1263,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f8fafc",
   },
   sidebarTitle: { fontWeight: 800, marginBottom: 10, color: "#0f172a" },
-
   stepBtn: {
     width: "100%",
     display: "flex",
@@ -1423,15 +1293,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     flex: "0 0 auto",
   },
-  stepDotActive: {
-    background: "#2563eb",
-    color: "#ffffff",
-  },
-  stepDotDone: {
-    background: "#16a34a",
-    color: "#ffffff",
-  },
-
+  stepDotActive: { background: "#2563eb", color: "#ffffff" },
+  stepDotDone: { background: "#16a34a", color: "#ffffff" },
   panel: {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
@@ -1456,7 +1319,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 12,
     fontWeight: 700,
   },
-
   footer: {
     display: "flex",
     gap: 10,
@@ -1464,19 +1326,25 @@ const styles: Record<string, React.CSSProperties> = {
     paddingTop: 14,
     borderTop: "1px solid #e5e7eb",
   },
-
   hint: { marginTop: 10, color: "#64748b", fontSize: 12 },
-  code: { background: "#f1f5f9", padding: "2px 6px", borderRadius: 8, border: "1px solid #e2e8f0" },
-
+  code: {
+    background: "#f1f5f9",
+    padding: "2px 6px",
+    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+  },
   fieldTitle: { fontSize: 18, fontWeight: 900, marginBottom: 12 },
   label: { fontSize: 13, fontWeight: 800, marginBottom: 6, color: "#0f172a" },
   smallMuted: { fontSize: 12, color: "#64748b", marginTop: 6 },
-
   row: { display: "flex", alignItems: "center", gap: 10 },
   twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
   grid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 },
-  box: { border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f8fafc" },
-
+  box: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    padding: 12,
+    background: "#f8fafc",
+  },
   input: {
     width: "100%",
     padding: "10px 12px",
@@ -1495,7 +1363,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#ffffff",
     color: "#0f172a",
   },
-
   pills: { display: "flex", gap: 10, flexWrap: "wrap" as any },
   pill: {
     padding: "10px 14px",
@@ -1506,26 +1373,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     color: "#0f172a",
   },
-  pillsGrid2: {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, 1fr)",
-  gap: 10,
-},pillMobile: {
-  width: "100%",
-  justifyContent: "center",
-},
-
-pillsGrid2Mobile: {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: 10,
-},
-  pillActive: {
-    background: "#2563eb",
-    borderColor: "#2563eb",
-    color: "#ffffff",
-  },
-
+  pillsGrid2: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
+  pillMobile: { width: "100%", justifyContent: "center" },
+  pillsGrid2Mobile: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
+  pillActive: { background: "#2563eb", borderColor: "#2563eb", color: "#ffffff" },
   btnPrimary: {
     background: "#2563eb",
     color: "#ffffff",
@@ -1544,11 +1395,7 @@ pillsGrid2Mobile: {
     fontWeight: 900,
     cursor: "pointer",
   },
-  btnDisabled: {
-    opacity: 0.6,
-    cursor: "not-allowed",
-  },
-
+  btnDisabled: { opacity: 0.6, cursor: "not-allowed" },
   suggestionBtn: {
     width: "100%",
     textAlign: "left",
@@ -1560,7 +1407,6 @@ pillsGrid2Mobile: {
     fontWeight: 700,
     color: "#0f172a",
   },
-
   summaryCard: {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
@@ -1570,10 +1416,14 @@ pillsGrid2Mobile: {
   },
   summaryTitle: { fontWeight: 900, marginBottom: 10 },
   summaryGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
-  summaryItem: { border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "#ffffff" },
+  summaryItem: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
+    padding: 10,
+    background: "#ffffff",
+  },
   summaryLabel: { fontSize: 12, color: "#64748b", fontWeight: 800 },
   summaryValue: { fontSize: 13, color: "#0f172a", fontWeight: 900, marginTop: 4 },
-
   resultGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 },
   imgCard: {
     border: "1px solid #e5e7eb",

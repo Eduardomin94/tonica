@@ -7,27 +7,23 @@ datasource db {
 }
 
 model User {
-  id         String       @id @default(cuid())
-  email      String       @unique
-  name       String?
-  image      String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  image       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   wallet      Wallet?
   generations Generation[]
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  balance   Int      @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id        String       @id @default(cuid())
+  userId    String       @unique
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   entries   CreditEntry[]
 }
 
@@ -46,41 +42,33 @@ enum GenerationStatus {
 }
 
 model Generation {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  mode        String
-  promptUsed  String?
-  status      GenerationStatus @default(PENDING)
-
-  costCredits Int              @default(0)
-  imageUrls   Json?
-  error       String?
-
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode       String
+  promptUsed String?
+  status     GenerationStatus @default(PENDING)
+  costCredits Int             @default(0)
+  imageUrls  Json?
+  error      String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@index([userId, createdAt])
 }
 
 model CreditEntry {
   id             String          @id @default(cuid())
-  walletId       String
-  wallet         Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
-
-  type           CreditEntryType
-  amount         Int
-  idempotencyKey String          @unique
-
-  refType        String?
-  refId          String?
-  metadata       Json?
-
-  createdAt      DateTime        @default(now())
+  walletId        String
+  wallet          Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type            CreditEntryType
+  amount          Int
+  idempotencyKey  String          @unique
+  refType         String?
+  refId           String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
 
   @@index([walletId, createdAt])
   @@index([walletId, idempotencyKey])
-
-  @@unique([refType, refId]) // ✅ idempotencia fuerte por MP_PAYMENT + paymentId
 }
