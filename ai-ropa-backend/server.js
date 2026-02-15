@@ -354,11 +354,9 @@ const preference = await mpPreference.create({
     },
   ],
 
-  // 👇 clave para mapear y debug
-  external_reference: `u:${req.userId}|c:${credits}|t:${Date.now()}`,
+ external_reference: String(req.userId),
+metadata: { user_id: req.userId, credits },
 
-  // 👇 clave para acreditar en webhook (lo vamos a usar)
-  metadata: { userId: req.userId, credits },
 
   // 👇 clave: obliga a MP a llamarte al webhook
   notification_url: `${be}/mp/webhook?source_news=webhooks`,
@@ -417,7 +415,10 @@ app.post("/mp/webhook", async (req, res) => {
     if (!r.ok || !payment) return res.sendStatus(200);
     if (payment.status !== "approved") return res.sendStatus(200);
 
-    const userId = payment?.metadata?.userId;
+    const userId =
+  payment?.metadata?.user_id ||
+  payment?.external_reference;
+
     const credits = Number(payment?.metadata?.credits || 0);
 
     console.log("🧾 metadata:", { userId, credits });
