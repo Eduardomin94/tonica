@@ -323,6 +323,7 @@ Mantener exactamente el mismo producto, color y textura.
 // =====================
 app.post("/mp/create-preference", requireAuth, async (req, res) => {
   try {
+    console.log("MP ACCESS TOKEN:", process.env.MP_ACCESS_TOKEN?.slice(0, 10));
     const userId = req.userId;
 const credits = Number(req.body?.credits ?? 10);
 const unitPrice = credits * 100;
