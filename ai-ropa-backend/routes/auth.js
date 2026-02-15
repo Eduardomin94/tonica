@@ -3,14 +3,12 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma.js";
 
-
 const router = express.Router();
-
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post("/google", async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken } = req.body ?? {};
 
     if (!idToken) {
       return res.status(400).json({ error: "Missing idToken" });
@@ -23,32 +21,47 @@ router.post("/google", async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(401).json({ error: "Invalid Google token payload" });
+    }
 
-    const { sub, email, name, picture } = payload;
+    const { email, name, picture } = payload;
 
-    // Crear o buscar usuario
-    const user = await prisma.user.upsert({
-      where: { googleSub: sub },
-      update: {
-        email,
-        name,
-        imageUrl: picture,
-      },
-      create: {
-        googleSub: sub,
-        email,
-        name,
-        imageUrl: picture,
-        wallet: {
-          create: {
-            balance: 0,
-          },
+    if (!email) {
+      return res.status(400).json({ error: "Google token missing email" });
+    }
+
+    // Upsert user + asegurar wallet
+    const user = await prisma.$transaction(async (tx) => {
+      const u = await tx.user.upsert({
+        where: { email },
+        update: {
+          name: name ?? null,
+          image: picture ?? null,
         },
-      },
-      include: { wallet: true },
+        create: {
+          email,
+          name: name ?? null,
+          image: picture ?? null,
+          wallet: { create: { balance: 0 } },
+        },
+        include: { wallet: true },
+      });
+
+      if (!u.wallet) {
+        await tx.wallet.create({
+          data: { userId: u.id, balance: 0 },
+        });
+
+        return tx.user.findUnique({
+          where: { id: u.id },
+          include: { wallet: true },
+        });
+      }
+
+      return u;
     });
 
-    // Crear JWT interno
     const accessToken = jwt.sign(
       { sub: user.id },
       process.env.AUTH_JWT_SECRET,
@@ -61,16 +74,16 @@ router.post("/google", async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        imageUrl: user.imageUrl,
+        image: user.image,
       },
       wallet: {
-        balance: user.wallet.balance,
+        balance: user.wallet?.balance ?? 0,
       },
     });
   } catch (error) {
-  console.error("GOOGLE VERIFY ERROR:", error);
-  return res.status(401).json({ error: error.message || "Invalid Google token" });
-}
+    console.error("AUTH /google error:", error);
+    return res.status(401).json({ error: error?.message || "Invalid Google token" });
+  }
 });
 
 export default router;
