@@ -333,13 +333,15 @@ const frontendBase = process.env.FRONTEND_URL; // ej: https://tu-frontend.com
 
 const externalReference = `u:${userId}|c:${credits}|t:${Date.now()}`;
 console.log("MP BACK_URLS:", {
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  success: `${process.env.FRONTEND_URL}/pago-exitoso`,
-  failure: `${process.env.FRONTEND_URL}/pago-fallido`,
-  pending: `${process.env.FRONTEND_URL}/pago-pendiente`,
+  FRONTEND_URL: fe,
+  success: `${fe}/pago-exitoso`,
+  failure: `${fe}/pago-fallido`,
+  pending: `${fe}/pago-pendiente`,
 });
-const fe = String(process.env.FRONTEND_URL || "").replace(/\/$/, "");
-const be = String(process.env.BACKEND_URL || "").replace(/\/$/, "");
+
+const fe = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
+
 
 const preference = await mpPreference.create({
   body: {
