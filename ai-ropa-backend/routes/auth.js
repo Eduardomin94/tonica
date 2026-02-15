@@ -9,29 +9,19 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 router.post("/google", async (req, res) => {
   try {
     const { idToken } = req.body ?? {};
+    if (!idToken) return res.status(400).json({ error: "Missing idToken" });
 
-    if (!idToken) {
-      return res.status(400).json({ error: "Missing idToken" });
-    }
-
-    // Verificar ID token con Google
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    if (!payload) {
-      return res.status(401).json({ error: "Invalid Google token payload" });
-    }
+    if (!payload) return res.status(401).json({ error: "Invalid Google token payload" });
 
     const { email, name, picture } = payload;
+    if (!email) return res.status(400).json({ error: "Google token missing email" });
 
-    if (!email) {
-      return res.status(400).json({ error: "Google token missing email" });
-    }
-
-    // Upsert user + asegurar wallet
     const user = await prisma.$transaction(async (tx) => {
       const u = await tx.user.upsert({
         where: { email },
@@ -49,14 +39,8 @@ router.post("/google", async (req, res) => {
       });
 
       if (!u.wallet) {
-        await tx.wallet.create({
-          data: { userId: u.id, balance: 0 },
-        });
-
-        return tx.user.findUnique({
-          where: { id: u.id },
-          include: { wallet: true },
-        });
+        await tx.wallet.create({ data: { userId: u.id, balance: 0 } });
+        return tx.user.findUnique({ where: { id: u.id }, include: { wallet: true } });
       }
 
       return u;
@@ -76,9 +60,7 @@ router.post("/google", async (req, res) => {
         name: user.name,
         image: user.image,
       },
-      wallet: {
-        balance: user.wallet?.balance ?? 0,
-      },
+      wallet: { balance: user.wallet?.balance ?? 0 },
     });
   } catch (error) {
     console.error("AUTH /google error:", error);
