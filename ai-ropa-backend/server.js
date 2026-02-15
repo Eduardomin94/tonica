@@ -395,6 +395,8 @@ const preference = await mpPreference.create({
 // =====================
 
 app.post("/mp/webhook", async (req, res) => {
+  console.log("🔔 WEBHOOK HIT:", req.body);
+  console.log("🔔 paymentId:", req.body?.data?.id, req.query?.id, req.query?.["data.id"]);
   try {
     const paymentId =
       req.body?.data?.id ||
