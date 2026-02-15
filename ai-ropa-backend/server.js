@@ -485,7 +485,6 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
   failure: "https://gleaming-rejoicing-production.up.railway.app",
   pending: "https://gleaming-rejoicing-production.up.railway.app",
 },
-auto_return: "approved",
 
   },
 });
