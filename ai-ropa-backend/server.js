@@ -395,47 +395,75 @@ const preference = await mpPreference.create({
 // =====================
 
 app.post("/mp/webhook", async (req, res) => {
-  console.log("🔔 WEBHOOK HIT:", req.body);
-  console.log("🔔 paymentId:", req.body?.data?.id, req.query?.id, req.query?.["data.id"]);
   try {
     const paymentId =
       req.body?.data?.id ||
       req.query?.id ||
       req.query?.["data.id"];
-      console.log("🔎 paymentId detectado:", paymentId);
 
+    console.log("🔔 WEBHOOK HIT:", req.body);
+    console.log("🔔 paymentId detectado:", paymentId);
 
     if (!paymentId) return res.sendStatus(200);
 
+    // Consultar pago real a MP
     const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-      },
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
     });
 
     const payment = await r.json().catch(() => null);
-    if (!r.ok || !payment) return res.sendStatus(200);
+    console.log("💳 payment status:", r.status, payment?.status);
 
+    if (!r.ok || !payment) return res.sendStatus(200);
     if (payment.status !== "approved") return res.sendStatus(200);
 
     const userId = payment?.metadata?.userId;
     const credits = Number(payment?.metadata?.credits || 0);
 
-    if (!userId || credits <= 0) return res.sendStatus(200);
+    console.log("🧾 metadata:", { userId, credits });
 
-    await prisma.wallet.update({
-      where: { userId },
-      data: { balance: { increment: credits } },
+    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
+
+    // Anti-duplicado: no acreditar dos veces el mismo paymentId
+    const existing = await prisma.creditEntry.findFirst({
+      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
+      select: { id: true },
+    });
+    if (existing) return res.sendStatus(200);
+
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: { wallet: true },
+      });
+
+      if (!user?.wallet) throw new Error("Wallet not found");
+
+      await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { increment: credits } },
+      });
+
+      await tx.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "TOPUP", // si tu enum no tiene TOPUP, cambialo por el que uses
+          amount: credits,
+          idempotencyKey: `mp:${paymentId}`,
+          refType: "MP_PAYMENT",
+          refId: String(paymentId),
+        },
+      });
     });
 
-    console.log("✅ Créditos acreditados:", credits);
-
+    console.log("✅ Créditos acreditados:", { paymentId, userId, credits });
     return res.sendStatus(200);
   } catch (err) {
     console.error("MP WEBHOOK ERROR:", err);
     return res.sendStatus(200);
   }
 });
+
 
 // =====================
 // STATIC + HEALTH (UNA SOLA VEZ)
