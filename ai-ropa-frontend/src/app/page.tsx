@@ -199,10 +199,11 @@ function handleLogout() {
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
-          } catch (err) {
-            console.error(err);
-            alert("Error login Google");
-          }
+            } catch (err: any) {
+  console.error(err);
+  alert(`Error login Google: ${err?.message || err}`);
+}
+
         },
         ux_mode: "popup",
         auto_select: false,
