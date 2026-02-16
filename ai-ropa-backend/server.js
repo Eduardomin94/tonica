@@ -30,8 +30,10 @@ const mpPreference = new Preference(mpClient);
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
+  "https://tonica-woad.vercel.app",
   (process.env.FRONTEND_URL || "").trim(),
 ].filter(Boolean);
+
 
 app.use(
   cors({
