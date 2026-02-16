@@ -33,6 +33,96 @@ export default function Home() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [loadingMe, setLoadingMe] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [topupStatus, setTopupStatus] = useState<string | null>(null);
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loadingEntries, setLoadingEntries] = useState(false);
+  const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
+  
+  const translations = {
+  es: {
+    title: "Generador IA",
+    subtitle: "Elegí el tipo de imagen que querés generar",
+    buyCredits: "Comprar créditos",
+    logout: "Cerrar sesión",
+    credits: "Créditos",
+    history: "Historial de movimientos",
+    changeToModel: "Cambiar a Foto con modelo",
+    changeToProduct: "Cambiar a Foto producto",
+    next: "Siguiente",
+    back: "Atrás",
+    signIn: "Iniciar sesión",
+    signInHint: "Accedé con tu cuenta de Google para usar el generador",
+  },
+  en: {
+    title: "AI Generator",
+    subtitle: "Choose the type of image you want to generate",
+    buyCredits: "Buy credits",
+    logout: "Log out",
+    credits: "Credits",
+    history: "Transaction history",
+    changeToModel: "Switch to Model photos",
+    changeToProduct: "Switch to Product photos",
+    next: "Next",
+    back: "Back",
+    signIn: "Sign in",
+    signInHint: "Sign in with Google to use the generator",
+  },
+  pt: {
+    title: "Gerador AI",
+    subtitle: "Escolha o tipo de imagem que deseja gerar",
+    buyCredits: "Comprar créditos",
+    logout: "Sair",
+    credits: "Créditos",
+    history: "Histórico de movimentos",
+    changeToModel: "Mudar para fotos com modelo",
+    changeToProduct: "Mudar para fotos do produto",
+    next: "Próximo",
+    back: "Voltar",
+    signIn: "Entrar",
+    signInHint: "Entre com Google para usar o gerador",
+  },
+  ko: {
+    title: "AI 생성기",
+    subtitle: "생성할 이미지 유형을 선택하세요",
+    buyCredits: "크레딧 구매",
+    logout: "로그아웃",
+    credits: "크레딧",
+    history: "거래 내역",
+    changeToModel: "모델 사진으로 전환",
+    changeToProduct: "상품 사진으로 전환",
+    next: "다음",
+    back: "뒤로",
+    signIn: "로그인",
+    signInHint: "Google로 로그인하여 사용하세요",
+  },
+  zh: {
+    title: "AI 生成器",
+    subtitle: "选择要生成的图片类型",
+    buyCredits: "购买积分",
+    logout: "退出登录",
+    credits: "积分",
+    history: "交易记录",
+    changeToModel: "切换到模特图",
+    changeToProduct: "切换到产品图",
+    next: "下一步",
+    back: "返回",
+    signIn: "登录",
+    signInHint: "使用 Google 登录以使用生成器",
+  },
+} as const;
+
+const t = (key: keyof typeof translations.es) => translations[language][key];
+
+
+  
+function handleLogout() {
+  localStorage.removeItem("accessToken");
+  setUser(null);
+  setAccessToken(null);
+  setBalance(0);
+}
+
 
   React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
@@ -40,6 +130,28 @@ export default function Home() {
     window.addEventListener("resize", calc);
     return () => window.removeEventListener("resize", calc);
   }, []);
+
+  React.useEffect(() => {
+  const url = new URL(window.location.href);
+  const status = url.searchParams.get("topup");
+
+  if (status) {
+    setTopupStatus(status);
+
+    // 🔄 refresca el balance automáticamente
+    fetchMe();
+
+    // 🧹 limpia la URL
+    window.history.replaceState({}, "", "/");
+
+    // ⏳ auto-oculta el mensaje en 5 segundos
+    const t = window.setTimeout(() => setTopupStatus(null), 5000);
+    return () => window.clearTimeout(t);
+  }
+}, []);
+
+
+
 
   const [mode, setMode] = useState<"model" | "product" | null>(null);
 
@@ -95,17 +207,39 @@ export default function Home() {
         ux_mode: "popup",
         auto_select: false,
       });
+      const el = document.getElementById("googleLoginDiv");
 
-      (window as any).google.accounts.id.renderButton(document.getElementById("googleLoginDiv"), {
-        theme: "outline",
-        size: "large",
-      });
+if (el) {
+  el.innerHTML = ""; // limpia el botón viejo
 
-      (window as any).google.accounts.id.prompt();
+  (window as any).google.accounts.id.renderButton(
+    el,
+    {
+      theme: "outline",
+      size: "large",
+    }
+  );
+}      
     }, 300);
 
     return () => clearInterval(interval);
   }, [API]);
+
+  React.useEffect(() => {
+  // Solo cuando estamos en pantalla de login
+  if (user || accessToken) return;
+
+  const w = window as any;
+  if (!w.google?.accounts?.id) return;
+
+  const el = document.getElementById("googleLoginDiv");
+  if (!el) return;
+
+  // Limpiar y volver a renderizar el botón
+  el.innerHTML = "";
+  w.google.accounts.id.renderButton(el, { theme: "outline", size: "large" });
+}, [user, accessToken]);
+
 
   const [modelType, setModelType] = useState<(typeof MODEL_TYPES)[number] | "">("");
   const [ethnicity, setEthnicity] = useState<(typeof ETHNICITIES)[number] | "">("");
@@ -114,6 +248,8 @@ export default function Home() {
   const [scene, setScene] = useState("");
   const [pose, setPose] = useState<(typeof POSES)[number] | "">("");
   const [bodyType, setBodyType] = useState<(typeof BODY_TYPES)[number] | "">("");
+  
+
 
   // ui
   const [step, setStep] = useState(0);
@@ -185,8 +321,10 @@ export default function Home() {
   }, [mode]);
 
   React.useEffect(() => {
-    fetchMe();
-  }, [API]);
+  fetchMe();
+  fetchEntries();
+}, [API]);
+
 
   // ============ VALIDACIÓN por paso ============
   const stepError = useMemo(() => {
@@ -197,7 +335,7 @@ export default function Home() {
       if (mode === "product") {
         return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
       }
-      return !frontFile ? "Subí la foto FRONT (obligatorio)." : null;
+      return !frontFile ? "Subí la foto Delantera (obligatorio)." : null;
     }
 
     // category
@@ -312,6 +450,7 @@ export default function Home() {
     if (!API) return;
     const token = localStorage.getItem("accessToken");
     if (!token) return;
+    setAccessToken(token);
 
     setLoadingMe(true);
     try {
@@ -321,11 +460,34 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) return;
       setUser(data);
-      setBalance(data?.wallet?.balance ?? 0);
+setBalance(data?.wallet?.balance ?? 0);
+setEntries(data?.wallet?.entries ?? []);
+
     } finally {
       setLoadingMe(false);
     }
   }
+
+  async function fetchEntries() {
+  if (!API) return;
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  setLoadingEntries(true);
+  try {
+    const res = await fetch(`${API}/wallet/entries`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+    if (!res.ok) return;
+
+    setEntries(Array.isArray(data?.entries) ? data.entries : []);
+  } finally {
+    setLoadingEntries(false);
+  }
+}
+
 
   async function handleSuggestBackground() {
     setError(null);
@@ -506,6 +668,8 @@ export default function Home() {
       );
 
       setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
+      await fetchMe();
+
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -926,14 +1090,27 @@ export default function Home() {
     API,
   ]);
 
-  if (!user) {
+  if (!user && !accessToken) {
     return (
-      <div style={styles.page}>
-        <div style={{ ...styles.shell, maxWidth: 400, textAlign: "center" }}>
-          <div style={{ marginBottom: 20, fontSize: 22, fontWeight: 700 }}>Iniciar sesión</div>
-          <div id="googleLoginDiv"></div>
-        </div>
-      </div>
+      <div style={styles.loginCard}>
+  <div style={styles.loginTitle}>Iniciar sesión</div>
+
+  <div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    marginTop: 20,
+  }}
+>
+  <div id="googleLoginDiv" />
+</div>
+
+
+  <div style={styles.loginSub}>
+    Accedé con tu cuenta de Google para usar el generador
+  </div>
+</div>
+
     );
   }
 
@@ -943,8 +1120,15 @@ export default function Home() {
         <div style={{ ...styles.shell, maxWidth: 600 }}>
           <div style={styles.header}>
             <div>
-              <div style={styles.h1}>AI Ropa — Generador</div>
-              <div style={styles.h2}>Elegí el tipo de imagen que querés generar</div>
+              <div style={{ ...styles.h1, color: "#ffffff" }}>
+  {t("title")}
+
+</div>
+
+<div style={{ ...styles.h2, color: "#cbd5e1" }}>
+  Elegí el tipo de imagen que querés generar
+</div>
+
             </div>
           </div>
 
@@ -973,27 +1157,85 @@ export default function Home() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.shell}>
+  <div style={styles.page}>
+    <div style={styles.shell}>
+
+      {topupStatus === "ok" && (
+        <div style={{
+          background: "#dcfce7",
+          border: "1px solid #16a34a",
+          color: "#166534",
+          padding: "12px",
+          borderRadius: "12px",
+          marginBottom: "16px",
+          fontWeight: 600
+        }}>
+          ✅ Créditos agregados correctamente
+        </div>
+      )}
+
+      {topupStatus === "fail" && (
+        <div style={{
+          background: "#fee2e2",
+          border: "1px solid #dc2626",
+          color: "#7f1d1d",
+          padding: "12px",
+          borderRadius: "12px",
+          marginBottom: "16px",
+          fontWeight: 600
+        }}>
+          ❌ El pago fue rechazado
+        </div>
+      )}
         {/* Header */}
         <div style={styles.header}>
           <div>
-            <div style={styles.h1}>AI Ropa — Generador</div>
-            <div>
-              {mode === "model" ? (
-                <button onClick={() => setMode("product")} style={{ ...styles.btnSecondary, marginTop: 8 }}>
-                  🛍 Cambiar a Foto producto
-                </button>
-              ) : (
-                <button onClick={() => setMode("model")} style={{ ...styles.btnSecondary, marginTop: 8 }}>
-                  📸 Cambiar a Foto con modelo
-                </button>
-              )}
-            </div>
-            <div style={styles.h2}>1 crédito = 4 imágenes (frente / espalda / costados)</div>
-          </div>
+            <div style={{ ...styles.h1, color: "#9495B5" }}>
+  {t("title")}
 
+</div>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+  {mode === "model" ? (
+    <button onClick={() => setMode("product")} style={{ ...styles.btnSecondary }}>
+      🛍 Cambiar a Foto producto
+    </button>
+  ) : (
+    <button onClick={() => setMode("model")} style={{ ...styles.btnSecondary }}>
+      📸 Cambiar a Foto con modelo
+    </button>
+  )}
+
+  <select
+    value={language}
+    onChange={(e) => setLanguage(e.target.value as any)}
+    style={{
+      padding: "8px 10px",
+      borderRadius: 10,
+      border: "1px solid #e2e8f0",
+      background: "#ffffff",
+      fontWeight: 700,
+      cursor: "pointer",
+    }}
+  >
+    <option value="es">🇪🇸 ES</option>
+    <option value="en">🇺🇸 EN</option>
+    <option value="pt">🇧🇷 PT</option>
+    <option value="ko">🇰🇷 KO</option>
+    <option value="zh">🇨🇳 中文</option>
+  </select>
+</div>
+
+            <div style={{ ...styles.h2, color: "#ffffff" }}>
+  1 crédito = 4 imágenes (frente / espalda / costados)
+</div>
+ </div> 
+
+          
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ fontSize: 12, color: "#ffffff", fontWeight: 700 }}>
+  {user?.email || user?.name}
+</div>
+
             <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
 
             <button
@@ -1027,6 +1269,15 @@ export default function Home() {
             >
               💳 Comprar créditos
             </button>
+
+            <button
+  type="button"
+  onClick={handleLogout}
+  style={styles.btnSecondary}
+>
+  🚪 Cerrar sesión
+</button>
+
           </div>
         </div>
 
@@ -1064,9 +1315,11 @@ export default function Home() {
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
             {error && <div style={styles.inlineErr}>{error}</div>}
-
+           
             {panel}
-
+            
+          
+                
             {/* Footer actions */}
             <div style={styles.footer}>
               <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
@@ -1085,11 +1338,125 @@ export default function Home() {
               Tip: si el backend no está corriendo en 3001, levantalo con{" "}
               <code style={styles.code}>node server.js</code>.
             </div>
-          </section>
-        </div>
+            {/* Historial de movimientos */}
+<div style={{ marginTop: 40 }}>
+
+</div>
+          </section>        
+        </div>      
+          <details style={{
+  marginTop: 20,
+  border: "1px solid #e5e7eb",
+  borderRadius: 16,
+  background: "#ffffff",
+  boxShadow: "0 1px 0 rgba(15,23,42,0.03)"
+}}>
+  <summary style={{
+    cursor: "pointer",
+    listStyle: "none",
+    padding: "14px 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    fontWeight: 800
+  }}>
+    <span>📒 Historial de movimientos</span>
+
+    <span style={{
+      fontSize: 12,
+      fontWeight: 800,
+      background: "#f1f5f9",
+      border: "1px solid #e2e8f0",
+      padding: "4px 10px",
+      borderRadius: 999
+    }}>
+      {loadingEntries ? "Cargando..." : `${entries.length}`}
+    </span>
+  </summary>
+
+  <div style={{
+    padding: "0 16px 16px 16px"
+  }}>
+    {!loadingEntries && entries.length === 0 ? (
+      <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
+    ) : (
+      <div style={{
+  marginTop: 8,
+  overflowX: "auto",
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  width: "100%",
+  maxWidth: "100%",
+}}>
+
+        <table style={{ 
+  width: "100%", 
+  minWidth: 700,
+  borderCollapse: "collapse", 
+  fontSize: 13 
+}}>
+
+          <thead>
+            <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+              <th style={{ padding: "10px 10px", color: "#475569" }}>Fecha</th>
+              <th style={{ padding: "10px 10px", color: "#475569" }}>Movimiento</th>
+              <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569" }}>Cantidad</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {entries.map((e) => {
+              const isPlus = e.amount > 0;
+
+              const label =
+                e.type === "PURCHASE" ? "Compra" :
+                e.type === "CONSUME" ? "Consumo" :
+                e.type === "REFUND" ? "Reintegro" :
+                e.type === "GRANT" ? "Bonificación" :
+                e.type;
+
+              return (
+                <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 10px", whiteSpace: "nowrap", color: "#0f172a" }}>
+                    {new Date(e.createdAt).toLocaleString()}
+                  </td>
+
+                  <td style={{ padding: "10px 10px" }}>
+                    <span style={{
+                      display: "inline-block",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      border: "1px solid #e2e8f0",
+                      background: "#ffffff",
+                      color: "#0f172a"
+                    }}>
+                      {label}
+                    </span>
+                  </td>
+
+                  <td style={{
+                    padding: "10px 10px",
+                    textAlign: "right",
+                    fontWeight: 900,
+                    color: isPlus ? "#16a34a" : "#dc2626",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {isPlus ? `+${e.amount}` : e.amount}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+    )}
+  </div>
+</details>
+      </div>      
     </div>
-  );
+    );
 }
 
 /* ================== UI COMPONENTS ================== */
@@ -1224,12 +1591,16 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 /* ================== STYLES ================== */
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    background: "#ffffff",
-    minHeight: "100vh",
-    padding: 20,
-    color: "#0f172a",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-  },
+  minHeight: "100vh",
+  padding: 20,
+  color: "#0f172a",
+  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
+  background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
   shell: { maxWidth: 1100, margin: "0 auto" },
   header: {
     display: "flex",
@@ -1278,7 +1649,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   stepBtnActive: {
     background: "#ffffff",
-    borderColor: "#dbeafe",
+    border: "1px solid #dbeafe",
+
     boxShadow: "0 1px 0 rgba(15, 23, 42, 0.03)",
   },
   stepDot: {
@@ -1431,4 +1803,27 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     background: "#ffffff",
   },
+  loginCard: {
+  maxWidth: 420,
+  margin: "80px auto",
+  padding: 40,
+  borderRadius: 20,
+  border: "1px solid #e5e7eb",
+  background: "#ffffff",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+  textAlign: "center",
+},
+
+loginTitle: {
+  fontSize: 24,
+  fontWeight: 800,
+  color: "#0f172a",
+},
+
+loginSub: {
+  marginTop: 16,
+  fontSize: 13,
+  color: "#64748b",
+},
+
 };
