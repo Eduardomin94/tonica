@@ -197,6 +197,205 @@ Vibe: ${vibe}
   }
 });
 
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+
+import authRoutes from "./routes/auth.js";
+import { requireAuth } from "./middleware/requireAuth.js";
+import { prisma } from "./prisma.js";
+
+import { MercadoPagoConfig, Preference } from "mercadopago";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// =====================
+// MERCADO PAGO CLIENT
+// =====================
+const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN,
+});
+const mpPreference = new Preference(mpClient);
+
+// =====================
+// CORS + JSON
+// =====================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://tonica-woad.vercel.app",
+  (process.env.FRONTEND_URL || "").trim(),
+].filter(Boolean);
+
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("CORS not allowed"));
+    },
+  })
+);
+app.options(/.*/, cors());
+app.use(express.json({ limit: "10mb" }));
+
+// =====================
+// ROUTES
+// =====================
+app.use("/auth", authRoutes);
+
+// =====================
+// WALLET: CREDIT ENTRIES (HISTORIAL)
+// =====================
+app.get("/wallet/entries", requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { wallet: true },
+    });
+
+    if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
+
+    const entries = await prisma.creditEntry.findMany({
+      where: { walletId: user.wallet.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        refType: true,
+        refId: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({ entries });
+  } catch (err) {
+    console.error("WALLET ENTRIES ERROR:", err);
+    return res.status(500).json({ error: "Error cargando historial" });
+  }
+});
+
+
+// =====================
+// GEMINI (tu parte original)
+// =====================
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const MODEL_TEXT = "gemini-flash-latest";
+const MODEL_IMAGE = "gemini-2.5-flash-image";
+
+const upload = multer({ dest: "uploads/" });
+
+async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
+  if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
+
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data };
+  } catch (err) {
+    const msg =
+      err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
+    return { status: 599, data: { error: msg } };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function extractImageBase64(data) {
+  const cand = data?.candidates?.[0];
+  const parts = cand?.content?.parts || [];
+
+  for (const p of parts) {
+    const b64 =
+      p?.inlineData?.data ||
+      p?.inline_data?.data ||
+      p?.fileData?.data ||
+      p?.file_data?.data;
+
+    if (typeof b64 === "string" && b64.length > 1000) return b64;
+  }
+
+  try {
+    const s = JSON.stringify(data);
+    const m = s.match(/"data"\s*:\s*"([A-Za-z0-9+/=]{1000,})"/);
+    return m?.[1] || null;
+  } catch {
+    return null;
+  }
+}
+
+// =====================
+// SUGGEST BACKGROUND
+// =====================
+app.post("/suggest-background", async (req, res) => {
+  try {
+    const { category, model_type, vibe } = req.body;
+
+    const prompt = `
+Devolvé SOLO JSON válido:
+{"option":"..."}
+
+Sugerí 1 solo fondo para fotos e-commerce.
+Solo describí el lugar.
+Máximo 10 palabras.
+
+Categoría: ${category}
+Modelo: ${model_type}
+Vibe: ${vibe}
+`.trim();
+
+    const { status, data } = await geminiGenerate({
+      model: MODEL_TEXT,
+      body: { contents: [{ role: "user", parts: [{ text: prompt }] }] },
+      timeoutMs: 15000,
+    });
+
+    if (status >= 400) {
+      return res.json({ options: ["estudio blanco seamless con luz suave"] });
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    let parsed = {};
+    try {
+      parsed = JSON.parse(text);
+    } catch {}
+
+    const option = String(parsed.option || "").trim();
+    const finalOption =
+      option && option.split(/\s+/).length <= 10
+        ? option
+        : "estudio blanco seamless con luz suave";
+
+    return res.json({ options: [finalOption] });
+  } catch (err) {
+    console.error(err);
+    return res.json({ options: ["estudio blanco seamless con luz suave"] });
+  }
+});
+
 // =====================
 // GENERATE (PROTEGIDO + COBRO)  (tu parte original)
 // =====================
@@ -504,6 +703,133 @@ if (updated.count === 0) {
     }
   }
 );
+
+// =====================
+// MERCADO PAGO: CREATE PREFERENCE
+// =====================
+app.post("/mp/create-preference", requireAuth, async (req, res) => {
+  try {
+    const credits = Number(req.body?.credits ?? 10);
+    const unitPrice = credits * 1;
+
+    const fe = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+    const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
+
+    const preference = await mpPreference.create({
+      body: {
+        items: [
+          {
+            title: `Créditos AI Ropa (${credits})`,
+            quantity: 1,
+            unit_price: unitPrice,
+            currency_id: "ARS",
+          },
+        ],
+
+        // para mapear usuario robusto
+        external_reference: String(req.userId),
+        metadata: { user_id: req.userId, credits },
+
+        notification_url: `${be}/mp/webhook?source_news=webhooks`,
+
+        back_urls: {
+          success: `${be}/pago-exitoso`,
+          failure: `${be}/pago-fallido`,
+          pending: `${be}/pago-pendiente`,
+        },
+
+        auto_return: "approved",
+      },
+    });
+
+    return res.json({
+      init_point: preference.init_point,
+      id: preference.id,
+    });
+  } catch (err) {
+    console.error("MP ERROR:", err);
+    return res.status(500).json({ error: "MercadoPago preference error" });
+  }
+});
+
+// =====================
+// MERCADOPAGO WEBHOOK (ACREDITA)
+// =====================
+app.post("/mp/webhook", async (req, res) => {
+  try {
+    const paymentId = req.body?.data?.id || req.query?.id || req.query?.["data.id"];
+    if (!paymentId) return res.sendStatus(200);
+
+    // consultar pago real a MP
+    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+    });
+    const payment = await r.json().catch(() => null);
+    if (!r.ok || !payment) return res.sendStatus(200);
+    if (payment.status !== "approved") return res.sendStatus(200);
+
+    const userId = payment?.metadata?.user_id || payment?.external_reference;
+    const credits = Number(payment?.metadata?.credits || 0);
+
+    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
+
+    // idempotencia: no acreditar dos veces el mismo paymentId
+    const existing = await prisma.creditEntry.findFirst({
+      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
+      select: { id: true },
+    });
+    if (existing) return res.sendStatus(200);
+
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: String(userId) },
+        include: { wallet: true },
+      });
+      if (!user?.wallet) throw new Error("Wallet not found");
+
+      await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { increment: credits } },
+      });
+
+      await tx.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "PURCHASE",
+          amount: credits,
+          idempotencyKey: `mp:${paymentId}`,
+          refType: "MP_PAYMENT",
+          refId: String(paymentId),
+        },
+      });
+    });
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("MP WEBHOOK ERROR:", err);
+    return res.sendStatus(200);
+  }
+});
+
+// =====================
+// STATIC + HEALTH
+// =====================
+app.use("/uploads", express.static("uploads"));
+app.get("/", (req, res) => res.json({ status: "OK" }));
+
+// =====================
+// MP RETURN ROUTES (DEV)
+// =====================
+
+const FRONT = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+
+app.get("/pago-exitoso", (req, res) => res.redirect(`${FRONT}/?topup=ok`));
+app.get("/pago-fallido", (req, res) => res.redirect(`${FRONT}/?topup=fail`));
+app.get("/pago-pendiente", (req, res) => res.redirect(`${FRONT}/?topup=pending`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // =====================
 // MERCADO PAGO: CREATE PREFERENCE
