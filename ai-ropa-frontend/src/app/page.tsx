@@ -1512,9 +1512,6 @@ setMeEntries(data?.wallet?.entries ?? []);
   </button>
 </div>
 
-
-        </div>
-
         {/* Main */}
  <div style={isMobile ? styles.mainMobile : styles.main}>
 
