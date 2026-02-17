@@ -1598,11 +1598,38 @@ function Button({
 }) {
   const base = variant === "primary" ? styles.btnPrimary : styles.btnSecondary;
   const dis = disabled ? styles.btnDisabled : {};
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ ...base, ...dis, ...(style || {}) }}>
-      {children}
-    </button>
-  );
+  const [hover, setHover] = React.useState(false);
+const [pressed, setPressed] = React.useState(false);
+
+return (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    onMouseEnter={() => setHover(true)}
+    onMouseLeave={() => {
+      setHover(false);
+      setPressed(false);
+    }}
+    onMouseDown={() => setPressed(true)}
+    onMouseUp={() => setPressed(false)}
+    style={{
+      ...base,
+      ...dis,
+      ...(style || {}),
+      transition: "transform 120ms ease, box-shadow 120ms ease",
+      transform: disabled
+        ? "none"
+        : pressed
+        ? "scale(0.98)"
+        : hover
+        ? "scale(1.03)"
+        : "scale(1)",
+    }}
+  >
+    {children}
+  </button>
+);
+
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
