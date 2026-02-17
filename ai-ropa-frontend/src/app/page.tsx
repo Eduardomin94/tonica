@@ -37,7 +37,6 @@ export default function Home() {
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
-  const [creditAmount, setCreditAmount] = useState<number>(10);
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
   
   const translations = {
@@ -1240,61 +1239,37 @@ setEntries(data?.wallet?.entries ?? []);
 
             <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
 
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-  <span style={{ fontSize: 11, fontWeight: 800, color: "#cbd5e1" }}>
-    Créditos
-  </span>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  console.log("API:", API);
+                  const token = localStorage.getItem("accessToken");
 
-  <input
-    type="number"
-    min={1}
-    value={creditAmount}
-    onChange={(e) => setCreditAmount(Number(e.target.value))}
-    style={{
-      width: 90,
-      height: 40,
-      padding: "0 12px",
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,0.3)",
-      background: "rgba(255,255,255,0.1)",
-      color: "#ffffff",
-      fontWeight: 800,
-      textAlign: "center",
-      outline: "none"
-    }}
-  />
-</div>
+                  const res = await fetch(`${API}/mp/create-preference`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ credits: 10 }),
+                  });
 
-
-  <button
-    type="button"
-    onClick={async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const res = await fetch(`${API}/mp/create-preference`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ credits: creditAmount }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-        if (!data?.init_point) throw new Error("No init_point recibido");
-        window.location.href = data.init_point;
-      } catch (e: any) {
-        alert(String(e?.message || e));
-      }
-    }}
-    style={styles.btnSecondary}
-  >
-    💳 Comprar créditos
-  </button>
-</div>
-
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+                  if (!data?.init_point) {
+                    alert("No init_point recibido");
+                    return;
+                  }
+                  window.location.href = data.init_point;
+                } catch (e: any) {
+                  alert(String(e?.message || e));
+                }
+              }}
+              style={styles.btnSecondary}
+            >
+              💳 Comprar créditos
+            </button>
 
             <button
   type="button"
@@ -1596,42 +1571,13 @@ function Button({
   variant?: "primary" | "secondary";
   style?: React.CSSProperties;
 }) {
-
-
   const base = variant === "primary" ? styles.btnPrimary : styles.btnSecondary;
   const dis = disabled ? styles.btnDisabled : {};
-  const [hover, setHover] = React.useState(false);
-const [pressed, setPressed] = React.useState(false);
-
-return (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    onMouseEnter={() => setHover(true)}
-    onMouseLeave={() => {
-      setHover(false);
-      setPressed(false);
-    }}
-    onMouseDown={() => setPressed(true)}
-    onMouseUp={() => setPressed(false)}
-    style={{
-      ...base,
-      ...dis,
-      ...(style || {}),
-      transition: "transform 120ms ease, box-shadow 120ms ease",
-      transform: disabled
-        ? "none"
-        : pressed
-        ? "scale(0.98)"
-        : hover
-        ? "scale(1.03)"
-        : "scale(1)",
-    }}
-  >
-    {children}
-  </button>
-);
-
+  return (
+    <button onClick={onClick} disabled={disabled} style={{ ...base, ...dis, ...(style || {}) }}>
+      {children}
+    </button>
+  );
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
