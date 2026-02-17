@@ -1101,7 +1101,12 @@ setMeEntries(data?.wallet?.entries ?? []);
   
             <Button
   onClick={handleGenerate}
-  disabled={loading || selectedCount === 0 || balance < selectedCount}
+  disabled={
+  loading ||
+  Object.values(views).filter(Boolean).length === 0 ||
+  balance < Object.values(views).filter(Boolean).length
+}
+
   style={{ width: "100%", padding: "14px 16px" }}
 >
   {loading
