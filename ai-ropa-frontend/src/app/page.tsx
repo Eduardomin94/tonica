@@ -1342,6 +1342,7 @@ setEntries(data?.wallet?.entries ?? []);
 >
 
           {/* Sidebar */}
+          {!isMobile && (
           <aside style={styles.sidebar}>
             <div style={styles.sidebarTitle}>Pasos</div>
             <div style={{ display: "grid", gap: 8 }}>
@@ -1368,7 +1369,7 @@ setEntries(data?.wallet?.entries ?? []);
               })}
             </div>
           </aside>
-
+          )}
           {/* Panel */}
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
