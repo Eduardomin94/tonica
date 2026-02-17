@@ -1379,37 +1379,61 @@ setEntries(data?.wallet?.entries ?? []);
   }}
 >
           {/* Sidebar */}
+          {!isMobile && (
+          <aside style={styles.sidebar}>
+            <div style={styles.sidebarTitle}>Pasos</div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {steps.map((s, i) => {
+                const active = i === step;
+                const done = i < step;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => setStep(i)}
+                    style={{ ...styles.stepBtn, ...(active ? styles.stepBtnActive : {}) }}
+                  >
+                    <span
+                      style={{
+                        ...styles.stepDot,
+                        ...(done ? styles.stepDotDone : active ? styles.stepDotActive : {}),
+                      }}
+                    >
+                      {done ? "✓" : i + 1}
+                    </span>
+                    <span style={{ fontWeight: active ? 700 : 600 }}>{s.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+          )}
           {isMobile && (
-  <div style={{ marginBottom: 16 }}>
-    <button
-      type="button"
-      onClick={() => setMobileStepsOpen((v) => !v)}
-      style={{
-        width: "100%",
-        padding: "10px 14px",
-        borderRadius: 14,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        backdropFilter: "blur(10px)",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        fontSize: 12,
-        fontWeight: 800,
-        color: "#ffffff",
-      }}
-    >
-      <span>Paso {step + 1} de {steps.length}</span>
-      <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
-    </button>
+  <div
+    style={{
+      marginBottom: 16,
+      padding: "10px 14px",
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.08)",
+      border: "1px solid rgba(255,255,255,0.15)",
+      backdropFilter: "blur(10px)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#ffffff"
+    }}
+  >
+    <span>Paso {step + 1} de {steps.length}</span>
 
     <div
       style={{
-        marginTop: 10,
+        flex: 1,
         height: 6,
+        marginLeft: 12,
         borderRadius: 999,
         background: "rgba(255,255,255,0.2)",
-        overflow: "hidden",
+        overflow: "hidden"
       }}
     >
       <div
@@ -1417,80 +1441,12 @@ setEntries(data?.wallet?.entries ?? []);
           width: `${((step + 1) / steps.length) * 100}%`,
           height: "100%",
           background: "linear-gradient(90deg,#6366f1,#22d3ee)",
-          transition: "width 0.3s ease",
+          transition: "width 0.3s ease"
         }}
       />
     </div>
-
-    {mobileStepsOpen && (
-      <div
-        style={{
-          marginTop: 12,
-          borderRadius: 14,
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          backdropFilter: "blur(10px)",
-          overflow: "hidden",
-        }}
-      >
-        {steps.map((s, i) => {
-          const active = i === step;
-          const done = i < step;
-
-          return (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => {
-                setStep(i);
-                setMobileStepsOpen(false);
-              }}
-              style={{
-                width: "100%",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "12px 14px",
-                border: "none",
-                background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                color: "#ffffff",
-                cursor: "pointer",
-                textAlign: "left",
-                fontWeight: active ? 900 : 700,
-              }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 999,
-                    display: "grid",
-                    placeItems: "center",
-                    fontSize: 12,
-                    fontWeight: 900,
-                    background: done
-                      ? "rgba(34,197,94,0.9)"
-                      : active
-                      ? "rgba(99,102,241,0.9)"
-                      : "rgba(255,255,255,0.18)",
-                    color: "#0f172a",
-                  }}
-                >
-                  {done ? "✓" : i + 1}
-                </span>
-                <span>{s.title}</span>
-              </span>
-
-              <span style={{ opacity: 0.7 }}>{active ? "●" : ""}</span>
-            </button>
-          );
-        })}
-      </div>
-    )}
   </div>
 )}
-
 
           {/* Panel */}
           <section style={styles.panel}>
