@@ -1406,6 +1406,47 @@ setEntries(data?.wallet?.entries ?? []);
             </div>
           </aside>
           )}
+          {isMobile && (
+  <div
+    style={{
+      marginBottom: 16,
+      padding: "10px 14px",
+      borderRadius: 14,
+      background: "rgba(255,255,255,0.08)",
+      border: "1px solid rgba(255,255,255,0.15)",
+      backdropFilter: "blur(10px)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#ffffff"
+    }}
+  >
+    <span>Paso {step + 1} de {steps.length}</span>
+
+    <div
+      style={{
+        flex: 1,
+        height: 6,
+        marginLeft: 12,
+        borderRadius: 999,
+        background: "rgba(255,255,255,0.2)",
+        overflow: "hidden"
+      }}
+    >
+      <div
+        style={{
+          width: `${((step + 1) / steps.length) * 100}%`,
+          height: "100%",
+          background: "linear-gradient(90deg,#6366f1,#22d3ee)",
+          transition: "width 0.3s ease"
+        }}
+      />
+    </div>
+  </div>
+)}
+
           {/* Panel */}
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
@@ -1428,11 +1469,6 @@ setEntries(data?.wallet?.entries ?? []);
               ) : null}
             </div>
 
-            {/* Small hint */}
-            <div style={styles.hint}>
-              Tip: si el backend no está corriendo en 3001, levantalo con{" "}
-              <code style={styles.code}>node server.js</code>.
-            </div>
             {/* Historial de movimientos */}
 <div style={{ marginTop: 40 }}>
 
