@@ -1,6 +1,13 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { Inter } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
 
 /* ================== CONSTANTES ================== */
 const CATEGORIES = [
@@ -1119,7 +1126,7 @@ setEntries(data?.wallet?.entries ?? []);
 
   if (!mode) {
     return (
-      <div style={styles.page}>
+      <div className={inter.className} style={styles.page}>
         <div style={{ ...styles.shell, maxWidth: 600 }}>
             <div
               style={{
@@ -1659,7 +1666,6 @@ const styles: Record<string, React.CSSProperties> = {
   page: {
   minHeight: "100vh",
   padding: 20,
-  fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial",
   background: `
     radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
     radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%),
