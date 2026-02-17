@@ -36,6 +36,7 @@ export default function Home() {
   console.log("API BASE:", API);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [meEntries, setMeEntries] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -45,7 +46,14 @@ export default function Home() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [buyLoading, setBuyLoading] = useState(false);
-  const [creditAmount, setCreditAmount] = useState<number>(10);
+  const CREDIT_PACKS = [
+  { key: "emprendedor", credits: 50, price: 75000 },
+  { key: "pyme", credits: 200, price: 300000 },
+  { key: "empresa", credits: 900, price: 800000 },
+] as const;
+
+const [selectedPack, setSelectedPack] = useState<typeof CREDIT_PACKS[number]>(CREDIT_PACKS[0]);
+
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
   const [views, setViews] = useState({
   front: true,   // delantera
@@ -479,7 +487,7 @@ if (el) {
       if (!res.ok) return;
       setUser(data);
 setBalance(data?.wallet?.balance ?? 0);
-setEntries(data?.wallet?.entries ?? []);
+setMeEntries(data?.wallet?.entries ?? []);
 
     } finally {
       setLoadingMe(false);
@@ -689,6 +697,8 @@ setEntries(data?.wallet?.entries ?? []);
 
       setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
       await fetchMe();
+      await fetchEntries();
+
 
     } catch (e: any) {
       setError(String(e?.message || e));
@@ -1359,23 +1369,32 @@ setEntries(data?.wallet?.entries ?? []);
 
     }}
   >
-    <input
-      type="number"
-      min={1}
-      value={creditAmount}
-      onChange={(e) => setCreditAmount(Number(e.target.value))}
-      style={{
-        width: 64,
-        height: 36,
-        borderRadius: 12,
-        border: "1px solid #cbd5e1",
-        background: "#ffffff",
-        color: "#0f172a",
-        fontWeight: 900,
-        textAlign: "center",
-        outline: "none",
-      }}
-    />
+    <select
+  value={selectedPack.key}
+  onChange={(e) => {
+    const pack = CREDIT_PACKS.find(p => p.key === e.target.value);
+    if (pack) setSelectedPack(pack);
+  }}
+  style={{
+    padding: "8px 12px",
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontWeight: 800,
+  }}
+>
+  {CREDIT_PACKS.map((p) => (
+    <option key={p.key} value={p.key}>
+      {p.key === "emprendedor" && "🚀 Paquete Emprendedor"}
+      {p.key === "pyme" && "🏢 Paquete PyME"}
+      {p.key === "empresa" && "🏭 Paquete Empresa"}
+      {" — "}
+      {p.credits} créditos / ${p.price.toLocaleString("es-AR")}
+    </option>
+  ))}
+</select>
+
 
     <button
       type="button"
@@ -1391,7 +1410,7 @@ setEntries(data?.wallet?.entries ?? []);
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ credits: creditAmount }),
+            body: JSON.stringify({ credits: selectedPack.credits }),
           });
 
           const data = await res.json();
@@ -1609,9 +1628,11 @@ setEntries(data?.wallet?.entries ?? []);
   <div style={{
     padding: "0 16px 16px 16px"
   }}>
-    {!loadingEntries && entries.length === 0 ? (
-      <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
-    ) : (
+    {loadingEntries ? (
+  <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
+) : entries.length === 0 ? (
+  <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
+) : (
       <div style={{
   marginTop: 8,
   overflowX: "auto",
