@@ -1158,7 +1158,7 @@ setEntries(data?.wallet?.entries ?? []);
                 onClick={() => setMode("product")}
                 style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}
               >
-                🛍 Foto producto (sin modelo)
+                🛍 Foto producto
               </button>
             </div>
           </div>
