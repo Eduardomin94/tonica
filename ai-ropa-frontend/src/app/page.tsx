@@ -1376,17 +1376,6 @@ setEntries(data?.wallet?.entries ?? []);
     fontWeight: 800
   }}>
     <span>📒 Historial de movimientos</span>
-
-    <span style={{
-      fontSize: 12,
-      fontWeight: 800,
-      background: "#f1f5f9",
-      border: "1px solid #e2e8f0",
-      padding: "4px 10px",
-      borderRadius: 999
-    }}>
-      {loadingEntries ? "Cargando..." : `${entries.length}`}
-    </span>
   </summary>
 
   <div style={{
