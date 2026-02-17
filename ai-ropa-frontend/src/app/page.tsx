@@ -1121,7 +1121,15 @@ setEntries(data?.wallet?.entries ?? []);
     return (
       <div style={styles.page}>
         <div style={{ ...styles.shell, maxWidth: 600 }}>
-          <div style={styles.header}>
+            <div
+              style={{
+                ...styles.header,
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "stretch" : "flex-end",
+                gap: isMobile ? 14 : 0,
+              }}
+>
+
             <div>
               <div style={{ ...styles.h1, color: "#ffffff" }}>
   {t("title")}
@@ -1200,7 +1208,7 @@ setEntries(data?.wallet?.entries ?? []);
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
   {mode === "model" ? (
     <button onClick={() => setMode("product")} style={{ ...styles.btnSecondary }}>
-      🛍 Cambiar a Foto producto
+      ⚛️ Cambiar a Foto producto
     </button>
   ) : (
     <button onClick={() => setMode("model")} style={{ ...styles.btnSecondary }}>
