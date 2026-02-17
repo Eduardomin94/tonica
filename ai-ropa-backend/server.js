@@ -414,8 +414,6 @@ Fondo: ${background}
   { key: "right", label: "vista costado derecho" },
 ].filter((v) => selectedViews?.[v.key]);
 
-const COST = views.length;
-
 if (COST === 0) {
   return res.status(400).json({ error: "Seleccioná al menos una vista." });
 }
