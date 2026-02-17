@@ -1375,9 +1375,10 @@ setEntries(data?.wallet?.entries ?? []);
         <div
   style={{
     ...styles.main,
-    gridTemplateColumns: isMobile ? "1fr" : "280px 1fr",
+    gridTemplateColumns: "1fr",
   }}
 >
+
           {/* Sidebar */}
           {isMobile && (
   <div style={{ marginBottom: 16 }}>
