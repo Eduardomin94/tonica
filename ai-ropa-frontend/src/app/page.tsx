@@ -1250,6 +1250,9 @@ setEntries(data?.wallet?.entries ?? []);
     background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
     border: "1px solid rgba(226,232,240,0.9)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    width: isMobile ? "100%" : "auto",
+    justifyContent: isMobile ? "space-between" : "flex-start",
+
   }}
 >
   {/* email */}
@@ -1273,6 +1276,9 @@ setEntries(data?.wallet?.entries ?? []);
       background: "#ffffff",
       border: "1px solid #e2e8f0",
       boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+      width: isMobile ? "100%" : "auto",
+      justifyContent: isMobile ? "space-between" : "flex-start",
+
     }}
   >
     <input
