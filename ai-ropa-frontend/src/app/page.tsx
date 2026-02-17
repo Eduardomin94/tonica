@@ -1372,20 +1372,21 @@ setMeEntries(data?.wallet?.entries ?? []);
 
 </div>
 
-          
 <div
   style={{
     width: "100%",
+    maxWidth: "100%",
     padding: "14px 16px",
     borderRadius: 18,
     background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
     color: "#0f172a",
     display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
-    gridTemplateRows: "auto auto",
+    gridTemplateColumns: "1fr",
+    gridTemplateRows: "auto auto auto",
     gap: 12,
     alignItems: "center",
+    overflow: "hidden",
   }}
 >
 
@@ -1419,32 +1420,37 @@ setMeEntries(data?.wallet?.entries ?? []);
   {/* ✅ caja premium: cantidad + comprar */}
   <div
   style={{
-    gridColumn: isMobile ? "1" : "1 / span 2",
+    width: "100%",
     display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "1fr auto auto",
+    gridTemplateColumns: "1fr",
     gap: 10,
     padding: "10px 10px",
     borderRadius: 16,
     background: "#ffffff",
     border: "1px solid #e2e8f0",
     boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-    alignItems: "center",
+    alignItems: "stretch",
+    overflow: "hidden",
   }}
 >
+
   <select
     value={selectedPack}
     onChange={(e) => setSelectedPack(e.target.value as any)}
     style={{
-      height: 40,
-      padding: "6px 10px",
-      borderRadius: 12,
-      border: "1px solid #cbd5e1",
-      background: "#ffffff",
-      color: "#0f172a",
-      fontWeight: 900,
-      width: "100%",
-      minWidth: 0,
-    }}
+  height: 40,
+  padding: "6px 10px",
+  borderRadius: 12,
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  fontWeight: 900,
+  width: "100%",
+  minWidth: 0,
+  maxWidth: "100%",
+  boxSizing: "border-box",
+}}
+
   >
     <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
     <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
@@ -1484,12 +1490,15 @@ setMeEntries(data?.wallet?.entries ?? []);
       }
     }}
     style={{
-      ...styles.btnPremium,
-      height: 40,
-      padding: "0 16px",
-      whiteSpace: "nowrap",
-      width: isMobile ? "100%" : "auto",
-    }}
+  ...styles.btnPremium,
+  height: 40,
+  padding: "0 16px",
+  whiteSpace: "normal",
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
+}}
+
   >
     {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
   </button>
@@ -1498,15 +1507,18 @@ setMeEntries(data?.wallet?.entries ?? []);
     type="button"
     onClick={handleLogout}
     style={{
-      ...styles.btnGhostPremium,
-      height: 40,
-      padding: "0 14px",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      whiteSpace: "nowrap",
-      width: isMobile ? "100%" : "auto",
-    }}
+  ...styles.btnGhostPremium,
+  height: 40,
+  padding: "0 14px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  whiteSpace: "nowrap",
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box",
+}}
+
   >
     🚪 Cerrar sesión
   </button>
