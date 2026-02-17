@@ -512,8 +512,20 @@ IMPORTANTE:
 // =====================
 app.post("/mp/create-preference", requireAuth, async (req, res) => {
   try {
-    const credits = Number(req.body?.credits ?? 10);
-    const unitPrice = credits * 1;
+    const credits = Number(req.body?.credits);
+
+let unitPrice;
+
+if (credits === 50) {
+  unitPrice = 75000;
+} else if (credits === 200) {
+  unitPrice = 300000;
+} else if (credits === 900) {
+  unitPrice = 800000;
+} else {
+  return res.status(400).json({ error: "Paquete inválido" });
+}
+
 
     const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
 
