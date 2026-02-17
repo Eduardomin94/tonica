@@ -346,11 +346,6 @@ if (selectedCount === 0) {
   const front = req.files?.front?.[0];
   const back = req.files?.back?.[0];
 
-  if (selectedViews?.back && !back) {
-  return res.status(400).json({ error: "Para generar espalda, subí la foto de espalda." });
-}
-
-
   if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
   const category = String(req.body?.category || "");
@@ -424,7 +419,25 @@ if (updated.count === 0) {
 
   const settled = await Promise.allSettled(
     views.map(async (v) => {
-      const viewPrompt = `${basePrompt}\n\nCámara: ${v.label}.`;
+      views.map(async (v) => {
+
+  const extraBackHint =
+    v.key === "back" && !back
+      ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
+      : "";
+
+  const viewPrompt = `
+${basePrompt}
+Cámara: ${v.label}.
+${extraBackHint}
+
+IMPORTANTE:
+- Generar UNA SOLA imagen.
+- No collage.
+- No grid.
+- No múltiples imágenes.
+`.trim();
+
       const parts = [{ text: viewPrompt }, ...refParts];
 
       const { status, data } = await geminiGenerate({
