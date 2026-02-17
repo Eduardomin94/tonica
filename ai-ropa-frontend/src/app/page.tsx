@@ -1409,7 +1409,7 @@ setMeEntries(data?.wallet?.entries ?? []);
 
 
   {/* badge créditos actuales */}
-  <div style={{ justifySelf: isMobile ? "start" : "end" }}>
+  <div style={{ justifySelf: "start" }}>
   <div style={styles.badge}>
     {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
   </div>
@@ -1417,18 +1417,18 @@ setMeEntries(data?.wallet?.entries ?? []);
 
 
   {/* ✅ caja premium: cantidad + comprar */}
- <div
+  <div
   style={{
     gridColumn: isMobile ? "1" : "1 / span 2",
-    display: "flex",
-    alignItems: "center",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "1fr auto auto",
     gap: 10,
-    flexWrap: "wrap",
     padding: "10px 10px",
     borderRadius: 16,
     background: "#ffffff",
     border: "1px solid #e2e8f0",
     boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+    alignItems: "center",
   }}
 >
   <select
@@ -1442,8 +1442,8 @@ setMeEntries(data?.wallet?.entries ?? []);
       background: "#ffffff",
       color: "#0f172a",
       fontWeight: 900,
-      flex: "1 1 320px",
-      minWidth: 240,
+      width: "100%",
+      minWidth: 0,
     }}
   >
     <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
@@ -1483,7 +1483,13 @@ setMeEntries(data?.wallet?.entries ?? []);
         setBuyLoading(false);
       }
     }}
-    style={{ ...styles.btnPremium, height: 40, padding: "0 16px", whiteSpace: "nowrap" }}
+    style={{
+      ...styles.btnPremium,
+      height: 40,
+      padding: "0 16px",
+      whiteSpace: "nowrap",
+      width: isMobile ? "100%" : "auto",
+    }}
   >
     {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
   </button>
@@ -1499,12 +1505,13 @@ setMeEntries(data?.wallet?.entries ?? []);
       alignItems: "center",
       justifyContent: "center",
       whiteSpace: "nowrap",
-      marginLeft: "auto",
+      width: isMobile ? "100%" : "auto",
     }}
   >
     🚪 Cerrar sesión
   </button>
 </div>
+
 
         </div>
 
