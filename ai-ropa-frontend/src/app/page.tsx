@@ -1374,20 +1374,21 @@ setMeEntries(data?.wallet?.entries ?? []);
 
 <div
   style={{
-    width: "100%",
-    maxWidth: "100%",
-    padding: "14px 16px",
-    borderRadius: 18,
-    background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    color: "#0f172a",
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gridTemplateRows: "auto auto auto",
-    gap: 12,
-    alignItems: "center",
-    overflow: "hidden",
-  }}
+  width: "100%",
+  maxWidth: "100%",
+  padding: "14px 16px",
+  borderRadius: 18,
+  background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+  color: "#0f172a",
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 12,
+  alignItems: "stretch",
+  overflow: "hidden",
+  boxSizing: "border-box",
+}}
+
 >
 
 
@@ -1420,18 +1421,20 @@ setMeEntries(data?.wallet?.entries ?? []);
   {/* ✅ caja premium: cantidad + comprar */}
   <div
   style={{
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: 10,
-    padding: "10px 10px",
-    borderRadius: 16,
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-    alignItems: "stretch",
-    overflow: "hidden",
-  }}
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 10,
+  padding: 10,
+  borderRadius: 16,
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+  alignItems: "stretch",
+  overflow: "hidden",
+  boxSizing: "border-box",
+}}
+
 >
 
   <select
@@ -1449,7 +1452,11 @@ setMeEntries(data?.wallet?.entries ?? []);
   minWidth: 0,
   maxWidth: "100%",
   boxSizing: "border-box",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 }}
+
 
   >
     <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
@@ -1493,11 +1500,11 @@ setMeEntries(data?.wallet?.entries ?? []);
   ...styles.btnPremium,
   height: 40,
   padding: "0 16px",
-  whiteSpace: "normal",
   width: "100%",
   maxWidth: "100%",
   boxSizing: "border-box",
 }}
+
 
   >
     {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
@@ -1513,11 +1520,11 @@ setMeEntries(data?.wallet?.entries ?? []);
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  whiteSpace: "nowrap",
   width: "100%",
   maxWidth: "100%",
   boxSizing: "border-box",
 }}
+
 
   >
     🚪 Cerrar sesión
