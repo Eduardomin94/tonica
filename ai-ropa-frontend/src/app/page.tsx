@@ -1239,6 +1239,7 @@ setEntries(data?.wallet?.entries ?? []);
       borderRadius: 10,
       border: "1px solid #e2e8f0",
       background: "#ffffff",
+      color: "#000000",
       fontWeight: 700,
       cursor: "pointer",
     }}
