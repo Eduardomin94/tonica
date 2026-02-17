@@ -38,6 +38,7 @@ export default function Home() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [buyLoading, setBuyLoading] = useState(false);
+  const [creditAmount, setCreditAmount] = useState<number>(10);
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
   
   const translations = {
@@ -1231,69 +1232,77 @@ setEntries(data?.wallet?.entries ?? []);
   1 crédito = 4 imágenes (frente / espalda / costados)
 </div>
  </div> 
+<div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+  <div style={{ fontSize: 12, color: "#ffffff", fontWeight: 700 }}>
+    {user?.email || user?.name}
+  </div>
 
-          
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <div style={{ fontSize: 12, color: "#ffffff", fontWeight: 700 }}>
-  {user?.email || user?.name}
+  <div style={styles.badge}>
+    {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
+  </div>
+
+  {/* 👇 INPUT PARA ELEGIR CANTIDAD */}
+  <input
+    type="number"
+    min={1}
+    value={creditAmount}
+    onChange={(e) => setCreditAmount(Number(e.target.value))}
+    style={{
+      width: 90,
+      height: 40,
+      padding: "0 12px",
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,0.3)",
+      background: "rgba(255,255,255,0.1)",
+      color: "#ffffff",
+      fontWeight: 800,
+      textAlign: "center",
+      outline: "none",
+    }}
+  />
+
+  <button
+    type="button"
+    disabled={buyLoading}
+    onClick={async () => {
+      try {
+        setBuyLoading(true);
+
+        const token = localStorage.getItem("accessToken");
+
+        const res = await fetch(`${API}/mp/create-preference`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ credits: creditAmount }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+
+        window.location.href = data.init_point;
+      } catch (e: any) {
+        alert(String(e?.message || e));
+      } finally {
+        setBuyLoading(false);
+      }
+    }}
+    style={styles.btnSecondary}
+  >
+    {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+  </button>
+
+  <button
+    type="button"
+    onClick={handleLogout}
+    style={styles.btnSecondary}
+  >
+    🚪 Cerrar sesión
+  </button>
 </div>
 
-            <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
-
-            <button
-              type="button"
-              disabled={buyLoading}
-              onClick={async () => {
-  try {
-    setBuyLoading(true);
-
-    const token = localStorage.getItem("accessToken");
-
-    const res = await fetch(`${API}/mp/create-preference`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ credits: 10 }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-    if (!data?.init_point) {
-      alert("No init_point recibido");
-      return;
-    }
-
-    window.location.href = data.init_point;
-  } catch (e: any) {
-    alert(String(e?.message || e));
-  } finally {
-    setBuyLoading(false);
-  }
-}}
-              style={styles.btnSecondary}
-            >
-             {buyLoading ? (
-  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-    <span className="spinner" />
-    Procesando...
-  </span>
-) : (
-  "💳 Comprar créditos"
-)}
-
-            </button>
-
-            <button
-  type="button"
-  onClick={handleLogout}
-  style={styles.btnSecondary}
->
-  🚪 Cerrar sesión
-</button>
-
-          </div>
         </div>
 
         {/* Main */}
