@@ -1377,7 +1377,9 @@ setMeEntries(data?.wallet?.entries ?? []);
     background: "#ffffff",
     color: "#0f172a",
     fontWeight: 900,
-    minWidth: 260,
+    minWidth: isMobile ? 0 : 260,
+width: isMobile ? "100%" : "auto",
+
   }}
 >
   <option value="emprendedor">
@@ -1455,12 +1457,8 @@ const res = await fetch(`${API}/mp/create-preference`, {
         </div>
 
         {/* Main */}
-        <div
-  style={{
-    ...styles.main,
-    gridTemplateColumns: "1fr",
-  }}
->
+ <div style={isMobile ? styles.mainMobile : styles.main}>
+
 
           {/* Sidebar */}
           {
@@ -1870,8 +1868,10 @@ const styles: Record<string, React.CSSProperties> = {
   justifyContent: "center",
   alignItems: "flex-start",
   color: "#ffffff",
+  overflowX: "hidden",
+
 },
-  shell: { maxWidth: 1100, margin: "0 auto" },
+  shell: { width: "100%", maxWidth: 1100, margin: "0 auto" },
   header: {
   display: "flex",
   alignItems: "center",
@@ -2004,8 +2004,17 @@ mainMobile: {
 
   smallMuted: { fontSize: 12, color: "#64748b", marginTop: 6 },
   row: { display: "flex", alignItems: "center", gap: 10 },
-  twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  grid3: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 },
+ twoCols: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 12,
+},
+
+grid3: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+},
   box: {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
@@ -2089,7 +2098,12 @@ btnSecondary: {
     marginBottom: 12,
   },
   summaryTitle: { fontWeight: 900, marginBottom: 10 },
-  summaryGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
+  summaryGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 10,
+},
+
   summaryItem: {
     border: "1px solid #e5e7eb",
     borderRadius: 12,
@@ -2098,7 +2112,12 @@ btnSecondary: {
   },
   summaryLabel: { fontSize: 12, color: "#64748b", fontWeight: 800 },
   summaryValue: { fontSize: 13, color: "#0f172a", fontWeight: 900, marginTop: 4 },
-  resultGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 },
+  resultGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+},
+
   imgCard: {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
