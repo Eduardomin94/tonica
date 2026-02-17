@@ -1263,8 +1263,9 @@ setEntries(data?.wallet?.entries ?? []);
     gap: 16,
     padding: "16px 20px",
     borderRadius: 18,
-    padding: isMobile ? "12px 12px" : "16px 20px",
-    gap: isMobile ? 10 : 14,
+    background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    color: "#0f172a",
     width: "100%",
   }}
 >
