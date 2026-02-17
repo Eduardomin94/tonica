@@ -1598,6 +1598,45 @@ function Button({
 }) {
   const base = variant === "primary" ? styles.btnPrimary : styles.btnSecondary;
   const dis = disabled ? styles.btnDisabled : {};
+
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => {
+        setHover(false);
+        setPressed(false);
+      }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      style={{
+        ...base,
+        ...dis,
+        ...(style || {}),
+        transition: "all 140ms ease",
+        transform: disabled
+          ? "none"
+          : pressed
+          ? "scale(0.96)"
+          : hover
+          ? "scale(1.04)"
+          : "scale(1)",
+        boxShadow: hover
+          ? "0 6px 20px rgba(0,0,0,0.25)"
+          : "0 2px 6px rgba(0,0,0,0.15)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+  const base = variant === "primary" ? styles.btnPrimary : styles.btnSecondary;
+  const dis = disabled ? styles.btnDisabled : {};
   const [hover, setHover] = React.useState(false);
 const [pressed, setPressed] = React.useState(false);
 
