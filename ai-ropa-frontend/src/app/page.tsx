@@ -1382,12 +1382,13 @@ setMeEntries(data?.wallet?.entries ?? []);
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
     color: "#0f172a",
     display: "grid",
-   gridTemplateColumns: isMobile ? "1fr" : "minmax(180px, 260px) auto minmax(320px, 1fr) auto",
-
-    alignItems: "center",
+    gridTemplateColumns: isMobile ? "1fr" : "1fr auto",
+    gridTemplateRows: "auto auto",
     gap: 12,
+    alignItems: "center",
   }}
 >
+
 
 
   {/* email */}
@@ -1406,124 +1407,105 @@ setMeEntries(data?.wallet?.entries ?? []);
 </div>
 
 
+
   {/* badge créditos actuales */}
+  <div style={{ justifySelf: isMobile ? "start" : "end" }}>
   <div style={styles.badge}>
     {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
   </div>
+</div>
+
 
   {/* ✅ caja premium: cantidad + comprar */}
-  <div
+ <div
   style={{
+    gridColumn: isMobile ? "1" : "1 / span 2",
     display: "flex",
     alignItems: "center",
     gap: 10,
-    padding: "8px 10px",
+    flexWrap: "wrap",
+    padding: "10px 10px",
     borderRadius: 16,
     background: "#ffffff",
     border: "1px solid #e2e8f0",
     boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-    width: "100%",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
   }}
 >
+  <select
+    value={selectedPack}
+    onChange={(e) => setSelectedPack(e.target.value as any)}
+    style={{
+      height: 40,
+      padding: "6px 10px",
+      borderRadius: 12,
+      border: "1px solid #cbd5e1",
+      background: "#ffffff",
+      color: "#0f172a",
+      fontWeight: 900,
+      flex: "1 1 320px",
+      minWidth: 240,
+    }}
+  >
+    <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
+    <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
+    <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
+  </select>
 
-    
-    <select
-  value={selectedPack}
-  onChange={(e) => setSelectedPack(e.target.value as any)}
-  style={{
-  height: 40,
-  padding: "6px 10px",
-  borderRadius: 12,
-  border: "1px solid #cbd5e1",
-  background: "#ffffff",
-  color: "#0f172a",
-  fontWeight: 900,
-  flex: "1 1 280px",
-  minWidth: 220,
-}}
->
-  <option value="emprendedor">
-    🚀 Paquete Emprendedor — 50 créditos / $75.000
-  </option>
-  <option value="pyme">
-    🏢 Paquete PyME — 200 créditos / $300.000
-  </option>
-  <option value="empresa">
-    🏭 Paquete Empresa — 900 créditos / $800.000
-  </option>
-</select>
-
-
-    <button
-      type="button"
-      disabled={buyLoading}
-      onClick={async () => {
-        try {
-          setBuyLoading(true);
-
-          const token = localStorage.getItem("accessToken");
-
-const credits =
-  selectedPack === "emprendedor" ? 50 :
-  selectedPack === "pyme" ? 200 :
-  900;
-
-const res = await fetch(`${API}/mp/create-preference`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  },
-  body: JSON.stringify({ credits }),
-});
-
-
-          const data = await res.json();
-          if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-          if (!data?.init_point) throw new Error("No init_point recibido");
-          window.location.href = data.init_point;
-        } catch (e: any) {
-          alert(String(e?.message || e));
-        } finally {
-          setBuyLoading(false);
-        }
-      }}
-      style={styles.btnPremium}
-    >
-      {buyLoading ? (
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="spinner" />
-          Procesando...
-        </span>
-      ) : (
-        "💳 Comprar créditos"
-      )}
-    </button>
-  </div>
-
-  {/* logout */}
   <button
-  type="button"
-  onClick={handleLogout}
-  style={{
-  ...styles.btnGhostPremium,
-  height: 40,
-  padding: "0 14px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  whiteSpace: "nowrap",
-  width: isMobile ? "100%" : "auto",
-  marginTop: isMobile ? 8 : 0,
-  justifySelf: isMobile ? "stretch" : "end",
-}}
+    type="button"
+    disabled={buyLoading}
+    onClick={async () => {
+      try {
+        setBuyLoading(true);
+        const token = localStorage.getItem("accessToken");
 
->
-  🚪 Cerrar sesión
-</button>
+        const credits =
+          selectedPack === "emprendedor" ? 50 :
+          selectedPack === "pyme" ? 200 :
+          900;
+
+        const res = await fetch(`${API}/mp/create-preference`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ credits }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+        if (!data?.init_point) throw new Error("No init_point recibido");
+        window.location.href = data.init_point;
+      } catch (e: any) {
+        alert(String(e?.message || e));
+      } finally {
+        setBuyLoading(false);
+      }
+    }}
+    style={{ ...styles.btnPremium, height: 40, padding: "0 16px", whiteSpace: "nowrap" }}
+  >
+    {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+  </button>
+
+  <button
+    type="button"
+    onClick={handleLogout}
+    style={{
+      ...styles.btnGhostPremium,
+      height: 40,
+      padding: "0 14px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      whiteSpace: "nowrap",
+      marginLeft: "auto",
+    }}
+  >
+    🚪 Cerrar sesión
+  </button>
 </div>
+
         </div>
 
         {/* Main */}
