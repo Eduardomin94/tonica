@@ -1089,13 +1089,22 @@ setEntries(data?.wallet?.entries ?? []);
   </div>
 </div>
 
+    const selectedCount = Object.values(views).filter(Boolean).length;
+  
             <Button
-              onClick={handleGenerate}
-              disabled={loading || balance < 1}
-              style={{ width: "100%", padding: "14px 16px" }}
-            >
-              {loading ? "Generando..." : balance < 1 ? "Sin créditos" : "Generar (1 crédito)"}
-            </Button>
+  onClick={handleGenerate}
+  disabled={loading || selectedCount === 0 || balance < selectedCount}
+  style={{ width: "100%", padding: "14px 16px" }}
+>
+  {loading
+    ? "Generando..."
+    : selectedCount === 0
+    ? "Elegí al menos 1 vista"
+    : balance < selectedCount
+    ? `Créditos insuficientes (${selectedCount})`
+    : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
+</Button>
+
 
             {result && (
               <div style={{ marginTop: 16 }}>
