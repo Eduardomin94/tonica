@@ -1458,7 +1458,10 @@ setEntries(data?.wallet?.entries ?? []);
     justifyContent: "space-between",
     fontWeight: 800
   }}>
-    <span>📒 Historial de movimientos</span>
+    <span style={{ color: "#ffffff" }}>
+  📒 Historial de movimientos
+</span>
+
   </summary>
 
   <div style={{
