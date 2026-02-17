@@ -1241,6 +1241,11 @@ setEntries(data?.wallet?.entries ?? []);
             <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
 
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+  <span style={{ fontSize: 11, fontWeight: 800, color: "#cbd5e1" }}>
+    Créditos
+  </span>
+
   <input
     type="number"
     min={1}
@@ -1248,14 +1253,19 @@ setEntries(data?.wallet?.entries ?? []);
     onChange={(e) => setCreditAmount(Number(e.target.value))}
     style={{
       width: 90,
-      height: 44,
-      padding: "0 10px",
+      height: 40,
+      padding: "0 12px",
       borderRadius: 12,
-      border: "1px solid #e2e8f0",
+      border: "1px solid rgba(255,255,255,0.3)",
+      background: "rgba(255,255,255,0.1)",
+      color: "#ffffff",
       fontWeight: 800,
-      background: "#ffffff",
+      textAlign: "center",
+      outline: "none"
     }}
   />
+</div>
+
 
   <button
     type="button"
