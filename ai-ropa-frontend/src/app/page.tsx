@@ -1287,18 +1287,56 @@ setMeEntries(data?.wallet?.entries ?? []);
           <div>
             <div style={{ ...styles.h1, color: "#9495B5" }}>
   {t("title")}
+{/* Switch modo */}
+<div
+  style={{
+    marginTop: 14,
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  }}
+>
+  <span style={{ fontWeight: 800, fontSize: 13, opacity: mode === "model" ? 1 : 0.5 }}>
+    📸 Modelo
+  </span>
+
+  <div
+    onClick={() => setMode(mode === "model" ? "product" : "model")}
+    style={{
+      width: 60,
+      height: 30,
+      borderRadius: 999,
+      background: mode === "model"
+        ? "linear-gradient(90deg,#3b82f6,#22c55e)"
+        : "linear-gradient(90deg,#8b5cf6,#6366f1)",
+      position: "relative",
+      cursor: "pointer",
+      transition: "all 0.25s ease",
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: 3,
+        left: mode === "model" ? 3 : 33,
+        width: 24,
+        height: 24,
+        borderRadius: "50%",
+        background: "#ffffff",
+        transition: "all 0.25s ease",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+      }}
+    />
+  </div>
+
+  <span style={{ fontWeight: 800, fontSize: 13, opacity: mode === "product" ? 1 : 0.5 }}>
+    ⚛️ Producto
+  </span>
+</div>
 
 </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-  {mode === "model" ? (
-    <button onClick={() => setMode("product")} style={{ ...styles.btnSecondary }}>
-      ⚛️ Cambiar a Foto producto
-    </button>
-  ) : (
-    <button onClick={() => setMode("model")} style={{ ...styles.btnSecondary }}>
-      📸 Cambiar a Foto con modelo
-    </button>
-  )}
+  
 
   <select
     value={language}
