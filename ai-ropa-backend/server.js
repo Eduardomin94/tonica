@@ -314,43 +314,106 @@ Mantener exactamente el mismo producto, color y textura.
         return res.json({ imageUrls, promptUsed: basePrompt });
       }
       // =====================
-// MODEL MODE
+// MODEL MODE (REAL)
 // =====================
 if (mode === "model") {
-
   const front = req.files?.front?.[0];
   const back = req.files?.back?.[0];
 
-  if (!front) {
-    return res.status(400).json({ error: "Falta imagen frontal" });
+  if (!front) return res.status(400).json({ error: "Falta foto delantera" });
+
+  const category = String(req.body?.category || "");
+  const otherCategory = String(req.body?.other_category || "");
+  const pockets = String(req.body?.pockets || "");
+  const modelType = String(req.body?.model_type || "");
+  const ethnicity = String(req.body?.ethnicity || "");
+  const ageRange = String(req.body?.age_range || "");
+  const background = String(req.body?.background || "");
+  const pose = String(req.body?.pose || "");
+  const bodyType = String(req.body?.body_type || "");
+
+  // imágenes referencia (delantera siempre, espalda opcional)
+  const refParts = [
+    {
+      inlineData: {
+        mimeType: front.mimetype,
+        data: fs.readFileSync(front.path, { encoding: "base64" }),
+      },
+    },
+  ];
+
+  if (back) {
+    refParts.push({
+      inlineData: {
+        mimeType: back.mimetype,
+        data: fs.readFileSync(back.path, { encoding: "base64" }),
+      },
+    });
   }
 
-  const category = req.body.category;
-  const modelType = req.body.model_type;
-  const ethnicity = req.body.ethnicity;
-  const ageRange = req.body.age_range;
-  const background = req.body.background;
-  const pose = req.body.pose;
-  const bodyType = req.body.body_type;
+  const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
   const basePrompt = `
-  Generate a realistic fashion photo.
-  Category: ${category}
-  Model: ${modelType}
-  Ethnicity: ${ethnicity}
-  Age: ${ageRange}
-  Background: ${background}
-  Pose: ${pose}
-  Body type: ${bodyType}
-  `;
+Foto de moda e-commerce, fotorealista, iluminación suave tipo estudio.
+Usar EXACTAMENTE la prenda de las fotos referencia (color, textura, estampado, calce).
+Misma modelo y mismo rostro en las 4 imágenes (consistencia total).
+Sin texto, sin marcas de agua, sin logos, sin manos extra.
+Categoría: ${catFinal}
+Bolsillos: ${pockets}
+Tipo de modelo: ${modelType}
+Etnia: ${ethnicity}
+Edad: ${ageRange}
+Pose: ${pose}
+Tipo de cuerpo: ${bodyType}
+Fondo: ${background}
+`.trim();
 
-  // ⚠️ ACÁ reutilizás tu lógica actual de generación
-  const imageUrls = await generateModelImages(basePrompt, front, back);
+  const views = [
+    { key: "front", label: "vista frontal" },
+    { key: "back", label: "vista trasera" },
+    { key: "left", label: "vista costado izquierdo" },
+    { key: "right", label: "vista costado derecho" },
+  ];
 
-  return res.json({
-    imageUrls,
-    promptUsed: basePrompt
-  });
+  const settled = await Promise.allSettled(
+    views.map(async (v) => {
+      const viewPrompt = `${basePrompt}\n\nCámara: ${v.label}.`;
+      const parts = [{ text: viewPrompt }, ...refParts];
+
+      const { status, data } = await geminiGenerate({
+        model: MODEL_IMAGE,
+        body: { contents: [{ role: "user", parts }] },
+        timeoutMs: 60000,
+      });
+
+      if (status >= 400) throw new Error("Gemini model error");
+
+      const imgB64 = extractImageBase64(data);
+      if (!imgB64) throw new Error("No model image returned");
+
+      const fileName = `generated-model-${v.key}-${Date.now()}-${Math.random()
+        .toString(16)
+        .slice(2)}.png`;
+      const filePath = path.join("uploads", fileName);
+      fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+
+      return `/uploads/${fileName}`;
+    })
+  );
+
+  // limpiar uploads originales
+  try { fs.unlinkSync(front.path); } catch {}
+  if (back) { try { fs.unlinkSync(back.path); } catch {} }
+
+  const imageUrls = settled
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
+
+  if (!imageUrls.length) {
+    return res.status(500).json({ error: "No se pudo generar ninguna imagen con modelo" });
+  }
+
+  return res.json({ imageUrls, promptUsed: basePrompt });
 }
 
     } catch (err) {
