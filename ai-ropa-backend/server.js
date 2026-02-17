@@ -470,17 +470,12 @@ app.get("/", (req, res) => res.json({ status: "OK" }));
 // =====================
 // MP RETURN ROUTES (DEV)
 // =====================
-app.get("/pago-exitoso", (req, res) => {
-  res.redirect("http://localhost:3000/?topup=ok");
-});
 
-app.get("/pago-fallido", (req, res) => {
-  res.redirect("http://localhost:3000/?topup=fail");
-});
+const FRONT = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
 
-app.get("/pago-pendiente", (req, res) => {
-  res.redirect("http://localhost:3000/?topup=pending");
-});
+app.get("/pago-exitoso", (req, res) => res.redirect(`${FRONT}/?topup=ok`));
+app.get("/pago-fallido", (req, res) => res.redirect(`${FRONT}/?topup=fail`));
+app.get("/pago-pendiente", (req, res) => res.redirect(`${FRONT}/?topup=pending`));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
