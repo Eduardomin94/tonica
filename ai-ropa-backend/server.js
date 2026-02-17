@@ -200,54 +200,64 @@ Vibe: ${vibe}
 // =====================
 // GENERATE (PROTEGIDO + COBRO)  (tu parte original)
 // =====================
-app.post(
-  "/generate",
-  requireAuth,
-  upload.fields([
+app.post("/generate", requireAuth, upload.fields([
     { name: "front", maxCount: 1 },
     { name: "back", maxCount: 1 },
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
     let wallet = null;
-    let consumeEntry = null;
-    const selectedViews = req.body.selectedViews || {};
-    const COST = Object.values(selectedViews).filter(Boolean).length;
+let consumeEntry = null;
+let COST = 1; // default para product
+let selectedViews = null;
 
+const userId = req.userId;
+const idem = req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
 
-    const userId = req.userId;
-    const idem =
-      req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
+try {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { wallet: true },
+  });
 
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { wallet: true },
-      });
+  wallet = user?.wallet;
+  if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
-      wallet = user?.wallet;
-      if (!wallet) return res.status(400).json({ error: "Wallet not found" });
+  const mode = String(req.body?.mode || "model");
 
-      const updated = await prisma.wallet.updateMany({
-        where: { id: wallet.id, balance: { gte: COST } },
-        data: { balance: { decrement: COST } },
-      });
+  // COST dinámico solo para MODEL
+  if (mode === "model") {
+    selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
+    COST = Object.values(selectedViews).filter(Boolean).length;
 
-      if (updated.count === 0) {
-        return res.status(402).json({ error: "Sin créditos" });
-      }
+    if (COST <= 0) {
+      return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
+    }
+  }
 
-      consumeEntry = await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "CONSUME",
-          amount: -COST,
-          idempotencyKey: String(idem),
-          refType: "GENERATION",
-        },
-      });
+  // Cobro UNA sola vez (con el COST correcto)
+  const updated = await prisma.wallet.updateMany({
+    where: { id: wallet.id, balance: { gte: COST } },
+    data: { balance: { decrement: COST } },
+  });
 
-      const mode = String(req.body?.mode || "model");
+  if (updated.count === 0) {
+    return res.status(402).json({ error: "Sin créditos suficientes" });
+  }
+
+  consumeEntry = await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -COST,
+      idempotencyKey: String(idem),
+      refType: "GENERATION",
+      metadata: mode === "model" ? selectedViews : undefined,
+    },
+  });
+
+  // ⬇️ a partir de acá sigue tu lógica tal cual (product/model)
+
 
       // ---- PRODUCT MODE
       if (mode === "product") {
@@ -330,18 +340,21 @@ IMPORTANTE:
 // MODEL MODE (REAL)
 // =====================
 if (mode === "model") {
-  const selectedViews = req.body.views
-  ? JSON.parse(req.body.views)
-  : {};
+  const COST = views.length;
 
-  console.log("VIEWS RECIBIDAS:", selectedViews);
-
-
-const selectedCount = Object.values(selectedViews).filter(Boolean).length;
-
-if (selectedCount === 0) {
-  return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
+if (COST === 0) {
+  return res.status(400).json({ error: "Seleccioná al menos una vista." });
 }
+
+const updated = await prisma.wallet.updateMany({
+  where: { id: wallet.id, balance: { gte: COST } },
+  data: { balance: { decrement: COST } },
+});
+
+if (updated.count === 0) {
+  return res.status(402).json({ error: "Sin créditos suficientes" });
+}
+
 
   const front = req.files?.front?.[0];
   const back = req.files?.back?.[0];
