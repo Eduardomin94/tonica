@@ -46,15 +46,7 @@ export default function Home() {
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
-
   const [buyLoading, setBuyLoading] = useState(false);
-  const CREDIT_PACKS = [
-  { key: "emprendedor", credits: 50, price: 75000 },
-  { key: "pyme", credits: 200, price: 300000 },
-  { key: "empresa", credits: 900, price: 800000 },
-] as const;
-
-const [selectedPack, setSelectedPack] = useState<typeof CREDIT_PACKS[number]>(CREDIT_PACKS[0]);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
   const [views, setViews] = useState({
@@ -1329,9 +1321,8 @@ setMeEntries(data?.wallet?.entries ?? []);
   </select>
 </div>
 
-            <div style={{ ...styles.h2, color: "#ffffff" }}>
-  1 crédito = 4 imágenes (frente / espalda / costados)
-</div>
+            
+  
  </div> 
 <div
   style={{
@@ -1412,14 +1403,21 @@ setMeEntries(data?.wallet?.entries ?? []);
           setBuyLoading(true);
 
           const token = localStorage.getItem("accessToken");
-          const res = await fetch(`${API}/mp/create-preference`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ credits: selectedPack.credits }),
-          });
+
+const credits =
+  selectedPack === "emprendedor" ? 50 :
+  selectedPack === "pyme" ? 200 :
+  900;
+
+const res = await fetch(`${API}/mp/create-preference`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify({ credits }),
+});
+
 
           const data = await res.json();
           if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
