@@ -1348,9 +1348,6 @@ setMeEntries(data?.wallet?.entries ?? []);
   <div style={styles.badge}>
     {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
   </div>
-<div style={{ color: "red", fontWeight: 900 }}>
-  VERSION PACKS
-</div>
 
   {/* ✅ caja premium: cantidad + comprar */}
   <div
