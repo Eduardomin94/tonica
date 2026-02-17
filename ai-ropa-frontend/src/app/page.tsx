@@ -1232,7 +1232,18 @@ setEntries(data?.wallet?.entries ?? []);
   1 crédito = 4 imágenes (frente / espalda / costados)
 </div>
  </div> 
-<div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    padding: "16px 20px",
+    borderRadius: 18,
+    background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+  }}
+>
+
   <div style={{ fontSize: 12, color: "#ffffff", fontWeight: 700 }}>
     {user?.email || user?.name}
   </div>
@@ -1253,6 +1264,20 @@ setEntries(data?.wallet?.entries ?? []);
     border: "1px solid rgba(255,255,255,0.2)"
   }}
 >
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "10px 12px",
+    borderRadius: 14,
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+  }}
+>
+
+
   <input
     type="number"
     min={1}
@@ -1288,17 +1313,16 @@ setEntries(data?.wallet?.entries ?? []);
           },
           body: JSON.stringify({ credits: creditAmount }),
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-
         window.location.href = data.init_point;
       } catch (e: any) {
         alert(String(e?.message || e));
       } finally {
         setBuyLoading(false);
       }
-    }}
+    }
+  }
     style={styles.btnSecondary}
   >
     {buyLoading ? (
@@ -1309,8 +1333,8 @@ setEntries(data?.wallet?.entries ?? []);
 ) : (
   "💳 Comprar créditos"
 )}
-
   </button>
+  </div>
 
   <button
     type="button"
@@ -1320,7 +1344,6 @@ setEntries(data?.wallet?.entries ?? []);
     🚪 Cerrar sesión
   </button>
 </div>
-
         </div>
 
         {/* Main */}
