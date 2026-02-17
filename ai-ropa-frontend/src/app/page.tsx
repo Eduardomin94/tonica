@@ -1375,23 +1375,35 @@ setMeEntries(data?.wallet?.entries ?? []);
           
 <div
   style={{
-    display: "flex",
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "center",
-    gap: 16,
-    padding: "16px 20px",
+    width: "100%",
+    padding: "14px 16px",
     borderRadius: 18,
     background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
     color: "#0f172a",
-    width: "100%",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "auto auto 1fr auto",
+    alignItems: "center",
+    gap: 12,
   }}
 >
 
+
   {/* email */}
-  <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 800, whiteSpace: "nowrap" }}>
-    {user?.email || user?.name}
-  </div>
+  <div
+  style={{
+    fontSize: 12,
+    color: "#0f172a",
+    fontWeight: 900,
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  }}
+>
+  {user?.email || user?.name}
+</div>
+
 
   {/* badge créditos actuales */}
   <div style={styles.badge}>
@@ -1400,20 +1412,21 @@ setMeEntries(data?.wallet?.entries ?? []);
 
   {/* ✅ caja premium: cantidad + comprar */}
   <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "8px 10px",
-      borderRadius: 16,
-      background: "#ffffff",
-      border: "1px solid #e2e8f0",
-      boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-      width: isMobile ? "100%" : "auto",
-      justifyContent: isMobile ? "space-between" : "flex-start",
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "8px 10px",
+    borderRadius: 16,
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+    width: "100%",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  }}
+>
 
-    }}
-  >
     
     <select
   value={selectedPack}
@@ -1498,6 +1511,7 @@ const res = await fetch(`${API}/mp/create-preference`, {
   ...styles.btnGhostPremium,
   width: isMobile ? "100%" : "auto",
   marginTop: isMobile ? 8 : 0,
+  justifySelf: isMobile ? "stretch" : "end",
 }}
 >
   🚪 Cerrar sesión
