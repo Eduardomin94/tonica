@@ -37,6 +37,7 @@ export default function Home() {
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [creditAmount, setCreditAmount] = useState<number>(10);
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
   
   const translations = {
@@ -1239,37 +1240,51 @@ setEntries(data?.wallet?.entries ?? []);
 
             <div style={styles.badge}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  console.log("API:", API);
-                  const token = localStorage.getItem("accessToken");
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  <input
+    type="number"
+    min={1}
+    value={creditAmount}
+    onChange={(e) => setCreditAmount(Number(e.target.value))}
+    style={{
+      width: 90,
+      height: 44,
+      padding: "0 10px",
+      borderRadius: 12,
+      border: "1px solid #e2e8f0",
+      fontWeight: 800,
+      background: "#ffffff",
+    }}
+  />
 
-                  const res = await fetch(`${API}/mp/create-preference`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ credits: 10 }),
-                  });
+  <button
+    type="button"
+    onClick={async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        const res = await fetch(`${API}/mp/create-preference`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ credits: creditAmount }),
+        });
 
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-                  if (!data?.init_point) {
-                    alert("No init_point recibido");
-                    return;
-                  }
-                  window.location.href = data.init_point;
-                } catch (e: any) {
-                  alert(String(e?.message || e));
-                }
-              }}
-              style={styles.btnSecondary}
-            >
-              💳 Comprar créditos
-            </button>
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+        if (!data?.init_point) throw new Error("No init_point recibido");
+        window.location.href = data.init_point;
+      } catch (e: any) {
+        alert(String(e?.message || e));
+      }
+    }}
+    style={styles.btnSecondary}
+  >
+    💳 Comprar créditos
+  </button>
+</div>
+
 
             <button
   type="button"
