@@ -1206,7 +1206,15 @@ setEntries(data?.wallet?.entries ?? []);
         </div>
       )}
         {/* Header */}
-        <div style={styles.header}>
+        <div
+  style={{
+    ...styles.header,
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+    gap: isMobile ? 12 : 0,
+  }}
+>
+
           <div>
             <div style={{ ...styles.h1, color: "#9495B5" }}>
   {t("title")}
