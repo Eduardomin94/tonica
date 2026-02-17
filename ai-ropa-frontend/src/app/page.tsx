@@ -1236,115 +1236,101 @@ setEntries(data?.wallet?.entries ?? []);
   style={{
     display: "flex",
     alignItems: "center",
-    gap: 16,
-    padding: "16px 20px",
+    gap: 14,
+    padding: "12px 14px",
     borderRadius: 18,
     background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
+    border: "1px solid rgba(226,232,240,0.9)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
   }}
 >
-
-  <div style={{ fontSize: 12, color: "#ffffff", fontWeight: 700 }}>
+  {/* email */}
+  <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 800, whiteSpace: "nowrap" }}>
     {user?.email || user?.name}
   </div>
 
+  {/* badge créditos actuales */}
   <div style={styles.badge}>
     {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
   </div>
 
-  {/* 👇 INPUT PARA ELEGIR CANTIDAD */}
+  {/* ✅ caja premium: cantidad + comprar */}
   <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "8px 12px",
-    borderRadius: 14,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.2)"
-  }}
->
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "8px 12px",
-    borderRadius: 18,
-    background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-  }}
->
-
-
-
-  <input
-    type="number"
-    min={1}
-    value={creditAmount}
-    onChange={(e) => setCreditAmount(Number(e.target.value))}
     style={{
-      width: 70,
-      height: 36,
-      borderRadius: 8,
-      border: "1px solid rgba(255,255,255,0.4)",
-      background: "rgba(255,255,255,0.15)",
-      color: "#ffffff",
-      fontWeight: 800,
-      textAlign: "center",
-      outline: "none"
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "8px 10px",
+      borderRadius: 16,
+      background: "#ffffff",
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
     }}
-  />
-
-  <button
-    type="button"
-    disabled={buyLoading}
-    onClick={async () => {
-      try {
-        setBuyLoading(true);
-
-        const token = localStorage.getItem("accessToken");
-
-        const res = await fetch(`${API}/mp/create-preference`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ credits: creditAmount }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-        window.location.href = data.init_point;
-      } catch (e: any) {
-        alert(String(e?.message || e));
-      } finally {
-        setBuyLoading(false);
-      }
-    }
-  }
-    style={styles.btnSecondary}
   >
-    {buyLoading ? (
-  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-    <span className="spinner" />
-    Procesando...
-  </span>
-) : (
-  "💳 Comprar créditos"
-)}
-  </button>
+    <input
+      type="number"
+      min={1}
+      value={creditAmount}
+      onChange={(e) => setCreditAmount(Number(e.target.value))}
+      style={{
+        width: 64,
+        height: 36,
+        borderRadius: 12,
+        border: "1px solid #cbd5e1",
+        background: "#ffffff",
+        color: "#0f172a",
+        fontWeight: 900,
+        textAlign: "center",
+        outline: "none",
+      }}
+    />
+
+    <button
+      type="button"
+      disabled={buyLoading}
+      onClick={async () => {
+        try {
+          setBuyLoading(true);
+
+          const token = localStorage.getItem("accessToken");
+          const res = await fetch(`${API}/mp/create-preference`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ credits: creditAmount }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+          if (!data?.init_point) throw new Error("No init_point recibido");
+          window.location.href = data.init_point;
+        } catch (e: any) {
+          alert(String(e?.message || e));
+        } finally {
+          setBuyLoading(false);
+        }
+      }}
+      style={styles.btnSecondary}
+    >
+      {buyLoading ? (
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="spinner" />
+          Procesando...
+        </span>
+      ) : (
+        "💳 Comprar créditos"
+      )}
+    </button>
   </div>
 
-  <button
-    type="button"
-    onClick={handleLogout}
-    style={styles.btnSecondary}
-  >
+  {/* logout */}
+  <button type="button" onClick={handleLogout} style={styles.btnSecondary}>
     🚪 Cerrar sesión
   </button>
 </div>
+
         </div>
 
         {/* Main */}
