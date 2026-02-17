@@ -317,8 +317,23 @@ Mantener exactamente el mismo producto, color y textura.
 // MODEL MODE (REAL)
 // =====================
 if (mode === "model") {
+  const selectedViews = req.body.views
+  ? JSON.parse(req.body.views)
+  : {};
+
+const selectedCount = Object.values(selectedViews).filter(Boolean).length;
+
+if (selectedCount === 0) {
+  return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
+}
+
   const front = req.files?.front?.[0];
   const back = req.files?.back?.[0];
+
+  if (selectedViews?.back && !back) {
+  return res.status(400).json({ error: "Para generar espalda, subí la foto de espalda." });
+}
+
 
   if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
@@ -369,11 +384,27 @@ Fondo: ${background}
 `.trim();
 
   const views = [
-    { key: "front", label: "vista frontal" },
-    { key: "back", label: "vista trasera" },
-    { key: "left", label: "vista costado izquierdo" },
-    { key: "right", label: "vista costado derecho" },
-  ];
+  { key: "front", label: "vista frontal" },
+  { key: "back", label: "vista trasera" },
+  { key: "left", label: "vista costado izquierdo" },
+  { key: "right", label: "vista costado derecho" },
+].filter((v) => selectedViews?.[v.key]);
+
+const COST = views.length;
+
+if (COST === 0) {
+  return res.status(400).json({ error: "Seleccioná al menos una vista." });
+}
+
+const updated = await prisma.wallet.updateMany({
+  where: { id: wallet.id, balance: { gte: COST } },
+  data: { balance: { decrement: COST } },
+});
+
+if (updated.count === 0) {
+  return res.status(402).json({ error: "Sin créditos suficientes" });
+}
+
 
   const settled = await Promise.allSettled(
     views.map(async (v) => {
