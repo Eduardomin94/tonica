@@ -1243,18 +1243,17 @@ setEntries(data?.wallet?.entries ?? []);
 <div
   style={{
     display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "12px 14px",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+    gap: 16,
+    padding: "16px 20px",
     borderRadius: 18,
     background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
-    border: "1px solid rgba(226,232,240,0.9)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    width: isMobile ? "100%" : "auto",
-    justifyContent: isMobile ? "space-between" : "flex-start",
-
+    width: "100%",
   }}
 >
+
   {/* email */}
   <div style={{ fontSize: 12, color: "#0f172a", fontWeight: 800, whiteSpace: "nowrap" }}>
     {user?.email || user?.name}
@@ -1351,9 +1350,7 @@ setEntries(data?.wallet?.entries ?? []);
 >
   🚪 Cerrar sesión
 </button>
-
 </div>
-
         </div>
 
         {/* Main */}
@@ -1363,7 +1360,6 @@ setEntries(data?.wallet?.entries ?? []);
     gridTemplateColumns: isMobile ? "1fr" : "280px 1fr",
   }}
 >
-
           {/* Sidebar */}
           {!isMobile && (
           <aside style={styles.sidebar}>
@@ -1658,7 +1654,6 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
 /* ================== STYLES ================== */
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -1668,15 +1663,13 @@ const styles: Record<string, React.CSSProperties> = {
   fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
   background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
 },
-
-
   shell: { maxWidth: 1100, margin: "0 auto" },
   header: {
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    padding: "10px 6px 18px 6px",
-  },
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  padding: "10px 6px 18px 6px",
+},
   h1: { fontSize: 28, fontWeight: 800, letterSpacing: -0.2 },
   h2: { marginTop: 6, color: "#475569" },
   badge: {
@@ -1691,11 +1684,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
   },
   main: {
-    display: "grid",
-    gridTemplateColumns: "280px 1fr",
-    gap: 16,
-    alignItems: "start",
-  },
+  display: "grid",
+  gridTemplateColumns: "280px 1fr",
+  gap: 16,
+  alignItems: "start",
+},
+mainMobile: {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 16,
+  alignItems: "start",
+},
+
   sidebar: {
     border: "1px solid #e5e7eb",
     borderRadius: 14,
