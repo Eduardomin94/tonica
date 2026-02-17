@@ -419,25 +419,12 @@ if (updated.count === 0) {
 
   const settled = await Promise.allSettled(
     views.map(async (v) => {
-      views.map(async (v) => {
+      const extraBackHint =
+  v.key === "back" && !back
+    ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
+    : "";
 
-  const extraBackHint =
-    v.key === "back" && !back
-      ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
-      : "";
-
-  const viewPrompt = `
-${basePrompt}
-Cámara: ${v.label}.
-${extraBackHint}
-
-IMPORTANTE:
-- Generar UNA SOLA imagen.
-- No collage.
-- No grid.
-- No múltiples imágenes.
-`.trim();
-
+      const viewPrompt = `${basePrompt}\n\nCámara: ${v.label}.`;
       const parts = [{ text: viewPrompt }, ...refParts];
 
       const { status, data } = await geminiGenerate({
