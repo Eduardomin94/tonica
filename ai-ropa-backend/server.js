@@ -211,7 +211,9 @@ app.post(
   async (req, res) => {
     let wallet = null;
     let consumeEntry = null;
-    const COST = 1;
+    const selectedViews = req.body.selectedViews || {};
+    const COST = Object.values(selectedViews).filter(Boolean).length;
+
 
     const userId = req.userId;
     const idem =
@@ -278,7 +280,18 @@ Mantener exactamente el mismo producto, color y textura.
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
-            const viewPrompt = `${basePrompt}\n\nCámara: ${v.label}.`;
+            const viewPrompt = `
+${basePrompt}
+
+Cámara: ${v.label}.
+
+IMPORTANTE:
+- Generar UNA SOLA imagen.
+- NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
+- Una sola persona, un solo cuerpo completo, centrado.
+- Fondo continuo (sin cortes).
+`.trim();
+
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
             const { status, data } = await geminiGenerate({
@@ -320,6 +333,9 @@ if (mode === "model") {
   const selectedViews = req.body.views
   ? JSON.parse(req.body.views)
   : {};
+
+  console.log("VIEWS RECIBIDAS:", selectedViews);
+
 
 const selectedCount = Object.values(selectedViews).filter(Boolean).length;
 
