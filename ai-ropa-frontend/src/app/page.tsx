@@ -1098,8 +1098,6 @@ setMeEntries(data?.wallet?.entries ?? []);
     {Object.values(views).filter(Boolean).length}
   </div>
 </div>
-
-    const selectedCount = Object.values(views).filter(Boolean).length;
   
             <Button
   onClick={handleGenerate}
@@ -1237,7 +1235,7 @@ setMeEntries(data?.wallet?.entries ?? []);
                 onClick={() => setMode("product")}
                 style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}
               >
-                🛍 Foto producto
+                ⚛️ Foto producto
               </button>
             </div>
           </div>
@@ -1245,7 +1243,7 @@ setMeEntries(data?.wallet?.entries ?? []);
       </div>
     );
   }
-
+    const selectedCount = Object.values(views).filter(Boolean).length;
   return (
   <div style={styles.page}>
     <div style={styles.shell}>
