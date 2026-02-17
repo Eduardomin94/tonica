@@ -1376,12 +1376,14 @@ setMeEntries(data?.wallet?.entries ?? []);
     if (pack) setSelectedPack(pack);
   }}
   style={{
-    padding: "8px 12px",
+    height: 40,
+    padding: "6px 10px",
     borderRadius: 12,
     border: "1px solid #cbd5e1",
     background: "#ffffff",
     color: "#0f172a",
     fontWeight: 800,
+    minWidth: 260,
   }}
 >
   {CREDIT_PACKS.map((p) => (
