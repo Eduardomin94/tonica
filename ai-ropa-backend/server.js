@@ -360,7 +360,7 @@ Mantener exactamente el mismo producto, color y textura.
 app.post("/mp/create-preference", requireAuth, async (req, res) => {
   try {
     const credits = Number(req.body?.credits ?? 10);
-    const unitPrice = credits * 100;
+    const unitPrice = credits * 1;
 
     const fe = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
     const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
