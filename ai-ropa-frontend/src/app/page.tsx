@@ -1340,9 +1340,18 @@ setEntries(data?.wallet?.entries ?? []);
   </div>
 
   {/* logout */}
-  <button type="button" onClick={handleLogout} style={styles.btnSecondary}>
-    🚪 Cerrar sesión
-  </button>
+  <button
+  type="button"
+  onClick={handleLogout}
+  style={{
+    ...styles.btnSecondary,
+    width: isMobile ? "100%" : "auto",
+    marginTop: isMobile ? 8 : 0,
+  }}
+>
+  🚪 Cerrar sesión
+</button>
+
 </div>
 
         </div>
