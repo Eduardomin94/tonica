@@ -45,6 +45,8 @@ export default function Home() {
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
+
   const [buyLoading, setBuyLoading] = useState(false);
   const CREDIT_PACKS = [
   { key: "emprendedor", credits: 50, price: 75000 },
@@ -1375,12 +1377,10 @@ setMeEntries(data?.wallet?.entries ?? []);
 
     }}
   >
+    
     <select
-  value={selectedPack.key}
-  onChange={(e) => {
-    const pack = CREDIT_PACKS.find(p => p.key === e.target.value);
-    if (pack) setSelectedPack(pack);
-  }}
+  value={selectedPack}
+  onChange={(e) => setSelectedPack(e.target.value as any)}
   style={{
     height: 40,
     padding: "6px 10px",
@@ -1388,19 +1388,19 @@ setMeEntries(data?.wallet?.entries ?? []);
     border: "1px solid #cbd5e1",
     background: "#ffffff",
     color: "#0f172a",
-    fontWeight: 800,
+    fontWeight: 900,
     minWidth: 260,
   }}
 >
-  {CREDIT_PACKS.map((p) => (
-    <option key={p.key} value={p.key}>
-      {p.key === "emprendedor" && "🚀 Paquete Emprendedor"}
-      {p.key === "pyme" && "🏢 Paquete PyME"}
-      {p.key === "empresa" && "🏭 Paquete Empresa"}
-      {" — "}
-      {p.credits} créditos / ${p.price.toLocaleString("es-AR")}
-    </option>
-  ))}
+  <option value="emprendedor">
+    🚀 Paquete Emprendedor — 50 créditos / $75.000
+  </option>
+  <option value="pyme">
+    🏢 Paquete PyME — 200 créditos / $300.000
+  </option>
+  <option value="empresa">
+    🏭 Paquete Empresa — 900 créditos / $800.000
+  </option>
 </select>
 
 
