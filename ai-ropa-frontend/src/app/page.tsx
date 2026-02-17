@@ -1636,16 +1636,17 @@ const res = await fetch(`${API}/mp/create-preference`, {
 ) : (
       <div style={{
   marginTop: 8,
-  overflowX: "auto",
+  overflowX: "hidden",
   border: "1px solid #e5e7eb",
   borderRadius: 12,
   width: "100%",
   maxWidth: "100%",
 }}>
 
+
         <table style={{ 
   width: "100%", 
-  minWidth: isMobile ? 0 : 700,
+  tableLayout: "fixed",
   borderCollapse: "collapse", 
   fontSize: 13 
 }}>
