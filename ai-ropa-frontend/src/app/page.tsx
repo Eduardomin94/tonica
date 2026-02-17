@@ -1652,12 +1652,12 @@ const res = await fetch(`${API}/mp/create-preference`, {
 }}>
 
           <thead>
-            <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-              <th style={{ padding: "10px 10px", color: "#475569" }}>Fecha</th>
-              <th style={{ padding: "10px 10px", color: "#475569" }}>Movimiento</th>
-              <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569" }}>Cantidad</th>
-            </tr>
-          </thead>
+  <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+    <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
+    <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
+    <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
+  </tr>
+</thead>
 
           <tbody>
             {entries.map((e) => {
