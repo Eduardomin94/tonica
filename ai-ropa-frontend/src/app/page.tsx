@@ -1268,14 +1268,15 @@ setEntries(data?.wallet?.entries ?? []);
   style={{
     display: "flex",
     alignItems: "center",
-    gap: 12,
-    padding: "10px 12px",
-    borderRadius: 14,
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+    gap: 10,
+    padding: "8px 12px",
+    borderRadius: 18,
+    background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
   }}
 >
+
 
 
   <input
