@@ -1341,7 +1341,7 @@ setEntries(data?.wallet?.entries ?? []);
           setBuyLoading(false);
         }
       }}
-      style={styles.btnSecondary}
+      style={styles.btnPremium}
     >
       {buyLoading ? (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1359,10 +1359,10 @@ setEntries(data?.wallet?.entries ?? []);
   type="button"
   onClick={handleLogout}
   style={{
-    ...styles.btnSecondary,
-    width: isMobile ? "100%" : "auto",
-    marginTop: isMobile ? 8 : 0,
-  }}
+  ...styles.btnGhostPremium,
+  width: isMobile ? "100%" : "auto",
+  marginTop: isMobile ? 8 : 0,
+}}
 >
   🚪 Cerrar sesión
 </button>
@@ -1931,6 +1931,27 @@ loginSub: {
   marginTop: 16,
   fontSize: 13,
   color: "#64748b",
+},
+btnPremium: {
+  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+  color: "#ffffff",
+  border: "none",
+  padding: "12px 18px",
+  borderRadius: 14,
+  fontWeight: 900,
+  cursor: "pointer",
+  boxShadow: "0 8px 20px rgba(99,102,241,0.35)",
+  transition: "all 0.2s ease",
+},
+btnGhostPremium: {
+  background: "transparent",
+  color: "#0f172a",
+  border: "1px solid #e2e8f0",
+  padding: "12px 18px",
+  borderRadius: 14,
+  fontWeight: 900,
+  cursor: "pointer",
+  transition: "all 0.2s ease",
 },
 
 };
