@@ -701,7 +701,9 @@ setMeEntries(data?.wallet?.entries ?? []);
     }
   }
 
-  // ============ RENDER PANEL POR PASO ============
+  const selectedCount = Object.values(views).filter(Boolean).length;
+
+  // ============ RENDER PANEL POR PASO ============  
   const panel = useMemo(() => {
     switch (steps[step].key) {
       case "upload":
@@ -1095,11 +1097,8 @@ setMeEntries(data?.wallet?.entries ?? []);
   
             <Button
   onClick={handleGenerate}
-  disabled={
-  loading ||
-  Object.values(views).filter(Boolean).length === 0 ||
-  balance < Object.values(views).filter(Boolean).length
-}
+  disabled={loading || selectedCount === 0 || balance < selectedCount}
+
 
   style={{ width: "100%", padding: "14px 16px" }}
 >
@@ -1242,7 +1241,6 @@ setMeEntries(data?.wallet?.entries ?? []);
       </div>
     );
   }
-    const selectedCount = Object.values(views).filter(Boolean).length;
   return (
   <div style={styles.page}>
     <div style={styles.shell}>
@@ -1721,7 +1719,17 @@ const res = await fetch(`${API}/mp/create-preference`, {
 
               return (
                 <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "10px 10px", whiteSpace: "nowrap", color: "#0f172a" }}>
+                 <td
+  style={{
+    padding: "10px 10px",
+    color: "#0f172a",
+    whiteSpace: "normal",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    wordBreak: "break-word",
+  }}
+>
+
                     {new Date(e.createdAt).toLocaleString()}
                   </td>
 
