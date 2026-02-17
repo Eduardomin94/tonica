@@ -1659,9 +1659,16 @@ const styles: Record<string, React.CSSProperties> = {
   page: {
   minHeight: "100vh",
   padding: 20,
-  color: "#0f172a",
-  fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-  background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+  fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial",
+  background: `
+    radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%),
+    linear-gradient(135deg, #0f172a 0%, #111827 100%)
+  `,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "flex-start",
+  color: "#ffffff",
 },
   shell: { maxWidth: 1100, margin: "0 auto" },
   header: {
