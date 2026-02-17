@@ -1382,7 +1382,8 @@ setMeEntries(data?.wallet?.entries ?? []);
     boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
     color: "#0f172a",
     display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "auto auto 1fr auto",
+   gridTemplateColumns: isMobile ? "1fr" : "minmax(180px, 260px) auto minmax(320px, 1fr) auto",
+
     alignItems: "center",
     gap: 12,
   }}
@@ -1432,17 +1433,16 @@ setMeEntries(data?.wallet?.entries ?? []);
   value={selectedPack}
   onChange={(e) => setSelectedPack(e.target.value as any)}
   style={{
-    height: 40,
-    padding: "6px 10px",
-    borderRadius: 12,
-    border: "1px solid #cbd5e1",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontWeight: 900,
-    minWidth: isMobile ? 0 : 260,
-width: isMobile ? "100%" : "auto",
-
-  }}
+  height: 40,
+  padding: "6px 10px",
+  borderRadius: 12,
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  fontWeight: 900,
+  flex: "1 1 280px",
+  minWidth: 220,
+}}
 >
   <option value="emprendedor">
     🚀 Paquete Emprendedor — 50 créditos / $75.000
@@ -1509,10 +1509,17 @@ const res = await fetch(`${API}/mp/create-preference`, {
   onClick={handleLogout}
   style={{
   ...styles.btnGhostPremium,
+  height: 40,
+  padding: "0 14px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  whiteSpace: "nowrap",
   width: isMobile ? "100%" : "auto",
   marginTop: isMobile ? 8 : 0,
   justifySelf: isMobile ? "stretch" : "end",
 }}
+
 >
   🚪 Cerrar sesión
 </button>
