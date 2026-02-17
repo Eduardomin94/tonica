@@ -1380,8 +1380,8 @@ setEntries(data?.wallet?.entries ?? []);
 >
 
           {/* Sidebar */}
-          {isMobile && (
-  <div style={{ marginBottom: 16 }}>
+          {
+          <div style={{ marginBottom: 16 }}>
     <button
       type="button"
       onClick={() => setMobileStepsOpen((v) => !v)}
@@ -1491,7 +1491,7 @@ setEntries(data?.wallet?.entries ?? []);
       </div>
     )}
   </div>
-)}
+}
 
 
           {/* Panel */}
