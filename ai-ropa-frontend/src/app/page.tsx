@@ -1479,7 +1479,7 @@ setEntries(data?.wallet?.entries ?? []);
 
         <table style={{ 
   width: "100%", 
-  minWidth: 700,
+  minWidth: isMobile ? 0 : 700,
   borderCollapse: "collapse", 
   fontSize: 13 
 }}>
