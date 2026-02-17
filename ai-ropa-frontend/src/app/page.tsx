@@ -37,6 +37,7 @@ export default function Home() {
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [buyLoading, setBuyLoading] = useState(false);
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
   
   const translations = {
@@ -1241,34 +1242,47 @@ setEntries(data?.wallet?.entries ?? []);
 
             <button
               type="button"
+              disabled={buyLoading}
               onClick={async () => {
-                try {
-                  console.log("API:", API);
-                  const token = localStorage.getItem("accessToken");
+  try {
+    setBuyLoading(true);
 
-                  const res = await fetch(`${API}/mp/create-preference`, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ credits: 10 }),
-                  });
+    const token = localStorage.getItem("accessToken");
 
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-                  if (!data?.init_point) {
-                    alert("No init_point recibido");
-                    return;
-                  }
-                  window.location.href = data.init_point;
-                } catch (e: any) {
-                  alert(String(e?.message || e));
-                }
-              }}
+    const res = await fetch(`${API}/mp/create-preference`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ credits: 10 }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+    if (!data?.init_point) {
+      alert("No init_point recibido");
+      return;
+    }
+
+    window.location.href = data.init_point;
+  } catch (e: any) {
+    alert(String(e?.message || e));
+  } finally {
+    setBuyLoading(false);
+  }
+}}
               style={styles.btnSecondary}
             >
-              💳 Comprar créditos
+             {buyLoading ? (
+  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span className="spinner" />
+    Procesando...
+  </span>
+) : (
+  "💳 Comprar créditos"
+)}
+
             </button>
 
             <button

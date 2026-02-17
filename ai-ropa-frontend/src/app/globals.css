@@ -49,3 +49,22 @@ button:hover:not(:disabled) {
 button:active:not(:disabled) {
   transform: scale(0.97);
 }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #22c55e;
+  border-right-color: #3b82f6;
+  border-bottom-color: #f59e0b;
+  border-left-color: #ef4444;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
