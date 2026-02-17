@@ -1198,14 +1198,15 @@ setMeEntries(data?.wallet?.entries ?? []);
     return (
       <div className={inter.className} style={styles.page}>
         <div style={{ ...styles.shell, maxWidth: 600 }}>
-            <div
-              style={{
-                ...styles.header,
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: isMobile ? "stretch" : "flex-end",
-                gap: isMobile ? 14 : 0,
-              }}
+          <div
+  style={{
+    ...styles.header,
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 14,
+  }}
 >
+
 
             <div>
               <div style={{ ...styles.h1, color: "#ffffff" }}>
@@ -1346,9 +1347,7 @@ setMeEntries(data?.wallet?.entries ?? []);
   <div style={{ ...styles.h2, color: "#cbd5e1" }}>
     {t("subtitle")}
   </div>
-</div>
-
-          <div>
+  <div style={{ marginTop: 10 }}>
   <select
     value={language}
     onChange={(e) => setLanguage(e.target.value as any)}
@@ -1360,6 +1359,7 @@ setMeEntries(data?.wallet?.entries ?? []);
       color: "#000000",
       fontWeight: 700,
       cursor: "pointer",
+      width: isMobile ? "100%" : 140,
     }}
   >
     <option value="es">🇪🇸 ES</option>
@@ -1369,6 +1369,10 @@ setMeEntries(data?.wallet?.entries ?? []);
     <option value="zh">🇨🇳 中文</option>
   </select>
 </div>
+
+</div>
+
+          
 <div
   style={{
     display: "flex",
@@ -1931,7 +1935,7 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
+ justifyContent: "flex-start",
   padding: "18px 24px",
   borderRadius: 20,
   background: "rgba(255,255,255,0.06)",
