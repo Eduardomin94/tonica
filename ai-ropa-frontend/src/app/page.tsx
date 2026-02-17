@@ -1667,10 +1667,8 @@ const styles: Record<string, React.CSSProperties> = {
   color: "#0f172a",
   fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
   background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
 },
+
 
   shell: { maxWidth: 1100, margin: "0 auto" },
   header: {
