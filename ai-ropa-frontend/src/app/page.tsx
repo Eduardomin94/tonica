@@ -1334,7 +1334,13 @@ setEntries(data?.wallet?.entries ?? []);
         </div>
 
         {/* Main */}
-        <div style={styles.main}>
+        <div
+  style={{
+    ...styles.main,
+    gridTemplateColumns: isMobile ? "1fr" : "280px 1fr",
+  }}
+>
+
           {/* Sidebar */}
           <aside style={styles.sidebar}>
             <div style={styles.sidebarTitle}>Pasos</div>
