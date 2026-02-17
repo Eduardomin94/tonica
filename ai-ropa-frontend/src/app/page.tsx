@@ -1896,7 +1896,14 @@ mainMobile: {
     border: "1px solid #e2e8f0",
   },
   fieldTitle: { fontSize: 18, fontWeight: 900, marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: 800, marginBottom: 6, color: "#0f172a" },
+  label: {
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 6,
+  color: "#cbd5e1",
+  letterSpacing: 0.3,
+},
+
   smallMuted: { fontSize: 12, color: "#64748b", marginTop: 6 },
   row: { display: "flex", alignItems: "center", gap: 10 },
   twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
