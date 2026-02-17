@@ -1242,22 +1242,32 @@ setEntries(data?.wallet?.entries ?? []);
   </div>
 
   {/* 👇 INPUT PARA ELEGIR CANTIDAD */}
+  <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "8px 12px",
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.2)"
+  }}
+>
   <input
     type="number"
     min={1}
     value={creditAmount}
     onChange={(e) => setCreditAmount(Number(e.target.value))}
     style={{
-      width: 90,
-      height: 40,
-      padding: "0 12px",
-      borderRadius: 12,
-      border: "1px solid rgba(255,255,255,0.3)",
-      background: "rgba(255,255,255,0.1)",
+      width: 70,
+      height: 36,
+      borderRadius: 8,
+      border: "1px solid rgba(255,255,255,0.4)",
+      background: "rgba(255,255,255,0.15)",
       color: "#ffffff",
       fontWeight: 800,
       textAlign: "center",
-      outline: "none",
+      outline: "none"
     }}
   />
 
