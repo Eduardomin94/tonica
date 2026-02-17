@@ -1166,6 +1166,8 @@ setMeEntries(data?.wallet?.entries ?? []);
     error,
     loadingMe,
     API,
+    views,
+    selectedCount,
   ]);
 
   if (!user && !accessToken) {
@@ -1367,10 +1369,6 @@ setMeEntries(data?.wallet?.entries ?? []);
     <option value="zh">🇨🇳 中文</option>
   </select>
 </div>
-
-            
-  
- </div> 
 <div
   style={{
     display: "flex",
