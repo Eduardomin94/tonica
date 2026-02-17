@@ -1150,7 +1150,7 @@ setEntries(data?.wallet?.entries ?? []);
                 onClick={() => setMode("model")}
                 style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}
               >
-                📸 Foto con modelo
+                📸 Foto con modelo (vestimenta)
               </button>
 
               <button
