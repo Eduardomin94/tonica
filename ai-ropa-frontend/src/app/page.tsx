@@ -1668,15 +1668,28 @@ function TextInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const [focused, setFocused] = useState(false);
+
   return (
     <input
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      style={styles.input}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={{
+        ...styles.input,
+        border: focused
+          ? "1px solid #6366f1"
+          : "1px solid rgba(255,255,255,0.15)",
+        boxShadow: focused
+          ? "0 0 0 3px rgba(99,102,241,0.25)"
+          : "none",
+      }}
     />
   );
 }
+
 
 function InputFile({ onChange }: { onChange: (f: File | null) => void }) {
   return (
@@ -1915,15 +1928,17 @@ mainMobile: {
     background: "#f8fafc",
   },
   input: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    color: "#0f172a",
-    outline: "none",
-    fontSize: 14,
-  },
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.15)",
+  background: "rgba(255,255,255,0.06)",
+  color: "#ffffff",
+  outline: "none",
+  fontSize: 14,
+  backdropFilter: "blur(6px)",
+  transition: "all 0.25s ease",
+},
   file: {
     width: "100%",
     padding: "10px 12px",
