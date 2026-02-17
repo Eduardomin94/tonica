@@ -297,32 +297,64 @@ Mantener exactamente el mismo producto, color y textura.
               .slice(2)}.png`;
             const filePath = path.join("uploads", fileName);
             fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
-
             return `/uploads/${fileName}`;
           })
         );
-
         for (const f of files) {
           try {
             fs.unlinkSync(f.path);
           } catch {}
         }
-
         const imageUrls = settled
           .filter((r) => r.status === "fulfilled")
           .map((r) => r.value);
-
         if (!imageUrls.length) {
           return res.status(500).json({ error: "No se pudo generar ninguna imagen de producto" });
         }
-
         return res.json({ imageUrls, promptUsed: basePrompt });
       }
+      // =====================
+// MODEL MODE
+// =====================
+if (mode === "model") {
 
-      return res.status(400).json({ error: "Modo model no incluido en este snippet" });
+  const front = req.files?.front?.[0];
+  const back = req.files?.back?.[0];
+
+  if (!front) {
+    return res.status(400).json({ error: "Falta imagen frontal" });
+  }
+
+  const category = req.body.category;
+  const modelType = req.body.model_type;
+  const ethnicity = req.body.ethnicity;
+  const ageRange = req.body.age_range;
+  const background = req.body.background;
+  const pose = req.body.pose;
+  const bodyType = req.body.body_type;
+
+  const basePrompt = `
+  Generate a realistic fashion photo.
+  Category: ${category}
+  Model: ${modelType}
+  Ethnicity: ${ethnicity}
+  Age: ${ageRange}
+  Background: ${background}
+  Pose: ${pose}
+  Body type: ${bodyType}
+  `;
+
+  // ⚠️ ACÁ reutilizás tu lógica actual de generación
+  const imageUrls = await generateModelImages(basePrompt, front, back);
+
+  return res.json({
+    imageUrls,
+    promptUsed: basePrompt
+  });
+}
+
     } catch (err) {
       console.error("GENERATE ERROR:", err);
-
       // REFUND
       try {
         if (wallet) {
@@ -330,7 +362,6 @@ Mantener exactamente el mismo producto, color y textura.
             where: { id: wallet.id },
             data: { balance: { increment: COST } },
           });
-
           await prisma.creditEntry.create({
             data: {
               walletId: wallet.id,
@@ -345,7 +376,6 @@ Mantener exactamente el mismo producto, color y textura.
       } catch (refundError) {
         console.error("REFUND FAILED:", refundError);
       }
-
       return res.status(500).json({
         error: "Error en generate",
         details: String(err?.message || err),
