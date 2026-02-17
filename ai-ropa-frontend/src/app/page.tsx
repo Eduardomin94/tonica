@@ -1291,7 +1291,15 @@ setEntries(data?.wallet?.entries ?? []);
     }}
     style={styles.btnSecondary}
   >
-    {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+    {buyLoading ? (
+  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span className="spinner" />
+    Procesando...
+  </span>
+) : (
+  "💳 Comprar créditos"
+)}
+
   </button>
 
   <button
