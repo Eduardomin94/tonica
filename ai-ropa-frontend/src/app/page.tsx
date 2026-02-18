@@ -57,7 +57,7 @@ export default function Home() {
     left: false,
     right: false,
   });
-  
+
   const [productCount, setProductCount] = useState<number>(0);
 
 
@@ -1030,21 +1030,22 @@ export default function Home() {
 
             <div
   style={{
-  marginTop: 16,
-  position: "relative",
-  width: 370,
-  maxWidth: "100%",
-  height: 52,
-  borderRadius: 999,
-  padding: 6,
-  background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-  boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
-  overflow: "hidden",
-  display: "flex",
-  alignItems: "center",
-}}
-
+    marginTop: 16,
+    position: "relative",
+    width: 360,
+    maxWidth: "100%",
+    height: 52,
+    borderRadius: 999,
+    padding: 6,
+    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+    boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    gap: 0,
+  }}
 >
+
   <div
     style={{
   position: "absolute",
@@ -1059,7 +1060,7 @@ export default function Home() {
 }}
 
   />
-
+ <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
   <button
     type="button"
     onClick={() => setMode("model")}
@@ -1105,7 +1106,7 @@ export default function Home() {
   </button>
 </div>
 
-            <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
+           
 
             <div style={{ marginTop: 10 }}>
               <select
