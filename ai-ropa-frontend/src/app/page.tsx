@@ -968,68 +968,62 @@ export default function Home() {
           <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
             <div>
               <div style={{ ...styles.h1, color: "#ffffff" }}>{t("title")}</div>
-              <div
+              <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
+            </div>
+          </div>
+<div
   style={{
-    marginTop: 16,
+    marginTop: 14,
     display: "inline-flex",
     alignItems: "center",
     padding: 6,
     borderRadius: 999,
     background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-    boxShadow: "0 8px 24px rgba(124,58,237,0.4)",
+    boxShadow: "0 10px 26px rgba(124,58,237,0.35)",
+    maxWidth: "100%",
+    overflow: "hidden",
   }}
 >
-  {/* FOTO CON MODELO */}
   <button
     type="button"
     onClick={() => setMode("model")}
     style={{
-      padding: "12px 26px",
+      padding: "12px 22px",
       borderRadius: 999,
       border: "none",
       cursor: "pointer",
       fontWeight: 900,
-      fontSize: 15,
-      transition: "all 0.25s ease",
+      fontSize: 14,
+      transition: "all 0.2s ease",
       background: mode === "model" ? "#ffffff" : "transparent",
       color: mode === "model" ? "#7c3aed" : "#ffffff",
-      boxShadow:
-        mode === "model"
-          ? "0 4px 14px rgba(0,0,0,0.15)"
-          : "none",
+      boxShadow: mode === "model" ? "0 6px 16px rgba(0,0,0,0.18)" : "none",
+      whiteSpace: "nowrap",
     }}
   >
     Foto con modelo
   </button>
 
-  {/* FOTO PRODUCTO */}
   <button
     type="button"
     onClick={() => setMode("product")}
     style={{
-      padding: "12px 26px",
+      padding: "12px 22px",
       borderRadius: 999,
       border: "none",
       cursor: "pointer",
       fontWeight: 900,
-      fontSize: 15,
-      transition: "all 0.25s ease",
+      fontSize: 14,
+      transition: "all 0.2s ease",
       background: mode === "product" ? "#ffffff" : "transparent",
       color: mode === "product" ? "#7c3aed" : "#ffffff",
-      boxShadow:
-        mode === "product"
-          ? "0 4px 14px rgba(0,0,0,0.15)"
-          : "none",
+      boxShadow: mode === "product" ? "0 6px 16px rgba(0,0,0,0.18)" : "none",
+      whiteSpace: "nowrap",
     }}
   >
     Foto producto
   </button>
 </div>
-
-              <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
-            </div>
-          </div>
-
           <div style={styles.panel}>
             <div style={{ display: "grid", gap: 14 }}>
               <button type="button" onClick={() => setMode("model")} style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}>
