@@ -1062,8 +1062,6 @@ export default function Home() {
   }}
 />
 
-
- <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
   <button
     type="button"
     onClick={() => setMode("model")}
@@ -1085,7 +1083,6 @@ export default function Home() {
   >
     📸Foto con modelo
   </button>
-
   <button
     type="button"
     onClick={() => setMode("product")}
@@ -1108,9 +1105,11 @@ export default function Home() {
      ⚛️Foto producto
   </button>
 </div>
-
+ <div style={{ ...styles.h2, color: "#cbd5e1" }}>
+    {t("subtitle")}
+    </div>
            
-
+</div>
             <div style={{ marginTop: 10 }}>
               <select
                 value={language}
