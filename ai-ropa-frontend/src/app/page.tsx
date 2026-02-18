@@ -1050,18 +1050,19 @@ export default function Home() {
   >
     {/* Slider blanco */}
     <div
-      style={{
-        position: "absolute",
-        top: 6,
-        left: mode === "model" ? 6 : "50%",
-        width: "calc(50% - 6px)",
-        height: 40,
-        borderRadius: 999,
-        background: "#ffffff",
-        transition: "left 0.25s ease",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-      }}
-    />
+  style={{
+    position: "absolute",
+    top: 6,
+    left: 6,
+    width: "calc((100% - 12px) / 2)",
+    height: 40,
+    borderRadius: 999,
+    background: "#ffffff",
+    transform: mode === "model" ? "translateX(0)" : "translateX(100%)",
+    transition: "transform 0.25s ease",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+  }}
+/>
 
     <button
       type="button"
