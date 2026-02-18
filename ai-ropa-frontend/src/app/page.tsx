@@ -1269,244 +1269,244 @@ export default function Home() {
             </button>
           </div>
         </div>
-
                 {/* Historial */}
-        <details
-          style={{
-            marginTop: 20,
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
-            background: "#ffffff",
-            boxShadow: "0 1px 0 rgba(15,23,42,0.03)",
-          }}
-        >
-          <summary
-            style={{
-              cursor: "pointer",
-              listStyle: "none",
-              padding: "14px 16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              fontWeight: 800,
-            }}
-          >
-            <span style={{ color: "#1e293b", fontWeight: 800 }}>📒 {t("history")}</span>
-          </summary>
+<details
+  style={{
+    marginTop: 20,
+    marginBottom: 20, // <-- separación con el "Paso 1 de 11"
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    background: "#ffffff",
+    boxShadow: "0 1px 0 rgba(15,23,42,0.03)",
+  }}
+>
+  <summary
+    style={{
+      cursor: "pointer",
+      listStyle: "none",
+      padding: "14px 16px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      fontWeight: 800,
+    }}
+  >
+    <span style={{ color: "#1e293b", fontWeight: 800 }}>📒 {t("history")}</span>
+  </summary>
 
-          <div style={{ padding: "0 16px 16px 16px" }}>
-            {loadingEntries ? (
-              <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
-            ) : entries.length === 0 ? (
-              <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
-            ) : (
-              <div style={{ marginTop: 8, overflowX: "hidden", border: "1px solid #e5e7eb", borderRadius: 12, width: "100%", maxWidth: "100%" }}>
-                <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-                      <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
-                      <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
-                      <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
-                    </tr>
-                  </thead>
+  <div style={{ padding: "0 16px 16px 16px" }}>
+    {loadingEntries ? (
+      <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
+    ) : entries.length === 0 ? (
+      <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
+    ) : (
+      <div style={{ marginTop: 8, overflowX: "hidden", border: "1px solid #e5e7eb", borderRadius: 12, width: "100%", maxWidth: "100%" }}>
+        <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+              <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
+              <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
+              <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
+            </tr>
+          </thead>
 
-                  <tbody>
-                    {entries.map((e) => {
-                      const isPlus = e.amount > 0;
-                      const label =
-                        e.type === "PURCHASE"
-                          ? "Compra"
-                          : e.type === "CONSUME"
-                            ? "Consumo"
-                            : e.type === "REFUND"
-                              ? "Reintegro"
-                              : e.type === "GRANT"
-                                ? "Bonificación"
-                                : e.type;
+          <tbody>
+            {entries.map((e) => {
+              const isPlus = e.amount > 0;
+              const label =
+                e.type === "PURCHASE"
+                  ? "Compra"
+                  : e.type === "CONSUME"
+                    ? "Consumo"
+                    : e.type === "REFUND"
+                      ? "Reintegro"
+                      : e.type === "GRANT"
+                        ? "Bonificación"
+                        : e.type;
 
-                      return (
-                        <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td
-                            style={{
-                              padding: "10px 10px",
-                              color: "#0f172a",
-                              whiteSpace: "normal",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {new Date(e.createdAt).toLocaleString()}
-                          </td>
+              return (
+                <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td
+                    style={{
+                      padding: "10px 10px",
+                      color: "#0f172a",
+                      whiteSpace: "normal",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {new Date(e.createdAt).toLocaleString()}
+                  </td>
 
-                          <td style={{ padding: "10px 10px" }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                fontWeight: 800,
-                                fontSize: 12,
-                                padding: "4px 10px",
-                                borderRadius: 999,
-                                border: "1px solid #e2e8f0",
-                                background: "#ffffff",
-                                color: "#0f172a",
-                              }}
-                            >
-                              {label}
-                            </span>
-                          </td>
+                  <td style={{ padding: "10px 10px" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border: "1px solid #e2e8f0",
+                        background: "#ffffff",
+                        color: "#0f172a",
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </td>
 
-                          <td
-                            style={{
-                              padding: "10px 10px",
-                              textAlign: "right",
-                              fontWeight: 900,
-                              color: isPlus ? "#16a34a" : "#dc2626",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {isPlus ? `+${e.amount}` : e.amount}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </details>
+                  <td
+                    style={{
+                      padding: "10px 10px",
+                      textAlign: "right",
+                      fontWeight: 900,
+                      color: isPlus ? "#16a34a" : "#dc2626",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {isPlus ? `+${e.amount}` : e.amount}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</details>
+
+{/* Main */}
+<div style={isMobile ? styles.mainMobile : styles.main}>
+  {/* Steps (mobile dropdown) */}
+  <div style={{ marginBottom: 16 }}>
+    <button
+      type="button"
+      onClick={() => setMobileStepsOpen((v) => !v)}
+      style={{
+        width: "100%",
+        padding: "10px 14px",
+        borderRadius: 14,
+        background: "rgba(255,255,255,0.08)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        color: "#ffffff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: "pointer",
+        boxSizing: "border-box",
+      }}
+    >
+      <span>
+        Paso {step + 1} de {steps.length}
+      </span>
+      <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
+    </button>
+
+    <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
+      <div
+        style={{
+          width: `${((step + 1) / steps.length) * 100}%`,
+          height: "100%",
+          background: "linear-gradient(90deg,#6366f1,#22d3ee)",
+          transition: "width 0.25s ease",
+        }}
+      />
+    </div>
+
+    {mobileStepsOpen && (
+      <div
+        style={{
+          marginTop: 12,
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          overflow: "hidden",
+        }}
+      >
+        {steps.map((s, i) => {
+          const active = i === step;
+          const done = i < step;
+          return (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => {
+                setStep(i);
+                setMobileStepsOpen(false);
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                border: "none",
+                background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                color: "#ffffff",
+                cursor: "pointer",
+                textAlign: "left",
+                fontWeight: active ? 900 : 700,
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 900,
+                    background: done ? "rgba(34,197,94,0.9)" : active ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.18)",
+                    color: "#0f172a",
+                  }}
+                >
+                  {done ? "✓" : i + 1}
+                </span>
+                <span>{s.title}</span>
+              </span>
+              <span style={{ opacity: 0.7 }}>{active ? "●" : ""}</span>
+            </button>
+          );
+        })}
+      </div>
+    )}
+  </div>
+
+  {/* Panel */}
+  <section style={styles.panel}>
+    {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
+    {error && <div style={styles.inlineErr}>{error}</div>}
+
+    {panel}
+
+    <div style={styles.footer}>
+      <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
+        {t("back")}
+      </Button>
+      <div style={{ flex: 1 }} />
+      {!isLast ? (
+        <Button onClick={next} disabled={!canGoNext}>
+          {t("next")}
+        </Button>
+      ) : null}
+    </div>
+  </section>
+</div>
+
+              
       </div>
     </div>
   );
 }
-
-        {/* Main */}
-        <div style={isMobile ? styles.mainMobile : styles.main}>
-          {/* Steps (mobile dropdown) */}
-          <div style={{ marginBottom: 16 }}>
-            <button
-              type="button"
-              onClick={() => setMobileStepsOpen((v) => !v)}
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                borderRadius: 14,
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                fontSize: 12,
-                fontWeight: 800,
-                cursor: "pointer",
-                boxSizing: "border-box",
-              }}
-            >
-              <span>
-                Paso {step + 1} de {steps.length}
-              </span>
-              <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
-            </button>
-
-            <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${((step + 1) / steps.length) * 100}%`,
-                  height: "100%",
-                  background: "linear-gradient(90deg,#6366f1,#22d3ee)",
-                  transition: "width 0.25s ease",
-                }}
-              />
-            </div>
-
-            {mobileStepsOpen && (
-              <div
-                style={{
-                  marginTop: 12,
-                  borderRadius: 14,
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  overflow: "hidden",
-                }}
-              >
-                {steps.map((s, i) => {
-                  const active = i === step;
-                  const done = i < step;
-                  return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => {
-                        setStep(i);
-                        setMobileStepsOpen(false);
-                      }}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "12px 14px",
-                        border: "none",
-                        background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                        color: "#ffffff",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        fontWeight: active ? 900 : 700,
-                      }}
-                    >
-                      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 999,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 12,
-                            fontWeight: 900,
-                            background: done ? "rgba(34,197,94,0.9)" : active ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.18)",
-                            color: "#0f172a",
-                          }}
-                        >
-                          {done ? "✓" : i + 1}
-                        </span>
-                        <span>{s.title}</span>
-                      </span>
-                      <span style={{ opacity: 0.7 }}>{active ? "●" : ""}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Panel */}
-          <section style={styles.panel}>
-            {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
-            {error && <div style={styles.inlineErr}>{error}</div>}
-
-            {panel}
-
-            <div style={styles.footer}>
-              <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
-                {t("back")}
-              </Button>
-              <div style={{ flex: 1 }} />
-              {!isLast ? (
-                <Button onClick={next} disabled={!canGoNext}>
-                  {t("next")}
-                </Button>
-              ) : null}
-            </div>
-          </section>
-        </div>
-
-        
 
 /* ================== UI COMPONENTS ================== */
 
