@@ -1026,7 +1026,7 @@ export default function Home() {
       whiteSpace: "nowrap",
     }}
   >
-    Foto con modelo
+    📸Foto con modelo
   </button>
 
   <button
@@ -1048,7 +1048,7 @@ export default function Home() {
       whiteSpace: "nowrap",
     }}
   >
-    Foto producto
+     ⚛️Foto producto
   </button>
 </div>
 
