@@ -1794,6 +1794,7 @@ const styles: Record<string, React.CSSProperties> = {
   panel: {
     borderRadius: 24,
     padding: 28,
+    paddingBottom: 36,
     background: "rgba(255,255,255,0.06)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
@@ -1918,7 +1919,14 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  summaryCard: { border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#f8fafc", marginBottom: 12 },
+  summaryCard: {
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: 14,
+  background: "#f8fafc",
+  marginBottom: 22, // <-- más espacio con lo de abajo
+},
+
   summaryTitle: { fontWeight: 900, marginBottom: 10 },
   summaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 },
 
