@@ -48,6 +48,8 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
+  const [mode, setMode] = useState<"model" | "product">("model");
+
 
   const [views, setViews] = useState({
     front: true,
@@ -966,6 +968,66 @@ export default function Home() {
           <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
             <div>
               <div style={{ ...styles.h1, color: "#ffffff" }}>{t("title")}</div>
+                  <div>
+  <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+
+  {/* SWITCH */}
+  <div style={{ marginTop: 12, marginBottom: 10 }}>
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        borderRadius: 999,
+        border: "2px solid rgba(16,185,129,0.7)",
+        background: "rgba(0,0,0,0.25)",
+        padding: 2,
+        overflow: "hidden",
+        userSelect: "none",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setMode("model")}
+        style={{
+          padding: "10px 18px",
+          borderRadius: 999,
+          border: "none",
+          cursor: "pointer",
+          fontWeight: 900,
+          fontSize: 13,
+          transition: "all 0.2s ease",
+          background: mode === "model" ? "rgba(16,185,129,0.95)" : "transparent",
+          color: mode === "model" ? "#062a1f" : "rgba(16,185,129,0.95)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Foto con modelo
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setMode("product")}
+        style={{
+          padding: "10px 18px",
+          borderRadius: 999,
+          border: "none",
+          cursor: "pointer",
+          fontWeight: 900,
+          fontSize: 13,
+          transition: "all 0.2s ease",
+          background: mode === "product" ? "rgba(16,185,129,0.95)" : "transparent",
+          color: mode === "product" ? "#062a1f" : "rgba(16,185,129,0.95)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Foto producto
+      </button>
+    </div>
+  </div>
+
+  <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
+</div>
+
               <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
             </div>
           </div>
