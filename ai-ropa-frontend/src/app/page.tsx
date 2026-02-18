@@ -1304,18 +1304,18 @@ export default function Home() {
         <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-              <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
-              <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
-              <th
-  style={{
-    padding: "10px 14px",   // más margen lateral
-    textAlign: "right",
-    color: "#475569",
-    width: "25%",          // un poco más ancho
-  }}
->
+              <th style={{ padding: "10px 14px", color: "#475569", width: "40%" }}>
+  Fecha
+</th>
+
+<th style={{ padding: "10px 14px", color: "#475569", width: "35%" }}>
+  Movimiento
+</th>
+
+<th style={{ padding: "10px 14px", textAlign: "right", color: "#475569", width: "25%" }}>
   Cantidad
 </th>
+
 
             </tr>
           </thead>
