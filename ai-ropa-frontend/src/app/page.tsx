@@ -1045,25 +1045,24 @@ export default function Home() {
     boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
     overflow: "hidden",
     display: "flex",
-    alignItems: "center",
-    gap: 0,
   }}
 >
 
-  <div
-    style={{
-  position: "absolute",
-  top: 6,
-  left: mode === "model" ? 6 : "calc(50% - 6px)",
-  width: "calc(50% - 6px)",
-  height: 40,
-  borderRadius: 999,
-  background: "#ffffff",
-  transition: "left 0.25s ease",
-  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-}}
 
-  />
+  <div
+  style={{
+    position: "absolute",
+    top: 6,
+    left: mode === "model" ? "6px" : "50%",
+    width: "50%",
+    height: 40,
+    borderRadius: 999,
+    background: "#ffffff",
+    transition: "left 0.25s ease",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+  }}
+/>
+
  <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
   <button
     type="button"
@@ -1071,7 +1070,7 @@ export default function Home() {
     style={{
       position: "relative",
       zIndex: 2,
-      width: "calc(50% - 6px)",
+      flex: 1,
       height: 40,
       borderRadius: 999,
       border: "none",
@@ -1093,7 +1092,7 @@ export default function Home() {
     style={{
       position: "relative",
       zIndex: 2,
-      width: "calc(50% - 6px)",
+      flex: 1,
       height: 40,
       borderRadius: 999,
       border: "none",
