@@ -1953,13 +1953,17 @@ previewCard: {
   overflow: "hidden",
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.06)",
+  padding: 8,
 },
+
 
 previewImg: {
   width: "100%",
-  height: 160,
-  objectFit: "cover",
+  height: 180,
+  objectFit: "contain",
   display: "block",
+  background: "rgba(255,255,255,0.06)",
 },
+
 
 };
