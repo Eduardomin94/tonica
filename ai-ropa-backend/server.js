@@ -209,6 +209,32 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
+    const mode = String(req.body.mode || "model").toLowerCase();
+
+// views (solo model)
+let views = {};
+try {
+  views = JSON.parse(req.body.views || "{}");
+} catch {
+  views = {};
+}
+
+// num_images (solo product)
+let numImages = parseInt(String(req.body.num_images || "0"), 10);
+if (!Number.isFinite(numImages)) numImages = 0;
+numImages = Math.max(0, Math.min(4, numImages)); // 0..4
+
+if (mode === "product") {
+  if (numImages <= 0) {
+    return res.status(400).json({ error: "NO_IMAGES_SELECTED" });
+  }
+} else {
+  const requested = ["front", "back", "left", "right"].filter((k) => !!views?.[k]);
+  if (requested.length === 0) {
+    return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
+  }
+}
+
     let wallet = null;
     let consumeEntry = null;
 
