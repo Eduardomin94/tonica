@@ -9,6 +9,7 @@ const inter = Inter({
 });
 
 /* ================== CONSTANTES ================== */
+
 const CATEGORIES = [
   "Remera/Top",
   "Abrigo/Campera/Buzo",
@@ -21,8 +22,11 @@ const CATEGORIES = [
 ] as const;
 
 const MODEL_TYPES = ["Bebé recién nacido", "Niño", "Niña", "Hombre", "Mujer"] as const;
+
 const ETHNICITIES = ["Caucásico/a", "Latino/a", "Asiatico/a", "Negro/a", "Mediterraneo/a"] as const;
+
 const POSES = ["Sentado/a", "Parado/a", "Caminando"] as const;
+
 const BODY_TYPES = ["Estandar", "Plus Size"] as const;
 
 function wordCount(s: string) {
@@ -30,15 +34,17 @@ function wordCount(s: string) {
 }
 
 /* ================== APP ================== */
+
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
 
   const [isMobile, setIsMobile] = useState(false);
+
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
-  const [loadingMe, setLoadingMe] = useState(false);
 
+  const [loadingMe, setLoadingMe] = useState(false);
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
 
   const [entries, setEntries] = useState<any[]>([]);
@@ -48,8 +54,6 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
-  
-
 
   const [views, setViews] = useState({
     front: true,
@@ -57,8 +61,6 @@ export default function Home() {
     left: false,
     right: false,
   });
-
-
 
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
@@ -153,7 +155,7 @@ export default function Home() {
     }
   }, []);
 
- const [mode, setMode] = useState<"model" | "product">("model");
+  const [mode, setMode] = useState<"model" | "product">("model");
 
   // files
   const [frontFile, setFrontFile] = useState<File | null>(null);
@@ -164,6 +166,7 @@ export default function Home() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
   const [otherCategory, setOtherCategory] = useState("");
   const [pockets, setPockets] = useState<"si" | "no" | "">("");
+
   const [measures, setMeasures] = useState({
     hombros: "",
     pecho: "",
@@ -191,8 +194,10 @@ export default function Home() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ idToken: response.credential }),
             });
+
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || "Login error");
+
             setUser(data.user);
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
@@ -249,7 +254,6 @@ export default function Home() {
   const creditsNeeded = selectedCount;
   const hasSelection = creditsNeeded > 0;
 
-
   const ageOptions = useMemo(() => {
     if (modelType === "Bebé recién nacido") return ["0 a 2 años"];
     if (modelType === "Niño" || modelType === "Niña") return ["3 a 6 años", "6 a 10 años", "10 a 16 años"];
@@ -265,6 +269,7 @@ export default function Home() {
         { title: "Generar", key: "generate" },
       ];
     }
+
     return [
       { title: "Subir fotos", key: "upload" },
       { title: "Categoría", key: "category" },
@@ -281,34 +286,33 @@ export default function Home() {
   }, [mode]);
 
   React.useEffect(() => {
-  setScene("");
-  setStep(0);
-  setError(null);
-  setResult(null);
-  setFrontFile(null);
-  setBackFile(null);
-  setCategory("");
-  setOtherCategory("");
-  setPockets("");
-  setMeasures({
-    hombros: "",
-    pecho: "",
-    manga: "",
-    cintura: "",
-    cadera: "",
-    largo: "",
-  });
-  setModelType("");
-  setEthnicity("");
-  setAgeRange("");
-  setBackground("");
-  setPose("");
-  setBodyType("");
-  setBgSuggestions([]);
-  setProductFiles([]);
-  setViews({ front: true, back: false, left: false, right: false });
-}, [mode]);
-
+    setScene("");
+    setStep(0);
+    setError(null);
+    setResult(null);
+    setFrontFile(null);
+    setBackFile(null);
+    setCategory("");
+    setOtherCategory("");
+    setPockets("");
+    setMeasures({
+      hombros: "",
+      pecho: "",
+      manga: "",
+      cintura: "",
+      cadera: "",
+      largo: "",
+    });
+    setModelType("");
+    setEthnicity("");
+    setAgeRange("");
+    setBackground("");
+    setPose("");
+    setBodyType("");
+    setBgSuggestions([]);
+    setProductFiles([]);
+    setViews({ front: true, back: false, left: false, right: false });
+  }, [mode]);
 
   React.useEffect(() => {
     fetchMe();
@@ -465,6 +469,7 @@ export default function Home() {
 
     setHelpLoading(true);
     setBgSuggestions([]);
+
     try {
       const res = await fetch(`${API}/suggest-background`, {
         method: "POST",
@@ -475,6 +480,7 @@ export default function Home() {
           vibe: "catálogo e-commerce premium",
         }),
       });
+
       const data = await res.json();
       const options: string[] = Array.isArray(data?.options) ? data.options : [];
       setBgSuggestions(options.slice(0, 3));
@@ -492,20 +498,19 @@ export default function Home() {
     if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
     if (mode === "product") {
-  if (productFiles.length === 0) {
-    setStep(0);
-    return setError("Subí al menos 1 foto del producto.");
-  }
-  if (!scene.trim() || wordCount(scene) > 10) {
-    setStep(1);
-    return setError("Escribí la escena (máx 10 palabras).");
-  }
-  if (selectedCount === 0) {
-    setStep(2);
-    return setError("Elegí al menos 1 vista.");
-  }
-} else {
-
+      if (productFiles.length === 0) {
+        setStep(0);
+        return setError("Subí al menos 1 foto del producto.");
+      }
+      if (!scene.trim() || wordCount(scene) > 10) {
+        setStep(1);
+        return setError("Escribí la escena (máx 10 palabras).");
+      }
+      if (selectedCount === 0) {
+        setStep(2);
+        return setError("Elegí al menos 1 vista.");
+      }
+    } else {
       if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
       if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
       if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
@@ -532,6 +537,7 @@ export default function Home() {
       } else {
         fd.append("front", frontFile as File);
         if (backFile) fd.append("back", backFile);
+
         fd.append("category", category);
         if (category === "otro") fd.append("other_category", otherCategory.trim());
         fd.append("pockets", pockets);
@@ -552,6 +558,7 @@ export default function Home() {
       }
 
       const token = localStorage.getItem("accessToken");
+
       const res = await fetch(`${API}/generate`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -628,6 +635,7 @@ export default function Home() {
         return (
           <>
             <FieldTitle>2) Elegí la categoría</FieldTitle>
+
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {CATEGORIES.map((c) => (
                 <button
@@ -675,11 +683,16 @@ export default function Home() {
           <>
             <FieldTitle>4) Medidas (opcional)</FieldTitle>
             <SmallMuted>Podés poner cm. Ej: 52cm</SmallMuted>
+
             <Grid3>
               {Object.entries(measures).map(([k, v]) => (
                 <div key={k}>
                   <Label style={{ textTransform: "capitalize" }}>{k}</Label>
-                  <TextInput value={v} onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))} placeholder="Ej: 52cm" />
+                  <TextInput
+                    value={v}
+                    onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))}
+                    placeholder="Ej: 52cm"
+                  />
                 </div>
               ))}
             </Grid3>
@@ -731,7 +744,11 @@ export default function Home() {
             {!modelType ? (
               <SmallMuted>Elegí primero el modelo</SmallMuted>
             ) : (
-              <RadioPills value={ageRange} onChange={(v) => setAgeRange(v)} options={ageOptions.map((a) => ({ value: a, label: a }))} />
+              <RadioPills
+                value={ageRange}
+                onChange={(v) => setAgeRange(v)}
+                options={ageOptions.map((a) => ({ value: a, label: a }))}
+              />
             )}
           </>
         );
@@ -741,10 +758,13 @@ export default function Home() {
           <>
             <FieldTitle>8) Fondo (máx 10 palabras)</FieldTitle>
             <TextInput value={background} onChange={setBackground} placeholder='Ej: "estudio gris con luz suave"' />
-
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>Palabras: {wordCount(background)} / 10</SmallMuted>
-              <Button variant="secondary" onClick={handleSuggestBackground} disabled={helpLoading || !category || !modelType}>
+              <Button
+                variant="secondary"
+                onClick={handleSuggestBackground}
+                disabled={helpLoading || !category || !modelType}
+              >
                 {helpLoading ? "Buscando..." : "Ayudame a elegir el lugar"}
               </Button>
             </Row>
@@ -773,7 +793,11 @@ export default function Home() {
         return (
           <>
             <FieldTitle>Tipo de cuerpo</FieldTitle>
-            <RadioPills value={bodyType} onChange={(v) => setBodyType(v as any)} options={BODY_TYPES.map((b) => ({ value: b, label: b }))} />
+            <RadioPills
+              value={bodyType}
+              onChange={(v) => setBodyType(v as any)}
+              options={BODY_TYPES.map((b) => ({ value: b, label: b }))}
+            />
           </>
         );
 
@@ -848,91 +872,87 @@ export default function Home() {
               )}
             </div>
 
-           {mode === "product" ? (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-      ¿Qué vistas querés generar?
-    </div>
+            {mode === "product" ? (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+                  ¿Qué vistas querés generar?
+                </div>
 
-    {[
-      { key: "front", label: "Toma principal" },
-      { key: "back", label: "Ángulo alternativo" },
-      { key: "left", label: "Detalle cercano" },
-      { key: "right", label: "Otro ángulo" },
-    ].map((v) => (
-      <label
-        key={v.key}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 12px",
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
-      >
-        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-        <input
-          type="checkbox"
-          checked={(views as any)[v.key]}
-          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-          style={{ width: 18, height: 18 }}
-        />
-      </label>
-    ))}
+                {[
+                  { key: "front", label: "Toma principal" },
+                  { key: "back", label: "Ángulo alternativo" },
+                  { key: "left", label: "Detalle cercano" },
+                  { key: "right", label: "Otro ángulo" },
+                ].map((v) => (
+                  <label
+                    key={v.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.06)",
+                      marginBottom: 10,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={(views as any)[v.key]}
+                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+                      style={{ width: 18, height: 18 }}
+                    />
+                  </label>
+                ))}
 
-    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-      Créditos a consumir: {selectedCount}
-    </div>
-  </div>
-) : (
+                <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+                  Créditos a consumir: {selectedCount}
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+                  ¿Qué vistas querés generar?
+                </div>
 
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-      ¿Qué vistas querés generar?
-    </div>
+                {[
+                  { key: "front", label: "Delantera" },
+                  { key: "back", label: "Espalda" },
+                  { key: "left", label: "Frente izquierda" },
+                  { key: "right", label: "Frente derecha" },
+                ].map((v) => (
+                  <label
+                    key={v.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.06)",
+                      marginBottom: 10,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+                    <input
+                      type="checkbox"
+                      checked={(views as any)[v.key]}
+                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+                      style={{ width: 18, height: 18 }}
+                    />
+                  </label>
+                ))}
 
-    {[
-      { key: "front", label: "Delantera" },
-      { key: "back", label: "Espalda" },
-      { key: "left", label: "Frente izquierda" },
-      { key: "right", label: "Frente derecha" },
-    ].map((v) => (
-      <label
-        key={v.key}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 12px",
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
-      >
-        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-        <input
-          type="checkbox"
-          checked={(views as any)[v.key]}
-          onChange={(e) =>
-            setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))
-          }
-          style={{ width: 18, height: 18 }}
-        />
-      </label>
-    ))}
-
-    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-      Créditos a consumir: {selectedCount}
-    </div>
-  </div>
-)}
-
+                <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+                  Créditos a consumir: {selectedCount}
+                </div>
+              </div>
+            )}
 
             <Button
               onClick={handleGenerate}
@@ -942,10 +962,10 @@ export default function Home() {
               {loading
                 ? "Generando..."
                 : selectedCount === 0
-                ? "Elegí al menos 1 vista"
-                : balance < selectedCount
-                ? `Créditos insuficientes (${selectedCount})`
-                : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
+                  ? "Elegí al menos 1 vista"
+                  : balance < selectedCount
+                    ? `Créditos insuficientes (${selectedCount})`
+                    : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
             </Button>
 
             {result && (
@@ -1011,18 +1031,38 @@ export default function Home() {
     );
   }
 
-
   // ====== APP ======
   return (
     <div className={inter.className} style={styles.page}>
       <div style={styles.shell}>
         {topupStatus === "ok" && (
-          <div style={{ background: "#dcfce7", border: "1px solid #16a34a", color: "#166534", padding: "12px", borderRadius: "12px", marginBottom: "16px", fontWeight: 600 }}>
+          <div
+            style={{
+              background: "#dcfce7",
+              border: "1px solid #16a34a",
+              color: "#166534",
+              padding: "12px",
+              borderRadius: "12px",
+              marginBottom: "16px",
+              fontWeight: 600,
+            }}
+          >
             ✅ Créditos agregados correctamente
           </div>
         )}
+
         {topupStatus === "fail" && (
-          <div style={{ background: "#fee2e2", border: "1px solid #dc2626", color: "#7f1d1d", padding: "12px", borderRadius: "12px", marginBottom: "16px", fontWeight: 600 }}>
+          <div
+            style={{
+              background: "#fee2e2",
+              border: "1px solid #dc2626",
+              color: "#7f1d1d",
+              padding: "12px",
+              borderRadius: "12px",
+              marginBottom: "16px",
+              fontWeight: 600,
+            }}
+          >
             ❌ El pago fue rechazado
           </div>
         )}
@@ -1030,173 +1070,165 @@ export default function Home() {
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
           <div>
-  <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
-  {/* SWITCH */}
-  <div
-    style={{
-      marginTop: 16,
-      position: "relative",
-      width: 360,
-      maxWidth: "100%",
-      height: 52,
-      borderRadius: 999,
-      padding: 6,
-      background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-      boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
-      overflow: "hidden",
-      display: "flex",
-    }}
-  >
-    {/* Slider blanco */}
-    <div
-  style={{
-    position: "absolute",
-    top: 6,
-    left: 6,
-    width: "calc((100% - 12px) / 2)",
-    height: 40,
-    borderRadius: 999,
-    background: "#ffffff",
-    transform: mode === "model" ? "translateX(0)" : "translateX(100%)",
-    transition: "transform 0.25s ease",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-  }}
-/>
-
-    <button
-      type="button"
-      onClick={() => setMode("model")}
-      style={{
-        position: "relative",
-        zIndex: 2,
-        flex: 1,
-        height: 40,
-        borderRadius: 999,
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        fontWeight: 900,
-        fontSize: 14,
-        color: mode === "model" ? "#7c3aed" : "#ffffff",
-        transition: "color 0.25s ease",
-        whiteSpace: "nowrap",
-      }}
-    >
-      📸 Foto con modelo
-    </button>
-
-    <button
-      type="button"
-      onClick={() => setMode("product")}
-      style={{
-        position: "relative",
-        zIndex: 2,
-        flex: 1,
-        height: 40,
-        borderRadius: 999,
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        fontWeight: 900,
-        fontSize: 14,
-        color: mode === "product" ? "#7c3aed" : "#ffffff",
-        transition: "color 0.25s ease",
-        whiteSpace: "nowrap",
-      }}
-    >
-      ⚛️ Foto producto
-    </button>
-  </div>
-
-  {/* SUBTÍTULO afuera del switch */}
-  <div style={{ ...styles.h2, color: "#cbd5e1", marginTop: 12 }}>
-    {t("subtitle")}
-  </div>
-</div>
-
-            <div style={{ marginTop: 10 }}>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as any)}
+            <div
+              style={{
+                marginTop: 16,
+                position: "relative",
+                width: 360,
+                maxWidth: "100%",
+                height: 52,
+                borderRadius: 999,
+                padding: 6,
+                background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+                boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
+                overflow: "hidden",
+                display: "flex",
+              }}
+            >
+              <div
                 style={{
-                  padding: "8px 10px",
-                  borderRadius: 10,
-                  border: "1px solid #e2e8f0",
+                  position: "absolute",
+                  top: 6,
+                  left: mode === "model" ? 6 : "calc(50% + 0px)",
+                  width: "calc(50% - 6px)",
+                  height: 40,
+                  borderRadius: 999,
                   background: "#ffffff",
-                  color: "#000000",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  width: isMobile ? "100%" : 140,
-                  boxSizing: "border-box",
+                  transition: "left 0.25s ease",
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                 }}
-              >
-                <option value="es">🇪🇸 ES</option>
-                <option value="en">🇺🇸 EN</option>
-                <option value="pt">🇧🇷 PT</option>
-                <option value="ko">🇰🇷 KO</option>
-                <option value="zh">🇨🇳 中文</option>
-              </select>
-            </div>
-          </div>
-
-          {/* User card (NO overflow) */}
-          <div style={styles.userCard}>
-            <div style={styles.userEmail}>{user?.email || user?.name}</div>
-
-            <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-              <div style={styles.badgeClamp}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
-            </div>
-
-            <div style={styles.packCard}>
-              <select
-                value={selectedPack}
-                onChange={(e) => setSelectedPack(e.target.value as any)}
-                style={styles.packSelect}
-              >
-                <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
-                <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
-                <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
-              </select>
+              />
 
               <button
                 type="button"
-                disabled={buyLoading}
-                onClick={async () => {
-                  try {
-                    setBuyLoading(true);
-                    const token = localStorage.getItem("accessToken");
-
-                    const credits = selectedPack === "emprendedor" ? 50 : selectedPack === "pyme" ? 200 : 900;
-
-                    const res = await fetch(`${API}/mp/create-preference`, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({ credits }),
-                    });
-
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-                    if (!data?.init_point) throw new Error("No init_point recibido");
-                    window.location.href = data.init_point;
-                  } catch (e: any) {
-                    alert(String(e?.message || e));
-                  } finally {
-                    setBuyLoading(false);
-                  }
+                onClick={() => setMode("model")}
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  fontSize: 14,
+                  color: mode === "model" ? "#7c3aed" : "#ffffff",
+                  transition: "color 0.25s ease",
+                  whiteSpace: "nowrap",
                 }}
-                style={styles.buyBtnFull}
               >
-                {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+                📸Foto con modelo
               </button>
 
-              <button type="button" onClick={handleLogout} style={styles.logoutBtnFull}>
-                🚪 Cerrar sesión
+              <button
+                type="button"
+                onClick={() => setMode("product")}
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 999,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  fontSize: 14,
+                  color: mode === "product" ? "#7c3aed" : "#ffffff",
+                  transition: "color 0.25s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ⚛️Foto producto
               </button>
             </div>
+
+            <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                color: "#000000",
+                fontWeight: 700,
+                cursor: "pointer",
+                width: isMobile ? "100%" : 140,
+                boxSizing: "border-box",
+              }}
+            >
+              <option value="es">🇪🇸 ES</option>
+              <option value="en">🇺🇸 EN</option>
+              <option value="pt">🇧🇷 PT</option>
+              <option value="ko">🇰🇷 KO</option>
+              <option value="zh">🇨🇳 中文</option>
+            </select>
+          </div>
+        </div>
+
+        {/* User card (NO overflow) */}
+        <div style={styles.userCard}>
+          <div style={styles.userEmail}>{user?.email || user?.name}</div>
+
+          <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+            <div style={styles.badgeClamp}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
+          </div>
+
+          <div style={styles.packCard}>
+            <select
+              value={selectedPack}
+              onChange={(e) => setSelectedPack(e.target.value as any)}
+              style={styles.packSelect}
+            >
+              <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
+              <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
+              <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
+            </select>
+
+            <button
+              type="button"
+              disabled={buyLoading}
+              onClick={async () => {
+                try {
+                  setBuyLoading(true);
+                  const token = localStorage.getItem("accessToken");
+                  const credits = selectedPack === "emprendedor" ? 50 : selectedPack === "pyme" ? 200 : 900;
+
+                  const res = await fetch(`${API}/mp/create-preference`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ credits }),
+                  });
+
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+                  if (!data?.init_point) throw new Error("No init_point recibido");
+                  window.location.href = data.init_point;
+                } catch (e: any) {
+                  alert(String(e?.message || e));
+                } finally {
+                  setBuyLoading(false);
+                }
+              }}
+              style={styles.buyBtnFull}
+            >
+              {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+            </button>
+
+            <button type="button" onClick={handleLogout} style={styles.logoutBtnFull}>
+              🚪 Cerrar sesión
+            </button>
           </div>
         </div>
 
@@ -1241,7 +1273,15 @@ export default function Home() {
             </div>
 
             {mobileStepsOpen && (
-              <div style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", overflow: "hidden" }}>
+              <div
+                style={{
+                  marginTop: 12,
+                  borderRadius: 14,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  overflow: "hidden",
+                }}
+              >
                 {steps.map((s, i) => {
                   const active = i === step;
                   const done = i < step;
@@ -1362,12 +1402,12 @@ export default function Home() {
                         e.type === "PURCHASE"
                           ? "Compra"
                           : e.type === "CONSUME"
-                          ? "Consumo"
-                          : e.type === "REFUND"
-                          ? "Reintegro"
-                          : e.type === "GRANT"
-                          ? "Bonificación"
-                          : e.type;
+                            ? "Consumo"
+                            : e.type === "REFUND"
+                              ? "Reintegro"
+                              : e.type === "GRANT"
+                                ? "Bonificación"
+                                : e.type;
 
                       return (
                         <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -1429,6 +1469,7 @@ export default function Home() {
 }
 
 /* ================== UI COMPONENTS ================== */
+
 function FieldTitle({ children }: { children: React.ReactNode }) {
   return <div style={styles.fieldTitle}>{children}</div>;
 }
@@ -1457,7 +1498,15 @@ function Box({ children }: { children: React.ReactNode }) {
   return <div style={styles.box}>{children}</div>;
 }
 
-function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
   const [focused, setFocused] = useState(false);
   return (
     <input
@@ -1480,10 +1529,26 @@ function InputFile({ onChange }: { onChange: (f: File | null) => void }) {
 }
 
 function InputFiles({ onChange }: { onChange: (files: File[]) => void }) {
-  return <input type="file" accept="image/*" multiple onChange={(e) => onChange(Array.from(e.target.files || []))} style={styles.file} />;
+  return (
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      onChange={(e) => onChange(Array.from(e.target.files || []))}
+      style={styles.file}
+    />
+  );
 }
 
-function RadioPills({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
+function RadioPills({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
   return (
     <div style={styles.pills}>
       {options.map((o) => {
@@ -1530,15 +1595,13 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 }
 
 /* ================== STYLES ================== */
+
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
     padding: 20,
-    background: `
-      radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
-      radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%),
-      linear-gradient(135deg, #0f172a 0%, #111827 100%)
-    `,
+    background:
+      'radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%), linear-gradient(135deg, #0f172a 0%, #111827 100%)',
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
@@ -1546,9 +1609,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflowX: "hidden",
     boxSizing: "border-box",
   },
-
   shell: { width: "100%", maxWidth: 1100, margin: "0 auto" },
-
   header: {
     display: "flex",
     alignItems: "flex-start",
@@ -1565,7 +1626,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     overflow: "hidden",
   },
-
   h1: { fontSize: 28, fontWeight: 800, letterSpacing: -0.2 },
   h2: { marginTop: 6, color: "#475569" },
 
@@ -1584,7 +1644,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     boxSizing: "border-box",
   },
-
   userEmail: {
     fontSize: 12,
     color: "#0f172a",
@@ -1594,7 +1653,6 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-
   badge: {
     background: "#eff6ff",
     color: "#1d4ed8",
@@ -1606,7 +1664,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontSize: 12,
   },
-
   badgeClamp: {
     background: "#eff6ff",
     color: "#1d4ed8",
@@ -1641,7 +1698,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     boxSizing: "border-box",
   },
-
   packSelect: {
     height: 40,
     padding: "6px 10px",
@@ -1676,7 +1732,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     display: "block",
   },
-
   logoutBtnFull: {
     background: "transparent",
     color: "#0f172a",
@@ -1695,18 +1750,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
 
-  main: {
-    display: "grid",
-    gridTemplateColumns: "280px 1fr",
-    gap: 16,
-    alignItems: "start",
-  },
-  mainMobile: {
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    gap: 16,
-    alignItems: "start",
-  },
+  main: { display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, alignItems: "start" },
+  mainMobile: { display: "grid", gridTemplateColumns: "1fr", gap: 16, alignItems: "start" },
 
   panel: {
     borderRadius: 24,
@@ -1751,8 +1796,8 @@ const styles: Record<string, React.CSSProperties> = {
   fieldTitle: { fontSize: 18, fontWeight: 900, marginBottom: 12 },
   label: { fontSize: 13, fontWeight: 700, marginBottom: 6, color: "#cbd5e1", letterSpacing: 0.3 },
   smallMuted: { fontSize: 12, color: "#94a3b8", marginTop: 6 },
-  row: { display: "flex", alignItems: "center", gap: 10 },
 
+  row: { display: "flex", alignItems: "center", gap: 10 },
   twoCols: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 },
   grid3: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 },
 
@@ -1792,9 +1837,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     color: "#0f172a",
   },
+
   pillsGrid2: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
   pillMobile: { width: "100%", justifyContent: "center" },
   pillsGrid2Mobile: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
+
   pillActive: { background: "#2563eb", borderColor: "#2563eb", color: "#ffffff" },
 
   btnPrimary: {
@@ -1807,7 +1854,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     boxShadow: "0 10px 28px rgba(59,130,246,0.25)",
   },
-
   btnSecondary: {
     background: "rgba(255,255,255,0.08)",
     color: "#ffffff",
@@ -1819,7 +1865,6 @@ const styles: Record<string, React.CSSProperties> = {
     backdropFilter: "blur(10px)",
     WebkitBackdropFilter: "blur(10px)",
   },
-
   btnDisabled: { opacity: 0.6, cursor: "not-allowed" },
 
   suggestionBtn: {
@@ -1838,6 +1883,7 @@ const styles: Record<string, React.CSSProperties> = {
   summaryCard: { border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#f8fafc", marginBottom: 12 },
   summaryTitle: { fontWeight: 900, marginBottom: 10 },
   summaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 },
+
   summaryItem: { border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "#ffffff" },
   summaryLabel: { fontSize: 12, color: "#64748b", fontWeight: 800 },
   summaryValue: { fontSize: 13, color: "#0f172a", fontWeight: 900, marginTop: 4 },
