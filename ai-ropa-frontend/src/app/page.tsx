@@ -1306,7 +1306,17 @@ export default function Home() {
             <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
               <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
               <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
-              <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
+              <th
+  style={{
+    padding: "10px 14px",   // más margen lateral
+    textAlign: "right",
+    color: "#475569",
+    width: "25%",          // un poco más ancho
+  }}
+>
+  Cantidad
+</th>
+
             </tr>
           </thead>
 
@@ -1357,16 +1367,15 @@ export default function Home() {
                   </td>
 
                   <td
-                    style={{
-                      padding: "10px 10px",
-                      textAlign: "right",
-                      fontWeight: 900,
-                      color: isPlus ? "#16a34a" : "#dc2626",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
+  style={{
+    padding: "10px 14px",   // mismo padding que el header
+    textAlign: "right",
+    fontWeight: 900,
+    color: isPlus ? "#16a34a" : "#dc2626",
+    whiteSpace: "nowrap",
+  }}
+>
+
                     {isPlus ? `+${e.amount}` : e.amount}
                   </td>
                 </tr>
