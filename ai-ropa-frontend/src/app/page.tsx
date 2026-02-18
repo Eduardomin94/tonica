@@ -981,30 +981,34 @@ export default function Home() {
 
             <div
   style={{
-    marginTop: 16,
-    position: "relative",
-    width: 360,
-    maxWidth: "100%",
-    height: 52,
-    borderRadius: 999,
-    padding: 6,
-    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-    boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
-    overflow: "hidden",
-  }}
+  marginTop: 16,
+  position: "relative",
+  width: 360,
+  maxWidth: "100%",
+  height: 52,
+  borderRadius: 999,
+  padding: 6,
+  background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+  boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+}}
+
 >
   <div
     style={{
-      position: "absolute",
-      top: 6,
-      left: mode === "model" ? 6 : "50%",
-      width: "50%",
-      height: 40,
-      borderRadius: 999,
-      background: "#ffffff",
-      transition: "left 0.25s ease",
-      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-    }}
+  position: "absolute",
+  top: 6,
+  left: mode === "model" ? 6 : "calc(50% - 6px)",
+  width: "calc(50% - 6px)",
+  height: 40,
+  borderRadius: 999,
+  background: "#ffffff",
+  transition: "left 0.25s ease",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+}}
+
   />
 
   <button
@@ -1013,7 +1017,7 @@ export default function Home() {
     style={{
       position: "relative",
       zIndex: 2,
-      width: "50%",
+      width: "calc(50% - 6px)",
       height: 40,
       borderRadius: 999,
       border: "none",
@@ -1035,7 +1039,7 @@ export default function Home() {
     style={{
       position: "relative",
       zIndex: 2,
-      width: "50%",
+      width: "calc(50% - 6px)",
       height: 40,
       borderRadius: 999,
       border: "none",
