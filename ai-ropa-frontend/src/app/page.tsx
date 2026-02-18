@@ -1048,13 +1048,12 @@ export default function Home() {
   }}
 >
 
-
-  <div
+<div
   style={{
     position: "absolute",
     top: 6,
-    left: mode === "model" ? "6px" : "50%",
-    width: "50%",
+    left: mode === "model" ? 6 : "calc(50% + 0px)",
+    width: "calc(50% - 6px)",
     height: 40,
     borderRadius: 999,
     background: "#ffffff",
@@ -1062,6 +1061,7 @@ export default function Home() {
     boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
   }}
 />
+
 
  <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
   <button
