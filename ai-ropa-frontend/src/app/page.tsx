@@ -48,8 +48,6 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
-  const [mode, setMode] = useState<"model" | "product">("model");
-
 
   const [views, setViews] = useState({
     front: true,
@@ -151,7 +149,7 @@ export default function Home() {
     }
   }, []);
 
-  const [mode, setMode] = useState<"model" | "product" | null>(null);
+ const [mode, setMode] = useState<"model" | "product">("model");
 
   // files
   const [frontFile, setFrontFile] = useState<File | null>(null);
@@ -276,34 +274,34 @@ export default function Home() {
   }, [mode]);
 
   React.useEffect(() => {
-    if (!mode) return;
-    setScene("");
-    setStep(0);
-    setError(null);
-    setResult(null);
+  setScene("");
+  setStep(0);
+  setError(null);
+  setResult(null);
 
-    setFrontFile(null);
-    setBackFile(null);
-    setCategory("");
-    setOtherCategory("");
-    setPockets("");
-    setMeasures({
-      hombros: "",
-      pecho: "",
-      manga: "",
-      cintura: "",
-      cadera: "",
-      largo: "",
-    });
-    setModelType("");
-    setEthnicity("");
-    setAgeRange("");
-    setBackground("");
-    setPose("");
-    setBodyType("");
-    setBgSuggestions([]);
-    setProductFiles([]);
-  }, [mode]);
+  setFrontFile(null);
+  setBackFile(null);
+  setCategory("");
+  setOtherCategory("");
+  setPockets("");
+  setMeasures({
+    hombros: "",
+    pecho: "",
+    manga: "",
+    cintura: "",
+    cadera: "",
+    largo: "",
+  });
+  setModelType("");
+  setEthnicity("");
+  setAgeRange("");
+  setBackground("");
+  setPose("");
+  setBodyType("");
+  setBgSuggestions([]);
+  setProductFiles([]);
+}, [mode]);
+
 
   React.useEffect(() => {
     fetchMe();
@@ -513,7 +511,7 @@ export default function Home() {
     setLoading(true);
     try {
       const fd = new FormData();
-      fd.append("mode", mode || "model");
+      fd.append("mode", mode);
       fd.append("views", JSON.stringify(views));
 
       if (mode === "product") {
@@ -960,85 +958,6 @@ export default function Home() {
     );
   }
 
-  // ====== SELECT MODE ======
-  if (!mode) {
-    return (
-      <div className={inter.className} style={styles.page}>
-        <div style={{ ...styles.shell, maxWidth: 600 }}>
-          <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-            <div>
-              <div style={{ ...styles.h1, color: "#ffffff" }}>{t("title")}</div>
-              <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
-            </div>
-          </div>
-<div
-  style={{
-    marginTop: 14,
-    display: "inline-flex",
-    alignItems: "center",
-    padding: 6,
-    borderRadius: 999,
-    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-    boxShadow: "0 10px 26px rgba(124,58,237,0.35)",
-    maxWidth: "100%",
-    overflow: "hidden",
-  }}
->
-  <button
-    type="button"
-    onClick={() => setMode("model")}
-    style={{
-      padding: "12px 22px",
-      borderRadius: 999,
-      border: "none",
-      cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 14,
-      transition: "all 0.2s ease",
-      background: mode === "model" ? "#ffffff" : "transparent",
-      color: mode === "model" ? "#7c3aed" : "#ffffff",
-      boxShadow: mode === "model" ? "0 6px 16px rgba(0,0,0,0.18)" : "none",
-      whiteSpace: "nowrap",
-    }}
-  >
-    Foto con modelo
-  </button>
-
-  <button
-    type="button"
-    onClick={() => setMode("product")}
-    style={{
-      padding: "12px 22px",
-      borderRadius: 999,
-      border: "none",
-      cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 14,
-      transition: "all 0.2s ease",
-      background: mode === "product" ? "#ffffff" : "transparent",
-      color: mode === "product" ? "#7c3aed" : "#ffffff",
-      boxShadow: mode === "product" ? "0 6px 16px rgba(0,0,0,0.18)" : "none",
-      whiteSpace: "nowrap",
-    }}
-  >
-    Foto producto
-  </button>
-</div>
-          <div style={styles.panel}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <button type="button" onClick={() => setMode("model")} style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}>
-                📸 Foto con modelo (vestimenta)
-              </button>
-
-              <button type="button" onClick={() => setMode("product")} style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}>
-                ⚛️ Foto producto
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ====== APP ======
   return (
@@ -1060,44 +979,78 @@ export default function Home() {
           <div>
             <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
-            {/* Switch */}
-            <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "model" ? 1 : 0.55 }}>📸 Foto con modelo</span>
+            <div
+  style={{
+    marginTop: 16,
+    position: "relative",
+    width: 360,
+    maxWidth: "100%",
+    height: 52,
+    borderRadius: 999,
+    padding: 6,
+    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+    boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
+    overflow: "hidden",
+  }}
+>
+  <div
+    style={{
+      position: "absolute",
+      top: 6,
+      left: mode === "model" ? 6 : "50%",
+      width: "50%",
+      height: 40,
+      borderRadius: 999,
+      background: "#ffffff",
+      transition: "left 0.25s ease",
+      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+    }}
+  />
 
-              <button
-                type="button"
-                onClick={() => setMode(mode === "model" ? "product" : "model")}
-                style={{
-                  width: 64,
-                  height: 34,
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  background: mode === "product" ? "linear-gradient(90deg,#8b5cf6,#6366f1)" : "linear-gradient(90deg,#3b82f6,#22c55e)",
-                  position: "relative",
-                  cursor: "pointer",
-                  padding: 0,
-                  outline: "none",
-                  boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-                }}
-                aria-label="Cambiar modo"
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    left: mode === "model" ? 4 : 34,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 999,
-                    background: "#ffffff",
-                    transition: "left 0.2s ease",
-                    boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
-                  }}
-                />
-              </button>
+  <button
+    type="button"
+    onClick={() => setMode("model")}
+    style={{
+      position: "relative",
+      zIndex: 2,
+      width: "50%",
+      height: 40,
+      borderRadius: 999,
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontWeight: 900,
+      fontSize: 14,
+      color: mode === "model" ? "#7c3aed" : "#ffffff",
+      transition: "color 0.25s ease",
+      whiteSpace: "nowrap",
+    }}
+  >
+    Foto con modelo
+  </button>
 
-              <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "product" ? 1 : 0.55 }}>⚛️ Foto producto</span>
-            </div>
+  <button
+    type="button"
+    onClick={() => setMode("product")}
+    style={{
+      position: "relative",
+      zIndex: 2,
+      width: "50%",
+      height: 40,
+      borderRadius: 999,
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontWeight: 900,
+      fontSize: 14,
+      color: mode === "product" ? "#7c3aed" : "#ffffff",
+      transition: "color 0.25s ease",
+      whiteSpace: "nowrap",
+    }}
+  >
+    Foto producto
+  </button>
+</div>
 
             <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
 
