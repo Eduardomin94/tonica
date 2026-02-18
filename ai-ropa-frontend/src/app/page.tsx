@@ -48,7 +48,7 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
-  const [productCount, setProductCount] = useState<0 | 1 | 2 | 3 | 4>(0);
+  
 
 
   const [views, setViews] = useState({
@@ -58,7 +58,6 @@ export default function Home() {
     right: false,
   });
 
-  const [productCount, setProductCount] = useState<number>(0);
 
 
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
@@ -246,9 +245,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
-  const modelCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
-  const creditsNeeded = mode === "product" ? productCount : modelCount;
+  const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
+  const creditsNeeded = selectedCount;
   const hasSelection = creditsNeeded > 0;
+
 
   const ageOptions = useMemo(() => {
     if (modelType === "Bebé recién nacido") return ["0 a 2 años"];
@@ -285,7 +285,6 @@ export default function Home() {
   setStep(0);
   setError(null);
   setResult(null);
-
   setFrontFile(null);
   setBackFile(null);
   setCategory("");
@@ -307,7 +306,7 @@ export default function Home() {
   setBodyType("");
   setBgSuggestions([]);
   setProductFiles([]);
-  setProductCount(0);
+  setViews({ front: true, back: false, left: false, right: false });
 }, [mode]);
 
 
@@ -493,15 +492,20 @@ export default function Home() {
     if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
     if (mode === "product") {
-      if (productFiles.length === 0) {
-        setStep(0);
-        return setError("Subí al menos 1 foto del producto.");
-      }
-      if (!scene.trim() || wordCount(scene) > 10) {
-        setStep(1);
-        return setError("Escribí la escena (máx 10 palabras).");
-      }
-    } else {
+  if (productFiles.length === 0) {
+    setStep(0);
+    return setError("Subí al menos 1 foto del producto.");
+  }
+  if (!scene.trim() || wordCount(scene) > 10) {
+    setStep(1);
+    return setError("Escribí la escena (máx 10 palabras).");
+  }
+  if (selectedCount === 0) {
+    setStep(2);
+    return setError("Elegí al menos 1 vista.");
+  }
+} else {
+
       if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
       if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
       if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
@@ -844,41 +848,48 @@ export default function Home() {
               )}
             </div>
 
-            {mode === "product" ? (
+           {mode === "product" ? (
   <div style={{ marginBottom: 14 }}>
     <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-      ¿Cuántas imágenes querés generar?
+      ¿Qué vistas querés generar?
     </div>
 
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-      {[1, 2, 3, 4].map((n) => {
-        const active = productCount === n;
-        return (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setProductCount(active ? 0 : n)}
-            style={{
-              padding: "12px 10px",
-              borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.14)",
-              background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)",
-              color: "#fff",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            {n}
-          </button>
-        );
-      })}
-    </div>
+    {[
+      { key: "front", label: "Toma principal" },
+      { key: "back", label: "Ángulo alternativo" },
+      { key: "left", label: "Detalle cercano" },
+      { key: "right", label: "Otro ángulo" },
+    ].map((v) => (
+      <label
+        key={v.key}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.06)",
+          marginBottom: 10,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+        <input
+          type="checkbox"
+          checked={(views as any)[v.key]}
+          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+          style={{ width: 18, height: 18 }}
+        />
+      </label>
+    ))}
 
-    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700, marginTop: 10 }}>
-      Créditos a consumir: {productCount}
+    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+      Créditos a consumir: {selectedCount}
     </div>
   </div>
 ) : (
+
   <div style={{ marginBottom: 14 }}>
     <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
       ¿Qué vistas querés generar?
@@ -947,13 +958,6 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-
-                {result.promptUsed && (
-                  <details style={{ marginTop: 12 }}>
-                    <summary style={{ cursor: "pointer" }}>Ver prompt usado</summary>
-                    <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{result.promptUsed}</pre>
-                  </details>
-                )}
               </div>
             )}
           </>
