@@ -209,7 +209,8 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
-    const mode = String(req.body.mode || "model").toLowerCase();
+    mode = String(req.body.mode || mode || "model").toLowerCase();
+
 
 // views (solo model)
 let views = {};
