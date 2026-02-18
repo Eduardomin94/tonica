@@ -1030,86 +1030,90 @@ export default function Home() {
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
           <div>
-            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+  <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
-            <div
-  style={{
-    marginTop: 16,
-    position: "relative",
-    width: 360,
-    maxWidth: "100%",
-    height: 52,
-    borderRadius: 999,
-    padding: 6,
-    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
-    boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
-    overflow: "hidden",
-    display: "flex",
-  }}
->
-
-<div
-  style={{
-    position: "absolute",
-    top: 6,
-    left: mode === "model" ? 6 : "calc(50% + 0px)",
-    width: "calc(50% - 6px)",
-    height: 40,
-    borderRadius: 999,
-    background: "#ffffff",
-    transition: "left 0.25s ease",
-    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-  }}
-/>
-
-  <button
-    type="button"
-    onClick={() => setMode("model")}
+  {/* SWITCH */}
+  <div
     style={{
+      marginTop: 16,
       position: "relative",
-      zIndex: 2,
-      flex: 1,
-      height: 40,
+      width: 360,
+      maxWidth: "100%",
+      height: 52,
       borderRadius: 999,
-      border: "none",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 14,
-      color: mode === "model" ? "#7c3aed" : "#ffffff",
-      transition: "color 0.25s ease",
-      whiteSpace: "nowrap",
+      padding: 6,
+      background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+      boxShadow: "0 12px 30px rgba(124,58,237,0.35)",
+      overflow: "hidden",
+      display: "flex",
     }}
   >
-    📸Foto con modelo
-  </button>
-  <button
-    type="button"
-    onClick={() => setMode("product")}
-    style={{
-      position: "relative",
-      zIndex: 2,
-      flex: 1,
-      height: 40,
-      borderRadius: 999,
-      border: "none",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 14,
-      color: mode === "product" ? "#7c3aed" : "#ffffff",
-      transition: "color 0.25s ease",
-      whiteSpace: "nowrap",
-    }}
-  >
-     ⚛️Foto producto
-  </button>
-</div>
- <div style={{ ...styles.h2, color: "#cbd5e1" }}>
+    {/* Slider blanco */}
+    <div
+      style={{
+        position: "absolute",
+        top: 6,
+        left: mode === "model" ? 6 : "50%",
+        width: "calc(50% - 6px)",
+        height: 40,
+        borderRadius: 999,
+        background: "#ffffff",
+        transition: "left 0.25s ease",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={() => setMode("model")}
+      style={{
+        position: "relative",
+        zIndex: 2,
+        flex: 1,
+        height: 40,
+        borderRadius: 999,
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        fontWeight: 900,
+        fontSize: 14,
+        color: mode === "model" ? "#7c3aed" : "#ffffff",
+        transition: "color 0.25s ease",
+        whiteSpace: "nowrap",
+      }}
+    >
+      📸 Foto con modelo
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setMode("product")}
+      style={{
+        position: "relative",
+        zIndex: 2,
+        flex: 1,
+        height: 40,
+        borderRadius: 999,
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        fontWeight: 900,
+        fontSize: 14,
+        color: mode === "product" ? "#7c3aed" : "#ffffff",
+        transition: "color 0.25s ease",
+        whiteSpace: "nowrap",
+      }}
+    >
+      ⚛️ Foto producto
+    </button>
+  </div>
+
+  {/* SUBTÍTULO afuera del switch */}
+  <div style={{ ...styles.h2, color: "#cbd5e1", marginTop: 12 }}>
     {t("subtitle")}
-    </div>
-           
+  </div>
 </div>
+
             <div style={{ marginTop: 10 }}>
               <select
                 value={language}
