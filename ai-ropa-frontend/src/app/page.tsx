@@ -8,7 +8,6 @@ const inter = Inter({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-
 /* ================== CONSTANTES ================== */
 const CATEGORIES = [
   "Remera/Top",
@@ -33,115 +32,103 @@ function wordCount(s: string) {
 /* ================== APP ================== */
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
-  console.log("API BASE:", API);
 
   const [isMobile, setIsMobile] = useState(false);
-  const [meEntries, setMeEntries] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [loadingMe, setLoadingMe] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
+
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
+
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+
   const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
+
   const [views, setViews] = useState({
-  front: true,   // delantera
-  back: false,   // espalda
-  left: false,   // frente izquierda
-  right: false,  // frente derecha
-});
+    front: true,
+    back: false,
+    left: false,
+    right: false,
+  });
+
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
-  
   const translations = {
-  es: {
-    title: "Generador IA",
-    subtitle: "Elegí el tipo de imagen que querés generar",
-    buyCredits: "Comprar créditos",
-    logout: "Cerrar sesión",
-    credits: "Créditos",
-    history: "Historial de movimientos",
-    changeToModel: "Cambiar a Foto con modelo",
-    changeToProduct: "Cambiar a Foto producto",
-    next: "Siguiente",
-    back: "Atrás",
-    signIn: "Iniciar sesión",
-    signInHint: "Accedé con tu cuenta de Google para usar el generador",
-  },
-  en: {
-    title: "AI Generator",
-    subtitle: "Choose the type of image you want to generate",
-    buyCredits: "Buy credits",
-    logout: "Log out",
-    credits: "Credits",
-    history: "Transaction history",
-    changeToModel: "Switch to Model photos",
-    changeToProduct: "Switch to Product photos",
-    next: "Next",
-    back: "Back",
-    signIn: "Sign in",
-    signInHint: "Sign in with Google to use the generator",
-  },
-  pt: {
-    title: "Gerador AI",
-    subtitle: "Escolha o tipo de imagem que deseja gerar",
-    buyCredits: "Comprar créditos",
-    logout: "Sair",
-    credits: "Créditos",
-    history: "Histórico de movimentos",
-    changeToModel: "Mudar para fotos com modelo",
-    changeToProduct: "Mudar para fotos do produto",
-    next: "Próximo",
-    back: "Voltar",
-    signIn: "Entrar",
-    signInHint: "Entre com Google para usar o gerador",
-  },
-  ko: {
-    title: "AI 생성기",
-    subtitle: "생성할 이미지 유형을 선택하세요",
-    buyCredits: "크레딧 구매",
-    logout: "로그아웃",
-    credits: "크레딧",
-    history: "거래 내역",
-    changeToModel: "모델 사진으로 전환",
-    changeToProduct: "상품 사진으로 전환",
-    next: "다음",
-    back: "뒤로",
-    signIn: "로그인",
-    signInHint: "Google로 로그인하여 사용하세요",
-  },
-  zh: {
-    title: "AI 生成器",
-    subtitle: "选择要生成的图片类型",
-    buyCredits: "购买积分",
-    logout: "退出登录",
-    credits: "积分",
-    history: "交易记录",
-    changeToModel: "切换到模特图",
-    changeToProduct: "切换到产品图",
-    next: "下一步",
-    back: "返回",
-    signIn: "登录",
-    signInHint: "使用 Google 登录以使用生成器",
-  },
-} as const;
+    es: {
+      title: "Generador IA",
+      subtitle: "Elegí el tipo de imagen que querés generar",
+      buyCredits: "Comprar créditos",
+      logout: "Cerrar sesión",
+      credits: "Créditos",
+      history: "Historial de movimientos",
+      next: "Siguiente",
+      back: "Atrás",
+      signIn: "Iniciar sesión",
+      signInHint: "Accedé con tu cuenta de Google para usar el generador",
+    },
+    en: {
+      title: "AI Generator",
+      subtitle: "Choose the type of image you want to generate",
+      buyCredits: "Buy credits",
+      logout: "Log out",
+      credits: "Credits",
+      history: "Transaction history",
+      next: "Next",
+      back: "Back",
+      signIn: "Sign in",
+      signInHint: "Sign in with Google to use the generator",
+    },
+    pt: {
+      title: "Gerador AI",
+      subtitle: "Escolha o tipo de imagem que deseja gerar",
+      buyCredits: "Comprar créditos",
+      logout: "Sair",
+      credits: "Créditos",
+      history: "Histórico de movimentos",
+      next: "Próximo",
+      back: "Voltar",
+      signIn: "Entrar",
+      signInHint: "Entre com Google para usar o gerador",
+    },
+    ko: {
+      title: "AI 생성기",
+      subtitle: "생성할 이미지 유형을 선택하세요",
+      buyCredits: "크레딧 구매",
+      logout: "로그아웃",
+      credits: "크레딧",
+      history: "거래 내역",
+      next: "다음",
+      back: "뒤로",
+      signIn: "로그인",
+      signInHint: "Google로 로그인하여 사용하세요",
+    },
+    zh: {
+      title: "AI 生成器",
+      subtitle: "选择要生成的图片类型",
+      buyCredits: "购买积分",
+      logout: "退出登录",
+      credits: "积分",
+      history: "交易记录",
+      next: "下一步",
+      back: "返回",
+      signIn: "登录",
+      signInHint: "使用 Google 登录以使用生成器",
+    },
+  } as const;
 
-const t = (key: keyof typeof translations.es) => translations[language][key];
+  const t = (key: keyof typeof translations.es) => translations[language][key];
 
-
-  
-function handleLogout() {
-  localStorage.removeItem("accessToken");
-  setUser(null);
-  setAccessToken(null);
-  setBalance(0);
-}
-
+  function handleLogout() {
+    localStorage.removeItem("accessToken");
+    setUser(null);
+    setAccessToken(null);
+    setBalance(0);
+  }
 
   React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
@@ -151,26 +138,16 @@ function handleLogout() {
   }, []);
 
   React.useEffect(() => {
-  const url = new URL(window.location.href);
-  const status = url.searchParams.get("topup");
-
-  if (status) {
-    setTopupStatus(status);
-
-    // 🔄 refresca el balance automáticamente
-    fetchMe();
-
-    // 🧹 limpia la URL
-    window.history.replaceState({}, "", "/");
-
-    // ⏳ auto-oculta el mensaje en 5 segundos
-    const t = window.setTimeout(() => setTopupStatus(null), 5000);
-    return () => window.clearTimeout(t);
-  }
-}, []);
-
-
-
+    const url = new URL(window.location.href);
+    const status = url.searchParams.get("topup");
+    if (status) {
+      setTopupStatus(status);
+      fetchMe();
+      window.history.replaceState({}, "", "/");
+      const timer = window.setTimeout(() => setTopupStatus(null), 5000);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
 
   const [mode, setMode] = useState<"model" | "product" | null>(null);
 
@@ -192,6 +169,7 @@ function handleLogout() {
     largo: "",
   });
 
+  // Google button init
   React.useEffect(() => {
     const interval = setInterval(() => {
       if (!(window as any).google) return;
@@ -199,7 +177,6 @@ function handleLogout() {
 
       const GOOGLE_CLIENT_ID =
         "177285831628-o6shn4e85ecub5jilj6tj02njbt9r6jf.apps.googleusercontent.com";
-      console.log("GOOGLE CLIENT ID USED:", GOOGLE_CLIENT_ID);
 
       (window as any).google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -211,55 +188,42 @@ function handleLogout() {
               body: JSON.stringify({ idToken: response.credential }),
             });
             const data = await res.json();
-            if (!res.ok) {
-              throw new Error(data?.error || "Login error");
-            }
+            if (!res.ok) throw new Error(data?.error || "Login error");
             setUser(data.user);
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
-            } catch (err: any) {
-  console.error(err);
-  alert(`Error login Google: ${err?.message || err}`);
-}
-
+          } catch (err: any) {
+            console.error(err);
+            alert(`Error login Google: ${err?.message || err}`);
+          }
         },
         ux_mode: "popup",
         auto_select: false,
       });
+
       const el = document.getElementById("googleLoginDiv");
-
-if (el) {
-  el.innerHTML = ""; // limpia el botón viejo
-
-  (window as any).google.accounts.id.renderButton(
-    el,
-    {
-      theme: "outline",
-      size: "large",
-    }
-  );
-}      
+      if (el) {
+        el.innerHTML = "";
+        (window as any).google.accounts.id.renderButton(el, {
+          theme: "outline",
+          size: "large",
+        });
+      }
     }, 300);
 
     return () => clearInterval(interval);
   }, [API]);
 
   React.useEffect(() => {
-  // Solo cuando estamos en pantalla de login
-  if (user || accessToken) return;
-
-  const w = window as any;
-  if (!w.google?.accounts?.id) return;
-
-  const el = document.getElementById("googleLoginDiv");
-  if (!el) return;
-
-  // Limpiar y volver a renderizar el botón
-  el.innerHTML = "";
-  w.google.accounts.id.renderButton(el, { theme: "outline", size: "large" });
-}, [user, accessToken]);
-
+    if (user || accessToken) return;
+    const w = window as any;
+    if (!w.google?.accounts?.id) return;
+    const el = document.getElementById("googleLoginDiv");
+    if (!el) return;
+    el.innerHTML = "";
+    w.google.accounts.id.renderButton(el, { theme: "outline", size: "large" });
+  }, [user, accessToken]);
 
   const [modelType, setModelType] = useState<(typeof MODEL_TYPES)[number] | "">("");
   const [ethnicity, setEthnicity] = useState<(typeof ETHNICITIES)[number] | "">("");
@@ -268,8 +232,6 @@ if (el) {
   const [scene, setScene] = useState("");
   const [pose, setPose] = useState<(typeof POSES)[number] | "">("");
   const [bodyType, setBodyType] = useState<(typeof BODY_TYPES)[number] | "">("");
-  
-
 
   // ui
   const [step, setStep] = useState(0);
@@ -278,6 +240,8 @@ if (el) {
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
+
+  const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
 
   const ageOptions = useMemo(() => {
     if (modelType === "Bebé recién nacido") return ["0 a 2 años"];
@@ -316,7 +280,6 @@ if (el) {
     setError(null);
     setResult(null);
 
-    // opcional pero recomendable: limpiar inputs cuando cambia el modo
     setFrontFile(null);
     setBackFile(null);
     setCategory("");
@@ -341,24 +304,19 @@ if (el) {
   }, [mode]);
 
   React.useEffect(() => {
-  fetchMe();
-  fetchEntries();
-}, [API]);
+    fetchMe();
+    fetchEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API]);
 
-
-  // ============ VALIDACIÓN por paso ============
   const stepError = useMemo(() => {
     const key = steps[step]?.key;
 
-    // upload
     if (key === "upload") {
-      if (mode === "product") {
-        return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
-      }
+      if (mode === "product") return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
       return !frontFile ? "Subí la foto Delantera (obligatorio)." : null;
     }
 
-    // category
     if (key === "category") {
       if (!category) return "Elegí una categoría.";
       if (category === "otro") {
@@ -368,36 +326,27 @@ if (el) {
       return null;
     }
 
-    // pockets
-    if (key === "pockets") {
-      return pockets ? null : "Indicá si tiene bolsillos (si/no).";
-    }
-
-    // measures optional
+    if (key === "pockets") return pockets ? null : "Indicá si tiene bolsillos (si/no).";
     if (key === "measures") return null;
 
-    // scene (solo product)
     if (key === "scene") {
       if (!scene.trim()) return "Escribí la escena (máx 10 palabras).";
       if (wordCount(scene) > 10) return "La escena debe tener máximo 10 palabras.";
       return null;
     }
 
-    // model-only steps
     if (key === "model") return modelType ? null : "Elegí el tipo de modelo.";
     if (key === "ethnicity") return ethnicity ? null : "Elegí la etnia.";
     if (key === "age") return ageRange ? null : "Elegí la edad.";
     if (key === "pose") return pose ? null : "Elegí la pose.";
     if (key === "bodyType") return bodyType ? null : "Elegí el tipo de cuerpo.";
 
-    // background (en ambos modos)
     if (key === "background") {
       if (!background.trim()) return "Escribí el fondo (máx 10 palabras).";
       if (wordCount(background) > 10) return "El fondo debe tener máximo 10 palabras.";
       return null;
     }
 
-    // generate
     return null;
   }, [
     steps,
@@ -436,7 +385,6 @@ if (el) {
       switch (i) {
         case 0:
           return setStep(0);
-          break;
         case 1:
           if (!category) return setStep(1);
           if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
@@ -480,41 +428,34 @@ if (el) {
       const data = await res.json();
       if (!res.ok) return;
       setUser(data);
-setBalance(data?.wallet?.balance ?? 0);
-setMeEntries(data?.wallet?.entries ?? []);
-
+      setBalance(data?.wallet?.balance ?? 0);
     } finally {
       setLoadingMe(false);
     }
   }
 
   async function fetchEntries() {
-  if (!API) return;
-  const token = localStorage.getItem("accessToken");
-  if (!token) return;
+    if (!API) return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
 
-  setLoadingEntries(true);
-  try {
-    const res = await fetch(`${API}/wallet/entries`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    if (!res.ok) return;
-
-    setEntries(Array.isArray(data?.entries) ? data.entries : []);
-  } finally {
-    setLoadingEntries(false);
+    setLoadingEntries(true);
+    try {
+      const res = await fetch(`${API}/wallet/entries`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+      setEntries(Array.isArray(data?.entries) ? data.entries : []);
+    } finally {
+      setLoadingEntries(false);
+    }
   }
-}
-
 
   async function handleSuggestBackground() {
     setError(null);
-    if (!API) {
-      setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-      return;
-    }
+    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+
     setHelpLoading(true);
     setBgSuggestions([]);
     try {
@@ -541,18 +482,8 @@ setMeEntries(data?.wallet?.entries ?? []);
     setError(null);
     setResult(null);
 
-    if (!API) {
-      setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-      return;
-    }
+    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
-    // Validación total rápida (reutilizamos stepError navegando a donde falte)
-    for (let i = 0; i < steps.length - 1; i++) {
-      // fuerza chequeo setStep? mejor: replicar, pero ya tenemos stepError por step.
-      // hacemos check por paso manual:
-    }
-
-    // chequeos obligatorios finales
     if (mode === "product") {
       if (productFiles.length === 0) {
         setStep(0);
@@ -562,79 +493,35 @@ setMeEntries(data?.wallet?.entries ?? []);
         setStep(1);
         return setError("Escribí la escena (máx 10 palabras).");
       }
-    }
-
-    if (mode === "product") {
-      // En modo producto no validamos campos de modelo
     } else {
-      if (!frontFile) {
-        goToFirstErrorStep();
-        return setError("Falta foto FRONT.");
-      }
-      if (!category) {
-        goToFirstErrorStep();
-        return setError("Falta categoría.");
-      }
-      if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) {
-        goToFirstErrorStep();
-        return setError("Revisá 'Otro' (máx 4 palabras).");
-      }
-      if (!pockets) {
-        goToFirstErrorStep();
-        return setError("Falta bolsillos.");
-      }
-      if (!modelType) {
-        goToFirstErrorStep();
-        return setError("Falta modelo.");
-      }
-      if (!ethnicity) {
-        goToFirstErrorStep();
-        return setError("Falta etnia.");
-      }
-      if (!ageRange) {
-        goToFirstErrorStep();
-        return setError("Falta edad.");
-      }
-      if (!background.trim() || wordCount(background) > 10) {
-        goToFirstErrorStep();
-        return setError("Falta fondo o excede 10 palabras.");
-      }
-      if (!pose) {
-        goToFirstErrorStep();
-        return setError("Falta pose.");
-      }
-      if (!bodyType) {
-        goToFirstErrorStep();
-        return setError("Falta tipo de cuerpo.");
-      }
+      if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
+      if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
+      if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
+        return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
+      if (!pockets) return (goToFirstErrorStep(), setError("Falta bolsillos."));
+      if (!modelType) return (goToFirstErrorStep(), setError("Falta modelo."));
+      if (!ethnicity) return (goToFirstErrorStep(), setError("Falta etnia."));
+      if (!ageRange) return (goToFirstErrorStep(), setError("Falta edad."));
+      if (!background.trim() || wordCount(background) > 10)
+        return (goToFirstErrorStep(), setError("Falta fondo o excede 10 palabras."));
+      if (!pose) return (goToFirstErrorStep(), setError("Falta pose."));
+      if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
     setLoading(true);
     try {
       const fd = new FormData();
-
-      // ✅ siempre mandamos el modo
       fd.append("mode", mode || "model");
       fd.append("views", JSON.stringify(views));
 
-
       if (mode === "product") {
-        // ✅ muchas fotos
         productFiles.forEach((f) => fd.append("product_images", f));
-        // ✅ escena
         fd.append("scene", scene.trim());
       } else {
-        // ✅ modo modelo (como antes)
-        if (!frontFile) {
-          goToFirstErrorStep();
-          throw new Error("Falta foto FRONT.");
-        }
-        fd.append("front", frontFile);
+        fd.append("front", frontFile as File);
         if (backFile) fd.append("back", backFile);
-
         fd.append("category", category);
         if (category === "otro") fd.append("other_category", otherCategory.trim());
-
         fd.append("pockets", pockets);
 
         fd.append("hombros", measures.hombros);
@@ -668,11 +555,7 @@ setMeEntries(data?.wallet?.entries ?? []);
       }
 
       if (!res.ok) {
-        setError(
-          data?.error ||
-            data?.message ||
-            `Error ${res.status}: ${String(text).slice(0, 200)}`
-        );
+        setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
         return;
       }
 
@@ -680,20 +563,13 @@ setMeEntries(data?.wallet?.entries ?? []);
       if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
       else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
 
-      if (!urls.length) {
-        setError("El servidor no devolvió imágenes.");
-        return;
-      }
+      if (!urls.length) return setError("El servidor no devolvió imágenes.");
 
-      const absolute = urls.map((u) =>
-        u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`
-      );
-
+      const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
       setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
+
       await fetchMe();
       await fetchEntries();
-
-
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
@@ -701,9 +577,7 @@ setMeEntries(data?.wallet?.entries ?? []);
     }
   }
 
-  const selectedCount = Object.values(views).filter(Boolean).length;
-
-  // ============ RENDER PANEL POR PASO ============  
+  // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {
     switch (steps[step].key) {
       case "upload":
@@ -793,11 +667,7 @@ setMeEntries(data?.wallet?.entries ?? []);
               {Object.entries(measures).map(([k, v]) => (
                 <div key={k}>
                   <Label style={{ textTransform: "capitalize" }}>{k}</Label>
-                  <TextInput
-                    value={v}
-                    onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))}
-                    placeholder="Ej: 52cm"
-                  />
+                  <TextInput value={v} onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))} placeholder="Ej: 52cm" />
                 </div>
               ))}
             </Grid3>
@@ -849,11 +719,7 @@ setMeEntries(data?.wallet?.entries ?? []);
             {!modelType ? (
               <SmallMuted>Elegí primero el modelo</SmallMuted>
             ) : (
-              <RadioPills
-                value={ageRange}
-                onChange={(v) => setAgeRange(v)}
-                options={ageOptions.map((a) => ({ value: a, label: a }))}
-              />
+              <RadioPills value={ageRange} onChange={(v) => setAgeRange(v)} options={ageOptions.map((a) => ({ value: a, label: a }))} />
             )}
           </>
         );
@@ -866,11 +732,7 @@ setMeEntries(data?.wallet?.entries ?? []);
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>Palabras: {wordCount(background)} / 10</SmallMuted>
-              <Button
-                variant="secondary"
-                onClick={handleSuggestBackground}
-                disabled={helpLoading || !category || !modelType}
-              >
+              <Button variant="secondary" onClick={handleSuggestBackground} disabled={helpLoading || !category || !modelType}>
                 {helpLoading ? "Buscando..." : "Ayudame a elegir el lugar"}
               </Button>
             </Row>
@@ -928,9 +790,7 @@ setMeEntries(data?.wallet?.entries ?? []);
                       }),
                     });
                     const data = await res.json();
-                    if (Array.isArray(data?.options) && data.options.length > 0) {
-                      setScene(data.options[0]);
-                    }
+                    if (Array.isArray(data?.options) && data.options.length > 0) setScene(data.options[0]);
                   } catch (err: any) {
                     setError(String(err?.message || err));
                   } finally {
@@ -959,45 +819,11 @@ setMeEntries(data?.wallet?.entries ?? []);
                     <SummaryItem label="Escena" value={scene} />
                     <SummaryItem label="Fotos cargadas" value={`${productFiles.length} archivo(s)`} />
                   </div>
-
-                  {productFiles.length > 0 && (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
-                        gap: 10,
-                      }}
-                    >
-                      {productFiles.slice(0, 8).map((f, idx) => (
-                        <div key={idx} style={styles.imgCard}>
-                          <img
-                            src={URL.createObjectURL(f)}
-                            alt={`prod-${idx}`}
-                            style={{
-                              width: "100%",
-                              display: "block",
-                              height: 180,
-                              objectFit: "contain" as any,
-                              background: "#fff",
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {productFiles.length > 8 && (
-                    <SmallMuted style={{ marginTop: 8 } as any}>Mostrando 8 de {productFiles.length} fotos.</SmallMuted>
-                  )}
                 </>
               ) : (
                 <>
                   <div style={styles.summaryGrid}>
-                    <SummaryItem
-                      label="Categoría"
-                      value={category === "otro" ? `Otro: ${otherCategory}` : category}
-                    />
+                    <SummaryItem label="Categoría" value={category === "otro" ? `Otro: ${otherCategory}` : category} />
                     <SummaryItem label="Bolsillos" value={pockets} />
                     <SummaryItem label="Modelo" value={modelType} />
                     <SummaryItem label="Etnia" value={ethnicity} />
@@ -1006,111 +832,61 @@ setMeEntries(data?.wallet?.entries ?? []);
                     <SummaryItem label="Pose" value={pose} />
                     <SummaryItem label="Tipo de cuerpo" value={bodyType} />
                   </div>
-
-                  {(frontFile || backFile) && (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: 10,
-                      }}
-                    >
-                      {frontFile && (
-                        <div style={styles.imgCard}>
-                          <img
-                            src={URL.createObjectURL(frontFile)}
-                            alt="front"
-                            style={{
-                              width: "100%",
-                              display: "block",
-                              height: 180,
-                              objectFit: "contain" as any,
-                              background: "#fff",
-                            }}
-                          />
-                        </div>
-                      )}
-                      {backFile && (
-                        <div style={styles.imgCard}>
-                          <img
-                            src={URL.createObjectURL(backFile)}
-                            alt="back"
-                            style={{
-                              width: "100%",
-                              display: "block",
-                              height: 180,
-                              objectFit: "contain" as any,
-                              background: "#fff",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
-              <div style={{ marginBottom: 14 }}>
-  <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-    ¿Qué vistas querés generar?
-  </div>
 
-  {[
-    { key: "front", label: "Delantera" },
-    { key: "back", label: "Espalda" },
-    { key: "left", label: "Frente izquierda" },
-    { key: "right", label: "Frente derecha" },
-  ].map((v) => (
-    <label
-      key={v.key}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 12px",
-        borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.12)",
-        background: "rgba(255,255,255,0.06)",
-        marginBottom: 10,
-        cursor: "pointer",
-      }}
-    >
-      <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>¿Qué vistas querés generar?</div>
 
-      <input
-        type="checkbox"
-        checked={(views as any)[v.key]}
-        onChange={(e) =>
-          setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))
-        }
-        style={{ width: 18, height: 18 }}
-      />
-    </label>
-  ))}
+              {[
+                { key: "front", label: "Delantera" },
+                { key: "back", label: "Espalda" },
+                { key: "left", label: "Frente izquierda" },
+                { key: "right", label: "Frente derecha" },
+              ].map((v) => (
+                <label
+                  key={v.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.06)",
+                    marginBottom: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={(views as any)[v.key]}
+                    onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+                    style={{ width: 18, height: 18 }}
+                  />
+                </label>
+              ))}
 
-  <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-    Créditos a consumir:{" "}
-    {Object.values(views).filter(Boolean).length}
-  </div>
-</div>
-  
+              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+                Créditos a consumir: {selectedCount}
+              </div>
+            </div>
+
             <Button
-  onClick={handleGenerate}
-  disabled={loading || selectedCount === 0 || balance < selectedCount}
-
-
-  style={{ width: "100%", padding: "14px 16px" }}
->
-  {loading
-    ? "Generando..."
-    : selectedCount === 0
-    ? "Elegí al menos 1 vista"
-    : balance < selectedCount
-    ? `Créditos insuficientes (${selectedCount})`
-    : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
-</Button>
-
+              onClick={handleGenerate}
+              disabled={loading || selectedCount === 0 || balance < selectedCount}
+              style={{ width: "100%", padding: "14px 16px" }}
+            >
+              {loading
+                ? "Generando..."
+                : selectedCount === 0
+                ? "Elegí al menos 1 vista"
+                : balance < selectedCount
+                ? `Créditos insuficientes (${selectedCount})`
+                : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
+            </Button>
 
             {result && (
               <div style={{ marginTop: 16 }}>
@@ -1140,6 +916,9 @@ setMeEntries(data?.wallet?.entries ?? []);
   }, [
     steps,
     step,
+    mode,
+    isMobile,
+    // state
     frontFile,
     backFile,
     productFiles,
@@ -1153,89 +932,51 @@ setMeEntries(data?.wallet?.entries ?? []);
     background,
     pose,
     bodyType,
+    scene,
     bgSuggestions,
     helpLoading,
     loading,
     result,
-    handleSuggestBackground,
-    handleGenerate,
-    isMobile,
-    mode,
-    scene,
-    balance,
     error,
-    loadingMe,
+    // deps
     API,
     views,
     selectedCount,
+    balance,
   ]);
 
+  // ====== LOGIN ======
   if (!user && !accessToken) {
     return (
       <div style={styles.loginCard}>
-  <div style={styles.loginTitle}>Iniciar sesión</div>
-
-  <div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    marginTop: 20,
-  }}
->
-  <div id="googleLoginDiv" />
-</div>
-
-
-  <div style={styles.loginSub}>
-    Accedé con tu cuenta de Google para usar el generador
-  </div>
-</div>
-
+        <div style={styles.loginTitle}>{t("signIn")}</div>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+          <div id="googleLoginDiv" />
+        </div>
+        <div style={styles.loginSub}>{t("signInHint")}</div>
+      </div>
     );
   }
 
+  // ====== SELECT MODE ======
   if (!mode) {
     return (
       <div className={inter.className} style={styles.page}>
         <div style={{ ...styles.shell, maxWidth: 600 }}>
-          <div
-  style={{
-    ...styles.header,
-    flexDirection: "column",
-    alignItems: "stretch",
-    gap: 14,
-  }}
->
-
-
+          <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
             <div>
-              <div style={{ ...styles.h1, color: "#ffffff" }}>
-  {t("title")}
-
-</div>
-
-<div style={{ ...styles.h2, color: "#cbd5e1" }}>
-  Elegí el tipo de imagen que querés generar
-</div>
-
+              <div style={{ ...styles.h1, color: "#ffffff" }}>{t("title")}</div>
+              <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
             </div>
           </div>
 
           <div style={styles.panel}>
             <div style={{ display: "grid", gap: 14 }}>
-              <button
-                type="button"
-                onClick={() => setMode("model")}
-                style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}
-              >
+              <button type="button" onClick={() => setMode("model")} style={{ ...styles.btnPrimary, width: "100%", padding: "16px" }}>
                 📸 Foto con modelo (vestimenta)
               </button>
 
-              <button
-                type="button"
-                onClick={() => setMode("product")}
-                style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}
-              >
+              <button type="button" onClick={() => setMode("product")} style={{ ...styles.btnSecondary, width: "100%", padding: "16px" }}>
                 ⚛️ Foto producto
               </button>
             </div>
@@ -1244,559 +985,379 @@ setMeEntries(data?.wallet?.entries ?? []);
       </div>
     );
   }
+
+  // ====== APP ======
   return (
-  <div style={styles.page}>
-    <div style={styles.shell}>
+    <div className={inter.className} style={styles.page}>
+      <div style={styles.shell}>
+        {topupStatus === "ok" && (
+          <div style={{ background: "#dcfce7", border: "1px solid #16a34a", color: "#166534", padding: "12px", borderRadius: "12px", marginBottom: "16px", fontWeight: 600 }}>
+            ✅ Créditos agregados correctamente
+          </div>
+        )}
+        {topupStatus === "fail" && (
+          <div style={{ background: "#fee2e2", border: "1px solid #dc2626", color: "#7f1d1d", padding: "12px", borderRadius: "12px", marginBottom: "16px", fontWeight: 600 }}>
+            ❌ El pago fue rechazado
+          </div>
+        )}
 
-      {topupStatus === "ok" && (
-        <div style={{
-          background: "#dcfce7",
-          border: "1px solid #16a34a",
-          color: "#166534",
-          padding: "12px",
-          borderRadius: "12px",
-          marginBottom: "16px",
-          fontWeight: 600
-        }}>
-          ✅ Créditos agregados correctamente
-        </div>
-      )}
-
-      {topupStatus === "fail" && (
-        <div style={{
-          background: "#fee2e2",
-          border: "1px solid #dc2626",
-          color: "#7f1d1d",
-          padding: "12px",
-          borderRadius: "12px",
-          marginBottom: "16px",
-          fontWeight: 600
-        }}>
-          ❌ El pago fue rechazado
-        </div>
-      )}
         {/* Header */}
-        <div
-  style={{
-    ...styles.header,
-    flexDirection: isMobile ? "column" : "row",
-    alignItems: isMobile ? "stretch" : "center",
-    gap: isMobile ? 12 : 0,
-  }}
->
-<div>
-  <div style={{ ...styles.h1, color: "#9495B5" }}>
-    {t("title")}
-  </div>
+        <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
+          <div>
+            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
-  {/* Switch modo debajo del título */}
-  <div
-    style={{
-      marginTop: 12,
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      flexWrap: "wrap",
-    }}
-  >
-    <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "model" ? 1 : 0.55 }}>
-      📸 Foto con modelo
-    </span>
+            {/* Switch */}
+            <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "model" ? 1 : 0.55 }}>📸 Foto con modelo</span>
 
-    <button
-      type="button"
-      onClick={() => setMode(mode === "model" ? "product" : "model")}
-      style={{
-        width: 64,
-        height: 34,
-        borderRadius: 999,
-        border: "1px solid rgba(255,255,255,0.18)",
-        background:
-          mode === "product"
-            ? "linear-gradient(90deg,#8b5cf6,#6366f1)"
-            : "linear-gradient(90deg,#3b82f6,#22c55e)",
-        position: "relative",
-        cursor: "pointer",
-        padding: 0,
-        outline: "none",
-        boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-      }}
-      aria-label="Cambiar modo"
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 4,
-          left: mode === "model" ? 4 : 34,
-          width: 26,
-          height: 26,
-          borderRadius: 999,
-          background: "#ffffff",
-          transition: "left 0.2s ease",
-          boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
-        }}
-      />
-    </button>
+              <button
+                type="button"
+                onClick={() => setMode(mode === "model" ? "product" : "model")}
+                style={{
+                  width: 64,
+                  height: 34,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: mode === "product" ? "linear-gradient(90deg,#8b5cf6,#6366f1)" : "linear-gradient(90deg,#3b82f6,#22c55e)",
+                  position: "relative",
+                  cursor: "pointer",
+                  padding: 0,
+                  outline: "none",
+                  boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+                }}
+                aria-label="Cambiar modo"
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    left: mode === "model" ? 4 : 34,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 999,
+                    background: "#ffffff",
+                    transition: "left 0.2s ease",
+                    boxShadow: "0 6px 14px rgba(0,0,0,0.25)",
+                  }}
+                />
+              </button>
 
-    <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "product" ? 1 : 0.55 }}>
-      ⚛️ Foto producto
-    </span>
-  </div>
+              <span style={{ fontWeight: 900, fontSize: 13, opacity: mode === "product" ? 1 : 0.55 }}>⚛️ Foto producto</span>
+            </div>
 
-  {/* (opcional) subtítulo */}
-  <div style={{ ...styles.h2, color: "#cbd5e1" }}>
-    {t("subtitle")}
-  </div>
-  <div style={{ marginTop: 10 }}>
-  <select
-    value={language}
-    onChange={(e) => setLanguage(e.target.value as any)}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 10,
-      border: "1px solid #e2e8f0",
-      background: "#ffffff",
-      color: "#000000",
-      fontWeight: 700,
-      cursor: "pointer",
-      width: isMobile ? "100%" : 140,
-    }}
-  >
-    <option value="es">🇪🇸 ES</option>
-    <option value="en">🇺🇸 EN</option>
-    <option value="pt">🇧🇷 PT</option>
-    <option value="ko">🇰🇷 KO</option>
-    <option value="zh">🇨🇳 中文</option>
-  </select>
-</div>
+            <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
 
-</div>
+            <div style={{ marginTop: 10 }}>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  background: "#ffffff",
+                  color: "#000000",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  width: isMobile ? "100%" : 140,
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="es">🇪🇸 ES</option>
+                <option value="en">🇺🇸 EN</option>
+                <option value="pt">🇧🇷 PT</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="zh">🇨🇳 中文</option>
+              </select>
+            </div>
+          </div>
 
-<div
-  style={{
-  width: "100%",
-  maxWidth: "100%",
-  padding: "14px 16px",
-  borderRadius: 18,
-  background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-  color: "#0f172a",
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: 12,
-  alignItems: "stretch",
-  overflow: "hidden",
-  boxSizing: "border-box",
-}}
+          {/* User card (NO overflow) */}
+          <div style={styles.userCard}>
+            <div style={styles.userEmail}>{user?.email || user?.name}</div>
 
->
+            <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+              <div style={styles.badgeClamp}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
+            </div>
 
+            <div style={styles.packCard}>
+              <select
+                value={selectedPack}
+                onChange={(e) => setSelectedPack(e.target.value as any)}
+                style={styles.packSelect}
+              >
+                <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
+                <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
+                <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
+              </select>
 
+              <button
+                type="button"
+                disabled={buyLoading}
+                onClick={async () => {
+                  try {
+                    setBuyLoading(true);
+                    const token = localStorage.getItem("accessToken");
 
-  {/* email */}
-  <div
-  style={{
-    fontSize: 12,
-    color: "#0f172a",
-    fontWeight: 900,
-    minWidth: 0,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  }}
->
-  {user?.email || user?.name}
-</div>
+                    const credits = selectedPack === "emprendedor" ? 50 : selectedPack === "pyme" ? 200 : 900;
 
+                    const res = await fetch(`${API}/mp/create-preference`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ credits }),
+                    });
 
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
+                    if (!data?.init_point) throw new Error("No init_point recibido");
+                    window.location.href = data.init_point;
+                  } catch (e: any) {
+                    alert(String(e?.message || e));
+                  } finally {
+                    setBuyLoading(false);
+                  }
+                }}
+                style={styles.buyBtnFull}
+              >
+                {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+              </button>
 
-  {/* badge créditos actuales */}
-  <div style={{ justifySelf: "start" }}>
-  <div style={styles.badge}>
-    {loadingMe ? "Cargando..." : `Créditos: ${balance}`}
-  </div>
-</div>
-
-
-  {/* ✅ caja premium: cantidad + comprar */}
-  <div
-  style={{
-  width: "100%",
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: 10,
-  padding: 10,
-  borderRadius: 16,
-  background: "#ffffff",
-  border: "1px solid #e2e8f0",
-  boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-  alignItems: "stretch",
-  overflow: "hidden",
-  boxSizing: "border-box",
-}}
-
->
-
-  <select
-    value={selectedPack}
-    onChange={(e) => setSelectedPack(e.target.value as any)}
-    style={{
-  height: 40,
-  padding: "6px 10px",
-  borderRadius: 12,
-  border: "1px solid #cbd5e1",
-  background: "#ffffff",
-  color: "#0f172a",
-  fontWeight: 900,
-  width: "100%",
-  minWidth: 0,
-  maxWidth: "100%",
-  boxSizing: "border-box",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-}}
-
-
-  >
-    <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
-    <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
-    <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
-  </select>
-
-  <button
-    type="button"
-    disabled={buyLoading}
-    onClick={async () => {
-      try {
-        setBuyLoading(true);
-        const token = localStorage.getItem("accessToken");
-
-        const credits =
-          selectedPack === "emprendedor" ? 50 :
-          selectedPack === "pyme" ? 200 :
-          900;
-
-        const res = await fetch(`${API}/mp/create-preference`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ credits }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Error creando preferencia");
-        if (!data?.init_point) throw new Error("No init_point recibido");
-        window.location.href = data.init_point;
-      } catch (e: any) {
-        alert(String(e?.message || e));
-      } finally {
-        setBuyLoading(false);
-      }
-    }}
-    style={{
-  ...styles.btnPremium,
-  height: 40,
-  padding: "0 16px",
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box",
-}}
-
-
-  >
-    {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
-  </button>
-
-  <button
-    type="button"
-    onClick={handleLogout}
-    style={{
-  ...styles.btnGhostPremium,
-  height: 40,
-  padding: "0 14px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box",
-}}
-
-
-  >
-    🚪 Cerrar sesión
-  </button>
-</div>
+              <button type="button" onClick={handleLogout} style={styles.logoutBtnFull}>
+                🚪 Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Main */}
- <div style={isMobile ? styles.mainMobile : styles.main}>
-
-
-          {/* Sidebar */}
-          {
+        <div style={isMobile ? styles.mainMobile : styles.main}>
+          {/* Steps (mobile dropdown) */}
           <div style={{ marginBottom: 16 }}>
-    <button
-      type="button"
-      onClick={() => setMobileStepsOpen((v) => !v)}
-      style={{
-        width: "100%",
-        padding: "10px 14px",
-        borderRadius: 14,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        color: "#ffffff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        fontSize: 12,
-        fontWeight: 800,
-        cursor: "pointer",
-      }}
-    >
-      <span>Paso {step + 1} de {steps.length}</span>
-      <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
-    </button>
-
-    <div
-      style={{
-        marginTop: 10,
-        height: 6,
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.2)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: `${((step + 1) / steps.length) * 100}%`,
-          height: "100%",
-          background: "linear-gradient(90deg,#6366f1,#22d3ee)",
-          transition: "width 0.25s ease",
-        }}
-      />
-    </div>
-
-    {mobileStepsOpen && (
-      <div
-        style={{
-          marginTop: 12,
-          borderRadius: 14,
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          overflow: "hidden",
-        }}
-      >
-        {steps.map((s, i) => {
-          const active = i === step;
-          const done = i < step;
-
-          return (
             <button
-              key={s.key}
               type="button"
-              onClick={() => {
-                setStep(i);
-                setMobileStepsOpen(false);
-              }}
+              onClick={() => setMobileStepsOpen((v) => !v)}
               style={{
                 width: "100%",
+                padding: "10px 14px",
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "12px 14px",
-                border: "none",
-                background: active ? "rgba(255,255,255,0.10)" : "transparent",
-                color: "#ffffff",
+                fontSize: 12,
+                fontWeight: 800,
                 cursor: "pointer",
-                textAlign: "left",
-                fontWeight: active ? 900 : 700,
+                boxSizing: "border-box",
               }}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 999,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 900,
-                    background: done
-                      ? "rgba(34,197,94,0.9)"
-                      : active
-                      ? "rgba(99,102,241,0.9)"
-                      : "rgba(255,255,255,0.18)",
-                    color: "#0f172a",
-                  }}
-                >
-                  {done ? "✓" : i + 1}
-                </span>
-
-                <span>{s.title}</span>
+              <span>
+                Paso {step + 1} de {steps.length}
               </span>
-
-              <span style={{ opacity: 0.7 }}>{active ? "●" : ""}</span>
+              <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
             </button>
-          );
-        })}
-      </div>
-    )}
-  </div>
-}
 
+            <div style={{ marginTop: 10, height: 6, borderRadius: 999, background: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${((step + 1) / steps.length) * 100}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg,#6366f1,#22d3ee)",
+                  transition: "width 0.25s ease",
+                }}
+              />
+            </div>
+
+            {mobileStepsOpen && (
+              <div style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", overflow: "hidden" }}>
+                {steps.map((s, i) => {
+                  const active = i === step;
+                  const done = i < step;
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => {
+                        setStep(i);
+                        setMobileStepsOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        border: "none",
+                        background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                        color: "#ffffff",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontWeight: active ? 900 : 700,
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 999,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 12,
+                            fontWeight: 900,
+                            background: done ? "rgba(34,197,94,0.9)" : active ? "rgba(99,102,241,0.9)" : "rgba(255,255,255,0.18)",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {done ? "✓" : i + 1}
+                        </span>
+                        <span>{s.title}</span>
+                      </span>
+                      <span style={{ opacity: 0.7 }}>{active ? "●" : ""}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Panel */}
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
             {error && <div style={styles.inlineErr}>{error}</div>}
-           
+
             {panel}
-            
-          
-                
-            {/* Footer actions */}
+
             <div style={styles.footer}>
               <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
-                Atrás
+                {t("back")}
               </Button>
               <div style={{ flex: 1 }} />
               {!isLast ? (
                 <Button onClick={next} disabled={!canGoNext}>
-                  Siguiente
+                  {t("next")}
                 </Button>
               ) : null}
             </div>
+          </section>
+        </div>
 
-            {/* Historial de movimientos */}
-<div style={{ marginTop: 40 }}>
+        {/* Historial */}
+        <details
+          style={{
+            marginTop: 20,
+            border: "1px solid #e5e7eb",
+            borderRadius: 16,
+            background: "#ffffff",
+            boxShadow: "0 1px 0 rgba(15,23,42,0.03)",
+          }}
+        >
+          <summary
+            style={{
+              cursor: "pointer",
+              listStyle: "none",
+              padding: "14px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontWeight: 800,
+            }}
+          >
+            <span style={{ color: "#1e293b", fontWeight: 800 }}>📒 {t("history")}</span>
+          </summary>
 
-</div>
-          </section>        
-        </div>      
-          <details style={{
-  marginTop: 20,
-  border: "1px solid #e5e7eb",
-  borderRadius: 16,
-  background: "#ffffff",
-  boxShadow: "0 1px 0 rgba(15,23,42,0.03)"
-}}>
-  <summary style={{
-    cursor: "pointer",
-    listStyle: "none",
-    padding: "14px 16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    fontWeight: 800
-  }}>
-    <span style={{ color: "#1e293b", fontWeight: 800 }}>
-  📒 Historial de movimientos
-</span>
+          <div style={{ padding: "0 16px 16px 16px" }}>
+            {loadingEntries ? (
+              <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
+            ) : entries.length === 0 ? (
+              <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
+            ) : (
+              <div style={{ marginTop: 8, overflowX: "hidden", border: "1px solid #e5e7eb", borderRadius: 12, width: "100%", maxWidth: "100%" }}>
+                <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                      <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
+                      <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
+                      <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
+                    </tr>
+                  </thead>
 
+                  <tbody>
+                    {entries.map((e) => {
+                      const isPlus = e.amount > 0;
+                      const label =
+                        e.type === "PURCHASE"
+                          ? "Compra"
+                          : e.type === "CONSUME"
+                          ? "Consumo"
+                          : e.type === "REFUND"
+                          ? "Reintegro"
+                          : e.type === "GRANT"
+                          ? "Bonificación"
+                          : e.type;
 
-  </summary>
+                      return (
+                        <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td
+                            style={{
+                              padding: "10px 10px",
+                              color: "#0f172a",
+                              whiteSpace: "normal",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {new Date(e.createdAt).toLocaleString()}
+                          </td>
 
-  <div style={{
-    padding: "0 16px 16px 16px"
-  }}>
-    {loadingEntries ? (
-  <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
-) : entries.length === 0 ? (
-  <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
-) : (
-      <div style={{
-  marginTop: 8,
-  overflowX: "hidden",
-  border: "1px solid #e5e7eb",
-  borderRadius: 12,
-  width: "100%",
-  maxWidth: "100%",
-}}>
+                          <td style={{ padding: "10px 10px" }}>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                fontWeight: 800,
+                                fontSize: 12,
+                                padding: "4px 10px",
+                                borderRadius: 999,
+                                border: "1px solid #e2e8f0",
+                                background: "#ffffff",
+                                color: "#0f172a",
+                              }}
+                            >
+                              {label}
+                            </span>
+                          </td>
 
-
-        <table style={{ 
-  width: "100%", 
-  tableLayout: "fixed",
-  borderCollapse: "collapse", 
-  fontSize: 13 
-}}>
-
-          <thead>
-  <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-    <th style={{ padding: "10px 10px", color: "#475569", width: "45%" }}>Fecha</th>
-    <th style={{ padding: "10px 10px", color: "#475569", width: "35%" }}>Movimiento</th>
-    <th style={{ padding: "10px 10px", textAlign: "right", color: "#475569", width: "20%" }}>Cantidad</th>
-  </tr>
-</thead>
-
-          <tbody>
-            {entries.map((e) => {
-              const isPlus = e.amount > 0;
-
-              const label =
-                e.type === "PURCHASE" ? "Compra" :
-                e.type === "CONSUME" ? "Consumo" :
-                e.type === "REFUND" ? "Reintegro" :
-                e.type === "GRANT" ? "Bonificación" :
-                e.type;
-
-              return (
-                <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                 <td
-  style={{
-    padding: "10px 10px",
-    color: "#0f172a",
-    whiteSpace: "normal",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    wordBreak: "break-word",
-  }}
->
-
-                    {new Date(e.createdAt).toLocaleString()}
-                  </td>
-
-                  <td style={{ padding: "10px 10px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      fontWeight: 800,
-                      fontSize: 12,
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      border: "1px solid #e2e8f0",
-                      background: "#ffffff",
-                      color: "#0f172a"
-                    }}>
-                      {label}
-                    </span>
-                  </td>
-
-                  <td style={{
-                    padding: "10px 10px",
-                    textAlign: "right",
-                    fontWeight: 900,
-                    color: isPlus ? "#16a34a" : "#dc2626",
-                    whiteSpace: "nowrap"
-                  }}>
-                    {isPlus ? `+${e.amount}` : e.amount}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                          <td
+                            style={{
+                              padding: "10px 10px",
+                              textAlign: "right",
+                              fontWeight: 900,
+                              color: isPlus ? "#16a34a" : "#dc2626",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {isPlus ? `+${e.amount}` : e.amount}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </details>
       </div>
-    )}
-  </div>
-</details>
-      </div>      
     </div>
-    );
+  );
 }
 
 /* ================== UI COMPONENTS ================== */
@@ -1828,17 +1389,8 @@ function Box({ children }: { children: React.ReactNode }) {
   return <div style={styles.box}>{children}</div>;
 }
 
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
+function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [focused, setFocused] = useState(false);
-
   return (
     <input
       value={value}
@@ -1848,60 +1400,28 @@ function TextInput({
       onBlur={() => setFocused(false)}
       style={{
         ...styles.input,
-        border: focused
-          ? "1px solid #6366f1"
-          : "1px solid rgba(255,255,255,0.15)",
-        boxShadow: focused
-          ? "0 0 0 3px rgba(99,102,241,0.25)"
-          : "none",
+        border: focused ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.15)",
+        boxShadow: focused ? "0 0 0 3px rgba(99,102,241,0.25)" : "none",
       }}
     />
   );
 }
 
-
 function InputFile({ onChange }: { onChange: (f: File | null) => void }) {
-  return (
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => onChange(e.target.files?.[0] || null)}
-      style={styles.file}
-    />
-  );
+  return <input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0] || null)} style={styles.file} />;
 }
 
 function InputFiles({ onChange }: { onChange: (files: File[]) => void }) {
-  return (
-    <input
-      type="file"
-      accept="image/*"
-      multiple
-      onChange={(e) => onChange(Array.from(e.target.files || []))}
-      style={styles.file}
-    />
-  );
+  return <input type="file" accept="image/*" multiple onChange={(e) => onChange(Array.from(e.target.files || []))} style={styles.file} />;
 }
 
-function RadioPills({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
+function RadioPills({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
   return (
     <div style={styles.pills}>
       {options.map((o) => {
         const active = value === o.value;
         return (
-          <button
-            key={o.value}
-            onClick={() => onChange(o.value)}
-            style={{ ...styles.pill, ...(active ? styles.pillActive : {}) }}
-          >
+          <button key={o.value} onClick={() => onChange(o.value)} style={{ ...styles.pill, ...(active ? styles.pillActive : {}) }}>
             {o.label}
           </button>
         );
@@ -1940,39 +1460,73 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
 /* ================== STYLES ================== */
 const styles: Record<string, React.CSSProperties> = {
   page: {
-  minHeight: "100vh",
-  padding: 20,
-  background: `
-    radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%),
-    linear-gradient(135deg, #0f172a 0%, #111827 100%)
-  `,
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-start",
-  color: "#ffffff",
-  overflowX: "hidden",
+    minHeight: "100vh",
+    padding: 20,
+    background: `
+      radial-gradient(circle at 20% 20%, rgba(59,130,246,0.15), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(168,85,247,0.15), transparent 40%),
+      linear-gradient(135deg, #0f172a 0%, #111827 100%)
+    `,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    color: "#ffffff",
+    overflowX: "hidden",
+    boxSizing: "border-box",
+  },
 
-},
   shell: { width: "100%", maxWidth: 1100, margin: "0 auto" },
+
   header: {
-  display: "flex",
-  alignItems: "center",
- justifyContent: "flex-start",
-  padding: "18px 24px",
-  borderRadius: 20,
-  background: "rgba(255,255,255,0.06)",
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
-  marginBottom: 30,
-},
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    padding: "18px 24px",
+    borderRadius: 20,
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+    marginBottom: 30,
+    boxSizing: "border-box",
+    width: "100%",
+    overflow: "hidden",
+  },
+
   h1: { fontSize: 28, fontWeight: 800, letterSpacing: -0.2 },
   h2: { marginTop: 6, color: "#475569" },
+
+  userCard: {
+    width: "100%",
+    maxWidth: "100%",
+    padding: "14px 16px",
+    borderRadius: 18,
+    background: "linear-gradient(145deg, #ffffff, #f1f5f9)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+    color: "#0f172a",
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 12,
+    alignItems: "stretch",
+    overflow: "hidden",
+    boxSizing: "border-box",
+  },
+
+  userEmail: {
+    fontSize: 12,
+    color: "#0f172a",
+    fontWeight: 900,
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
   badge: {
     background: "#eff6ff",
     color: "#1d4ed8",
@@ -1984,69 +1538,121 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontSize: 12,
   },
-  main: {
-  display: "grid",
-  gridTemplateColumns: "280px 1fr",
-  gap: 16,
-  alignItems: "start",
-},
-mainMobile: {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: 16,
-  alignItems: "start",
-},
 
-  sidebar: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    padding: 14,
-    background: "#f8fafc",
-  },
-  sidebarTitle: { fontWeight: 800, marginBottom: 10, color: "#0f172a" },
-  stepBtn: {
-    width: "100%",
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    padding: "10px 10px",
-    borderRadius: 12,
-    border: "1px solid transparent",
-    background: "transparent",
-    cursor: "pointer",
-    textAlign: "left",
-    color: "#0f172a",
-  },
-  stepBtnActive: {
-    background: "#ffffff",
-    border: "1px solid #dbeafe",
-
-    boxShadow: "0 1px 0 rgba(15, 23, 42, 0.03)",
-  },
-  stepDot: {
-    width: 26,
-    height: 26,
+  badgeClamp: {
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#bfdbfe",
+    padding: "6px 10px",
     borderRadius: 999,
+    fontWeight: 700,
+    fontSize: 12,
+    display: "inline-flex",
+    alignItems: "center",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+
+  packCard: {
+    width: "100%",
+    maxWidth: "100%",
     display: "grid",
-    placeItems: "center",
-    background: "#e2e8f0",
+    gridTemplateColumns: "1fr",
+    gap: 10,
+    padding: 10,
+    borderRadius: 16,
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+    alignItems: "stretch",
+    overflow: "hidden",
+    boxSizing: "border-box",
+  },
+
+  packSelect: {
+    height: 40,
+    padding: "6px 10px",
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    background: "#ffffff",
     color: "#0f172a",
     fontWeight: 900,
-    fontSize: 12,
-    flex: "0 0 auto",
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+    display: "block",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
-  stepDotActive: { background: "#2563eb", color: "#ffffff" },
-  stepDotDone: { background: "#16a34a", color: "#ffffff" },
+
+  buyBtnFull: {
+    background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+    color: "#ffffff",
+    border: "none",
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 14,
+    fontWeight: 900,
+    cursor: "pointer",
+    boxShadow: "0 8px 20px rgba(99,102,241,0.35)",
+    transition: "all 0.2s ease",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    display: "block",
+  },
+
+  logoutBtnFull: {
+    background: "transparent",
+    color: "#0f172a",
+    border: "1px solid #e2e8f0",
+    height: 40,
+    padding: "0 14px",
+    borderRadius: 14,
+    fontWeight: 900,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  main: {
+    display: "grid",
+    gridTemplateColumns: "280px 1fr",
+    gap: 16,
+    alignItems: "start",
+  },
+  mainMobile: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 16,
+    alignItems: "start",
+  },
+
   panel: {
-  borderRadius: 24,
-  padding: 28,
-  background: "rgba(255,255,255,0.06)",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-  width: "100%",
-},
+    borderRadius: 24,
+    padding: 28,
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+    width: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+  },
+
   inlineWarn: {
     background: "#fffbeb",
     border: "1px solid #fde68a",
@@ -2065,60 +1671,39 @@ mainMobile: {
     marginBottom: 12,
     fontWeight: 700,
   },
+
   footer: {
     display: "flex",
     gap: 10,
     marginTop: 18,
     paddingTop: 14,
-    borderTop: "1px solid #e5e7eb",
+    borderTop: "1px solid rgba(255,255,255,0.15)",
   },
-  hint: { marginTop: 10, color: "#64748b", fontSize: 12 },
-  code: {
-    background: "#f1f5f9",
-    padding: "2px 6px",
-    borderRadius: 8,
-    border: "1px solid #e2e8f0",
-  },
+
   fieldTitle: { fontSize: 18, fontWeight: 900, marginBottom: 12 },
-  label: {
-  fontSize: 13,
-  fontWeight: 700,
-  marginBottom: 6,
-  color: "#cbd5e1",
-  letterSpacing: 0.3,
-},
-
-  smallMuted: { fontSize: 12, color: "#64748b", marginTop: 6 },
+  label: { fontSize: 13, fontWeight: 700, marginBottom: 6, color: "#cbd5e1", letterSpacing: 0.3 },
+  smallMuted: { fontSize: 12, color: "#94a3b8", marginTop: 6 },
   row: { display: "flex", alignItems: "center", gap: 10 },
- twoCols: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: 12,
-},
 
-grid3: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-},
-  box: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    padding: 12,
-    background: "#f8fafc",
-  },
+  twoCols: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 },
+  grid3: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 },
+
+  box: { border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f8fafc" },
+
   input: {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.15)",
-  background: "rgba(255,255,255,0.06)",
-  color: "#ffffff",
-  outline: "none",
-  fontSize: 14,
-  backdropFilter: "blur(6px)",
-  transition: "all 0.25s ease",
-},
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.06)",
+    color: "#ffffff",
+    outline: "none",
+    fontSize: 14,
+    backdropFilter: "blur(6px)",
+    transition: "all 0.25s ease",
+    boxSizing: "border-box",
+  },
+
   file: {
     width: "100%",
     padding: "10px 12px",
@@ -2126,7 +1711,9 @@ grid3: {
     border: "1px dashed #cbd5e1",
     background: "#ffffff",
     color: "#0f172a",
+    boxSizing: "border-box",
   },
+
   pills: { display: "flex", gap: 10, flexWrap: "wrap" as any },
   pill: {
     padding: "10px 14px",
@@ -2141,30 +1728,32 @@ grid3: {
   pillMobile: { width: "100%", justifyContent: "center" },
   pillsGrid2Mobile: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
   pillActive: { background: "#2563eb", borderColor: "#2563eb", color: "#ffffff" },
-  btnPrimary: {
-  background: "linear-gradient(135deg, #3b82f6 0%, #22c55e 100%)",
-  color: "#ffffff",
-  border: "1px solid rgba(255,255,255,0.12)",
-  padding: "10px 14px",
-  borderRadius: 14,
-  fontWeight: 900,
-  cursor: "pointer",
-  boxShadow: "0 10px 28px rgba(59,130,246,0.25)",
-},
 
-btnSecondary: {
-  background: "rgba(255,255,255,0.08)",
-  color: "#ffffff",
-  border: "1px solid rgba(255,255,255,0.14)",
-  padding: "10px 14px",
-  borderRadius: 14,
-  fontWeight: 900,
-  cursor: "pointer",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-},
+  btnPrimary: {
+    background: "linear-gradient(135deg, #3b82f6 0%, #22c55e 100%)",
+    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.12)",
+    padding: "10px 14px",
+    borderRadius: 14,
+    fontWeight: 900,
+    cursor: "pointer",
+    boxShadow: "0 10px 28px rgba(59,130,246,0.25)",
+  },
+
+  btnSecondary: {
+    background: "rgba(255,255,255,0.08)",
+    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.14)",
+    padding: "10px 14px",
+    borderRadius: 14,
+    fontWeight: 900,
+    cursor: "pointer",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+  },
 
   btnDisabled: { opacity: 0.6, cursor: "not-allowed" },
+
   suggestionBtn: {
     width: "100%",
     textAlign: "left",
@@ -2175,83 +1764,30 @@ btnSecondary: {
     cursor: "pointer",
     fontWeight: 700,
     color: "#0f172a",
+    boxSizing: "border-box",
   },
-  summaryCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    padding: 14,
-    background: "#f8fafc",
-    marginBottom: 12,
-  },
-  summaryTitle: { fontWeight: 900, marginBottom: 10 },
-  summaryGrid: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 10,
-},
 
-  summaryItem: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 12,
-    padding: 10,
-    background: "#ffffff",
-  },
+  summaryCard: { border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#f8fafc", marginBottom: 12 },
+  summaryTitle: { fontWeight: 900, marginBottom: 10 },
+  summaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 },
+  summaryItem: { border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "#ffffff" },
   summaryLabel: { fontSize: 12, color: "#64748b", fontWeight: 800 },
   summaryValue: { fontSize: 13, color: "#0f172a", fontWeight: 900, marginTop: 4 },
-  resultGrid: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 12,
-},
 
-  imgCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    overflow: "hidden",
-    background: "#ffffff",
-  },
+  resultGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 },
+  imgCard: { border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", background: "#ffffff" },
+
   loginCard: {
-  maxWidth: 420,
-  margin: "80px auto",
-  padding: 40,
-  borderRadius: 20,
-  border: "1px solid #e5e7eb",
-  background: "#ffffff",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-  textAlign: "center",
-},
-
-loginTitle: {
-  fontSize: 24,
-  fontWeight: 800,
-  color: "#0f172a",
-},
-
-loginSub: {
-  marginTop: 16,
-  fontSize: 13,
-  color: "#64748b",
-},
-btnPremium: {
-  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-  color: "#ffffff",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: 14,
-  fontWeight: 900,
-  cursor: "pointer",
-  boxShadow: "0 8px 20px rgba(99,102,241,0.35)",
-  transition: "all 0.2s ease",
-},
-btnGhostPremium: {
-  background: "transparent",
-  color: "#0f172a",
-  border: "1px solid #e2e8f0",
-  padding: "12px 18px",
-  borderRadius: 14,
-  fontWeight: 900,
-  cursor: "pointer",
-  transition: "all 0.2s ease",
-},
-
+    maxWidth: 420,
+    margin: "80px auto",
+    padding: 40,
+    borderRadius: 20,
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+    textAlign: "center",
+    color: "#0f172a",
+  },
+  loginTitle: { fontSize: 24, fontWeight: 800, color: "#0f172a" },
+  loginSub: { marginTop: 16, fontSize: 13, color: "#64748b" },
 };
