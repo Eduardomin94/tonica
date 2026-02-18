@@ -48,6 +48,8 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
+  const [productCount, setProductCount] = useState<0 | 1 | 2 | 3 | 4>(0);
+
 
   const [views, setViews] = useState({
     front: true,
@@ -55,6 +57,9 @@ export default function Home() {
     left: false,
     right: false,
   });
+  
+  const [productCount, setProductCount] = useState<number>(0);
+
 
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
@@ -241,7 +246,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
-  const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
+  const modelCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
+  const creditsNeeded = mode === "product" ? productCount : modelCount;
+  const hasSelection = creditsNeeded > 0;
 
   const ageOptions = useMemo(() => {
     if (modelType === "Bebé recién nacido") return ["0 a 2 años"];
@@ -300,6 +307,7 @@ export default function Home() {
   setBodyType("");
   setBgSuggestions([]);
   setProductFiles([]);
+  setProductCount(0);
 }, [mode]);
 
 
@@ -836,43 +844,84 @@ export default function Home() {
               )}
             </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>¿Qué vistas querés generar?</div>
+            {mode === "product" ? (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+      ¿Cuántas imágenes querés generar?
+    </div>
 
-              {[
-                { key: "front", label: "Delantera" },
-                { key: "back", label: "Espalda" },
-                { key: "left", label: "Frente izquierda" },
-                { key: "right", label: "Frente derecha" },
-              ].map((v) => (
-                <label
-                  key={v.key}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderRadius: 14,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.06)",
-                    marginBottom: 10,
-                    cursor: "pointer",
-                  }}
-                >
-                  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={(views as any)[v.key]}
-                    onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-                    style={{ width: 18, height: 18 }}
-                  />
-                </label>
-              ))}
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+      {[1, 2, 3, 4].map((n) => {
+        const active = productCount === n;
+        return (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setProductCount(active ? 0 : n)}
+            style={{
+              padding: "12px 10px",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)",
+              color: "#fff",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            {n}
+          </button>
+        );
+      })}
+    </div>
 
-              <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-                Créditos a consumir: {selectedCount}
-              </div>
-            </div>
+    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700, marginTop: 10 }}>
+      Créditos a consumir: {productCount}
+    </div>
+  </div>
+) : (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+      ¿Qué vistas querés generar?
+    </div>
+
+    {[
+      { key: "front", label: "Delantera" },
+      { key: "back", label: "Espalda" },
+      { key: "left", label: "Frente izquierda" },
+      { key: "right", label: "Frente derecha" },
+    ].map((v) => (
+      <label
+        key={v.key}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.06)",
+          marginBottom: 10,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+        <input
+          type="checkbox"
+          checked={(views as any)[v.key]}
+          onChange={(e) =>
+            setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))
+          }
+          style={{ width: 18, height: 18 }}
+        />
+      </label>
+    ))}
+
+    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+      Créditos a consumir: {selectedCount}
+    </div>
+  </div>
+)}
+
 
             <Button
               onClick={handleGenerate}
