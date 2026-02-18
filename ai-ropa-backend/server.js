@@ -209,31 +209,25 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
-    mode = String(req.body.mode || mode || "model").toLowerCase();
+    const mode = String(req.body?.mode || "model").toLowerCase();
 
-
-// views (solo model)
-let views = {};
+// views para ambos modos (model y product)
+let selectedViews = {};
 try {
-  views = JSON.parse(req.body.views || "{}");
+  selectedViews = req.body?.views
+    ? JSON.parse(String(req.body.views))
+    : {};
 } catch {
-  views = {};
+  selectedViews = {};
 }
 
-// num_images (solo product)
-let numImages = parseInt(String(req.body.num_images || "0"), 10);
-if (!Number.isFinite(numImages)) numImages = 0;
-numImages = Math.max(0, Math.min(4, numImages)); // 0..4
+const requestedKeys = ["front", "back", "left", "right"]
+  .filter((k) => !!selectedViews?.[k]);
 
-if (mode === "product") {
-  if (numImages <= 0) {
-    return res.status(400).json({ error: "NO_IMAGES_SELECTED" });
-  }
-} else {
-  const requested = ["front", "back", "left", "right"].filter((k) => !!views?.[k]);
-  if (requested.length === 0) {
-    return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
-  }
+const COST = requestedKeys.length;
+
+if (COST <= 0) {
+  return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
 }
 
     let wallet = null;
@@ -242,21 +236,6 @@ if (mode === "product") {
     const userId = req.userId;
     const idem = req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
 
-    const mode = String(req.body?.mode || "model");
-
-    // ---------- calcular COST + vistas elegidas ----------
-    let selectedViews = null;
-    let COST = 1; // product = 1 fijo
-
-    if (mode === "model") {
-      // viene como string JSON en multipart: req.body.views
-      selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
-      COST = Object.values(selectedViews).filter(Boolean).length;
-
-      if (COST <= 0) {
-        return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
-      }
-    }
 
     try {
       const user = await prisma.user.findUnique({
@@ -313,11 +292,12 @@ Mantener exactamente el mismo producto, color y textura.
 `.trim();
 
         const views = [
-          { key: "a", label: "toma principal" },
-          { key: "b", label: "ángulo alternativo" },
-          { key: "c", label: "detalle cercano" },
-          { key: "d", label: "otro ángulo" },
-        ];
+          { key: "front", label: "toma principal" },
+          { key: "back", label: "ángulo alternativo" },
+          { key: "left", label: "detalle cercano" },
+          { key: "right", label: "otro ángulo" },
+        ].filter((v) => selectedViews?.[v.key]);
+
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
