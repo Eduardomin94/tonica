@@ -968,64 +968,62 @@ export default function Home() {
           <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
             <div>
               <div style={{ ...styles.h1, color: "#ffffff" }}>{t("title")}</div>
-                  <div>
-  <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+              <div
+  style={{
+    marginTop: 16,
+    display: "inline-flex",
+    alignItems: "center",
+    padding: 6,
+    borderRadius: 999,
+    background: "linear-gradient(90deg,#7c3aed,#9333ea,#a855f7)",
+    boxShadow: "0 8px 24px rgba(124,58,237,0.4)",
+  }}
+>
+  {/* FOTO CON MODELO */}
+  <button
+    type="button"
+    onClick={() => setMode("model")}
+    style={{
+      padding: "12px 26px",
+      borderRadius: 999,
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 900,
+      fontSize: 15,
+      transition: "all 0.25s ease",
+      background: mode === "model" ? "#ffffff" : "transparent",
+      color: mode === "model" ? "#7c3aed" : "#ffffff",
+      boxShadow:
+        mode === "model"
+          ? "0 4px 14px rgba(0,0,0,0.15)"
+          : "none",
+    }}
+  >
+    Foto con modelo
+  </button>
 
-  {/* SWITCH */}
-  <div style={{ marginTop: 12, marginBottom: 10 }}>
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        borderRadius: 999,
-        border: "2px solid rgba(16,185,129,0.7)",
-        background: "rgba(0,0,0,0.25)",
-        padding: 2,
-        overflow: "hidden",
-        userSelect: "none",
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => setMode("model")}
-        style={{
-          padding: "10px 18px",
-          borderRadius: 999,
-          border: "none",
-          cursor: "pointer",
-          fontWeight: 900,
-          fontSize: 13,
-          transition: "all 0.2s ease",
-          background: mode === "model" ? "rgba(16,185,129,0.95)" : "transparent",
-          color: mode === "model" ? "#062a1f" : "rgba(16,185,129,0.95)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Foto con modelo
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setMode("product")}
-        style={{
-          padding: "10px 18px",
-          borderRadius: 999,
-          border: "none",
-          cursor: "pointer",
-          fontWeight: 900,
-          fontSize: 13,
-          transition: "all 0.2s ease",
-          background: mode === "product" ? "rgba(16,185,129,0.95)" : "transparent",
-          color: mode === "product" ? "#062a1f" : "rgba(16,185,129,0.95)",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Foto producto
-      </button>
-    </div>
-  </div>
-
-  <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
+  {/* FOTO PRODUCTO */}
+  <button
+    type="button"
+    onClick={() => setMode("product")}
+    style={{
+      padding: "12px 26px",
+      borderRadius: 999,
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 900,
+      fontSize: 15,
+      transition: "all 0.25s ease",
+      background: mode === "product" ? "#ffffff" : "transparent",
+      color: mode === "product" ? "#7c3aed" : "#ffffff",
+      boxShadow:
+        mode === "product"
+          ? "0 4px 14px rgba(0,0,0,0.15)"
+          : "none",
+    }}
+  >
+    Foto producto
+  </button>
 </div>
 
               <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
