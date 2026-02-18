@@ -211,31 +211,27 @@ app.post(
   async (req, res) => {
     const mode = String(req.body?.mode || "model").toLowerCase();
 
-// views para ambos modos (model y product)
-let selectedViews = {};
-try {
-  selectedViews = req.body?.views
-    ? JSON.parse(String(req.body.views))
-    : {};
-} catch {
-  selectedViews = {};
-}
+    // views para ambos modos (model y product)
+    let selectedViews = {};
+    try {
+      selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
+    } catch {
+      selectedViews = {};
+    }
 
-const requestedKeys = ["front", "back", "left", "right"]
-  .filter((k) => !!selectedViews?.[k]);
+    const requestedKeys = ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k]);
 
-const COST = requestedKeys.length;
+    const COST = requestedKeys.length;
 
-if (COST <= 0) {
-  return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
-}
+    if (COST <= 0) {
+      return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
+    }
 
     let wallet = null;
     let consumeEntry = null;
 
     const userId = req.userId;
     const idem = req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
-
 
     try {
       const user = await prisma.user.findUnique({
@@ -298,7 +294,6 @@ Mantener exactamente el mismo producto, color y textura.
           { key: "right", label: "otro ángulo" },
         ].filter((v) => selectedViews?.[v.key]);
 
-
         const settled = await Promise.allSettled(
           views.map(async (v) => {
             const viewPrompt = `
@@ -340,9 +335,7 @@ IMPORTANTE:
           } catch {}
         }
 
-        const imageUrls = settled
-          .filter((r) => r.status === "fulfilled")
-          .map((r) => r.value);
+        const imageUrls = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
         if (!imageUrls.length) {
           return res.status(500).json({ error: "No se pudo generar ninguna imagen de producto" });
@@ -388,8 +381,7 @@ IMPORTANTE:
           });
         }
 
-        const catFinal =
-          category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
+        const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
         const basePrompt = `
 Foto de moda e-commerce, fotorealista, iluminación suave tipo estudio.
@@ -468,9 +460,7 @@ IMPORTANTE:
           } catch {}
         }
 
-        const imageUrls = settled
-          .filter((r) => r.status === "fulfilled")
-          .map((r) => r.value);
+        const imageUrls = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
         if (!imageUrls.length) {
           return res.status(500).json({ error: "No se pudo generar ninguna imagen con modelo" });
@@ -521,18 +511,17 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
   try {
     const credits = Number(req.body?.credits);
 
-let unitPrice;
+    let unitPrice;
 
-if (credits === 50) {
-  unitPrice = 1;
-} else if (credits === 200) {
-  unitPrice = 1;
-} else if (credits === 900) {
-  unitPrice = 1;
-} else {
-  return res.status(400).json({ error: "Paquete inválido" });
-}
-
+    if (credits === 50) {
+      unitPrice = 1;
+    } else if (credits === 200) {
+      unitPrice = 1;
+    } else if (credits === 900) {
+      unitPrice = 1;
+    } else {
+      return res.status(400).json({ error: "Paquete inválido" });
+    }
 
     const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
 
