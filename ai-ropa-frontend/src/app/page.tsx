@@ -983,7 +983,7 @@ export default function Home() {
   style={{
   marginTop: 16,
   position: "relative",
-  width: 360,
+  width: 370,
   maxWidth: "100%",
   height: 52,
   borderRadius: 999,
