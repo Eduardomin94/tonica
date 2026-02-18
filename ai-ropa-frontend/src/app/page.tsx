@@ -847,30 +847,68 @@ export default function Home() {
             <FieldTitle>11) Generar imágenes</FieldTitle>
 
             <div style={styles.summaryCard}>
-              <div style={styles.summaryTitle}>Resumen</div>
+  <div style={styles.summaryTitle}>Resumen</div>
 
-              {mode === "product" ? (
-                <>
-                  <div style={{ ...styles.summaryGrid, gridTemplateColumns: "1fr" }}>
-                    <SummaryItem label="Escena" value={scene} />
-                    <SummaryItem label="Fotos cargadas" value={`${productFiles.length} archivo(s)`} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={styles.summaryGrid}>
-                    <SummaryItem label="Categoría" value={category === "otro" ? `Otro: ${otherCategory}` : category} />
-                    <SummaryItem label="Bolsillos" value={pockets} />
-                    <SummaryItem label="Modelo" value={modelType} />
-                    <SummaryItem label="Etnia" value={ethnicity} />
-                    <SummaryItem label="Edad" value={ageRange} />
-                    <SummaryItem label="Fondo" value={background} />
-                    <SummaryItem label="Pose" value={pose} />
-                    <SummaryItem label="Tipo de cuerpo" value={bodyType} />
-                  </div>
-                </>
-              )}
-            </div>
+  {/* ====== FOTOS PREVIEW ====== */}
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10 }}>Fotos cargadas</div>
+
+    {mode === "product" ? (
+      <div style={styles.previewGrid}>
+        {productFiles.map((file, i) => (
+          <div key={i} style={styles.previewCard}>
+            <img
+              src={URL.createObjectURL(file)}
+              alt={`producto-${i}`}
+              style={styles.previewImg}
+            />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div style={styles.previewGrid}>
+        {frontFile && (
+          <div style={styles.previewCard}>
+            <img
+              src={URL.createObjectURL(frontFile)}
+              alt="delantera"
+              style={styles.previewImg}
+            />
+          </div>
+        )}
+
+        {backFile && (
+          <div style={styles.previewCard}>
+            <img
+              src={URL.createObjectURL(backFile)}
+              alt="espalda"
+              style={styles.previewImg}
+            />
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  {/* ====== DATOS ====== */}
+  {mode === "product" ? (
+    <div style={{ ...styles.summaryGrid, gridTemplateColumns: "1fr" }}>
+      <SummaryItem label="Escena" value={scene} />
+    </div>
+  ) : (
+    <div style={styles.summaryGrid}>
+      <SummaryItem label="Categoría" value={category === "otro" ? `Otro: ${otherCategory}` : category} />
+      <SummaryItem label="Bolsillos" value={pockets} />
+      <SummaryItem label="Modelo" value={modelType} />
+      <SummaryItem label="Etnia" value={ethnicity} />
+      <SummaryItem label="Edad" value={ageRange} />
+      <SummaryItem label="Fondo" value={background} />
+      <SummaryItem label="Pose" value={pose} />
+      <SummaryItem label="Tipo de cuerpo" value={bodyType} />
+    </div>
+  )}
+</div>
+
 
             {mode === "product" ? (
               <div style={{ marginBottom: 14 }}>
@@ -1904,4 +1942,24 @@ const styles: Record<string, React.CSSProperties> = {
   },
   loginTitle: { fontSize: 24, fontWeight: 800, color: "#0f172a" },
   loginSub: { marginTop: 16, fontSize: 13, color: "#64748b" },
+  previewGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 10,
+},
+
+previewCard: {
+  borderRadius: 14,
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+},
+
+previewImg: {
+  width: "100%",
+  height: 160,
+  objectFit: "cover",
+  display: "block",
+},
+
 };
