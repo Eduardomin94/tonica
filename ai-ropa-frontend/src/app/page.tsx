@@ -323,9 +323,11 @@ export default function Home() {
 
 
   const selectedCount = useMemo(() => {
-  const currentViews = mode === "product" ? viewsProduct : views;
+  const currentViews = mode === "product" ? viewsProduct : viewsModel;
+
   return Object.values(currentViews).filter(Boolean).length;
-}, [mode, viewsProduct, views]);
+}, [mode, viewsProduct, viewsModel]
+);
 
   const creditsNeeded = selectedCount;
   const hasSelection = creditsNeeded > 0;
