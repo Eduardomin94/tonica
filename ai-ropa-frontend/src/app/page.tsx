@@ -1364,10 +1364,8 @@ void fetchEntries();
                 </div>
 
                 {[
-                  { key: "front", label: "Delantera" },
-                  { key: "back", label: "Espalda" },
-                  { key: "left", label: "Frente izquierda" },
-                  { key: "right", label: "Frente derecha" },
+                { key: "front", label: "Frente Completo" },
+                { key: "back", label: "Espalda Completo" },
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1424,21 +1422,18 @@ void fetchEntries();
                     void nowTick;
 
                     const label =
-                      mode === "product"
-                        ? viewKey === "front"
-                          ? "Toma principal"
-                          : viewKey === "back"
-                          ? "Ángulo alternativo"
-                          : viewKey === "left"
-                          ? "Detalle cercano"
-                          : "Otro ángulo"
-                        : viewKey === "front"
-                        ? "Delantera"
-                        : viewKey === "back"
-                        ? "Espalda"
-                        : viewKey === "left"
-                        ? "Frente izquierda"
-                        : "Frente derecha";
+                    mode === "product"
+                      ? viewKey === "front"
+                      ? "Toma principal"
+                      : viewKey === "back"
+                      ? "Ángulo alternativo"
+                      : viewKey === "left"
+                      ? "Detalle cercano"
+                      : "Otro ángulo"
+                      : viewKey === "front"
+                      ? "Frente Completo"
+                      : "Espalda Completo";
+
 
                     return (
                       <div key={idx} style={{ display: "grid", gap: 10 }}>
