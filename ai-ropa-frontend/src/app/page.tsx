@@ -1426,24 +1426,34 @@ setResultKeys(keysInOrder as any);
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "side" | "left" | "right";
+                    const viewKey = (resultKeys[idx] || "front") as
+  | "front"
+  | "back"
+  | "side"
+  | "frontDetail"
+  | "left"
+  | "right";
+
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
                     const label =
-                    mode === "product"
-                      ? viewKey === "front"
-                      ? "Toma principal"
-                      : viewKey === "back"
-                      ? "Ángulo alternativo"
-                      : viewKey === "left"
-                      ? "Detalle cercano"
-                      : "Otro ángulo"
-                      : viewKey === "front"
-                      ? "Frente Completo"
-                      : viewKey === "back"
-                      ? "Espalda Completo"
-                      : "Costado Completo";
+  mode === "product"
+    ? viewKey === "front"
+      ? "Toma principal"
+      : viewKey === "back"
+      ? "Ángulo alternativo"
+      : viewKey === "left"
+      ? "Detalle cercano"
+      : "Otro ángulo"
+    : viewKey === "front"
+    ? "Frente Completo"
+    : viewKey === "back"
+    ? "Espalda Completo"
+    : viewKey === "side"
+    ? "Costado Completo"
+    : "Detalle Frente";
+
 
 
 
