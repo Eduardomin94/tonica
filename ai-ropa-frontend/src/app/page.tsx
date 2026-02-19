@@ -1733,8 +1733,9 @@ setResultKeys(keysInOrder as any);
         )}
 
         {/* Header */}
-             {/* WhatsApp (dentro del contenedor, NO sticky) */}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
+          {/* WhatsApp (dentro del contenedor, NO sticky) */}
+<div style={{ display: "flex", justifyContent: "flex-end" }}>
   <a
   href="https://wa.me/5491123330696?text=Hola%20quiero%20ayuda%20con%20el%20generador"
   target="_blank"
@@ -1757,9 +1758,6 @@ setResultKeys(keysInOrder as any);
     <span style={{ fontWeight: 900, fontSize: 12 }}>WhatsApp</span>
   </a>
 </div>
-        <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-     
-
           <div>
             <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
