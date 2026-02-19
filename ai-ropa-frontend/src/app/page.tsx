@@ -44,18 +44,7 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
-  const [resultKeys, setResultKeys] = useState<
-  Array<
-    | "front"
-    | "back"
-    | "side"
-    | "detail_front"
-    | "detail_back"
-    | "detail_pants_front"
-    | "detail_pants_back"
-  >
->([]);
-
+  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -74,17 +63,11 @@ export default function Home() {
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
 
   const [views, setViews] = useState({
-  front: true,
-  back: false,
-
-  side: false,
-
-  detail_front: false,
-  detail_back: false,
-
-  detail_pants_front: false,
-  detail_pants_back: false,
-});
+    front: true,
+    back: false,
+    left: false,
+    right: false,
+  });
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -818,18 +801,7 @@ void fetchEntries();
     }
 
     // Guardar orden de vistas para poder rehacer individualmente
-    const keysInOrder = (
-  [
-    "front",
-    "back",
-    "side",
-    "detail_front",
-    "detail_back",
-    "detail_pants_front",
-    "detail_pants_back",
-  ] as const
-).filter((k) => (views as any)[k]);
-
+    const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
     setResultKeys(keysInOrder as any);
 
     setLoading(true);
@@ -1345,91 +1317,18 @@ void fetchEntries();
               )}
             </div>
 
-           {mode === "product" ? (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-      ¿Qué vistas querés generar?
-    </div>
+            {mode === "product" ? (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+                  ¿Qué vistas querés generar?
+                </div>
 
-    {[
-      { key: "front", label: "Toma principal" },
-      { key: "back", label: "Ángulo alternativo" },
-      { key: "left", label: "Detalle cercano" },
-      { key: "right", label: "Otro ángulo" },
-    ].map((v) => (
-      <label
-        key={v.key}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 12px",
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
-      >
-        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-        <input
-          type="checkbox"
-          checked={(views as any)[v.key]}
-          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-          style={{ width: 18, height: 18 }}
-        />
-      </label>
-    ))}
-
-    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-      Créditos a consumir: {selectedCount}
-    </div>
-  </div>
-) : (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-      ¿Qué vistas querés generar?
-    </div>
-
-    {[
-      { key: "front", label: "Frente Completo" },
-      { key: "back", label: "Espalda Completo" },
-      { key: "side", label: "Costado Completo" },
-      { key: "detail_front", label: "Detalle Frente" },
-      { key: "detail_back", label: "Detalle Espalda" },
-      { key: "detail_pants_front", label: "Detalle Pantalón Frente" },
-      { key: "detail_pants_back", label: "Detalle Pantalón Espalda" },
-    ].map((v) => (
-      <label
-        key={v.key}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 12px",
-          borderRadius: 14,
-          border: "1px solid rgba(255,255,255,0.12)",
-          background: "rgba(255,255,255,0.06)",
-          marginBottom: 10,
-          cursor: "pointer",
-        }}
-      >
-        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-        <input
-          type="checkbox"
-          checked={(views as any)[v.key]}
-          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-          style={{ width: 18, height: 18 }}
-        />
-      </label>
-    ))}
-
-    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-      Créditos a consumir: {selectedCount}
-    </div>
-  </div>
-)}
-
+                {[
+                  { key: "front", label: "Toma principal" },
+                  { key: "back", label: "Ángulo alternativo" },
+                  { key: "left", label: "Detalle cercano" },
+                  { key: "right", label: "Otro ángulo" },
+                ].map((v) => (
                   <label
                     key={v.key}
                     style={{
@@ -1465,19 +1364,11 @@ void fetchEntries();
                 </div>
 
                 {[
-  { key: "front", label: "Frente Completo" },
-  { key: "back", label: "Espalda Completo" },
-
-  { key: "side", label: "Costado Completo" },
-
-  { key: "detail_front", label: "Detalle Frente" },
-  { key: "detail_back", label: "Detalle Espalda" },
-
-  { key: "detail_pants_front", label: "Detalle Pantalón Frente" },
-  { key: "detail_pants_back", label: "Detalle Pantalón Espalda" },
-].map((v) => (
-
-
+                  { key: "front", label: "Delantera" },
+                  { key: "back", label: "Espalda" },
+                  { key: "left", label: "Frente izquierda" },
+                  { key: "right", label: "Frente derecha" },
+                ].map((v) => (
                   <label
                     key={v.key}
                     style={{
@@ -1735,10 +1626,7 @@ void fetchEntries();
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
           <div>
-            <div style={{ ...styles.h1, color: "#9495B5" }}>
-  {t("title")} <span style={{ color: "yellow" }}>DEBUG_VISTAS_7</span>
-</div>
-
+            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
 
             <div
               style={{
