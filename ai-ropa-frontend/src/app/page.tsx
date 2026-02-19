@@ -578,9 +578,10 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back",
+  viewKey: "front" | "back" | "side" | "left" | "right",
   index: number
 ) {
+
   setError(null);
 
   const lockKey = `regen:${index}`;
