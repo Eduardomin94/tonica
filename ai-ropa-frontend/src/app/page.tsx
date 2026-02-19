@@ -99,178 +99,98 @@ export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
   const translations = {
-  es: {
-    header: {
+    es: {
       title: "Generador IA",
       subtitle: "Elegí el tipo de imagen que querés generar",
-    },
-
-    auth: {
-      signIn: "Iniciar sesión",
-      signInHint: "Accedé con tu cuenta de Google para usar el generador",
+      buyCredits: "Comprar créditos",
       logout: "Cerrar sesión",
-    },
-
-    credits: {
-      label: "Créditos",
-      buy: "Comprar créditos",
-      insufficient: "Créditos insuficientes",
-      added: "Créditos agregados correctamente",
-      rejected: "El pago fue rechazado",
-    },
-
-    navigation: {
+      credits: "Créditos",
+      history: "Historial de movimientos",
       next: "Siguiente",
       back: "Atrás",
-      step: "Paso",
-      of: "de",
-    },
+      signIn: "Iniciar sesión",
+      signInHint: "Accedé con tu cuenta de Google para usar el generador",
+      stepUploadModel: "Subir fotos",
+stepCategory: "Categoría",
+stepPockets: "Bolsillos",
+stepMeasures: "Medidas (opcional)",
+stepModel: "Modelo",
+stepEthnicity: "Etnia",
+stepAge: "Edad",
+stepBackground: "Fondo",
+stepPose: "Pose",
+stepBodyType: "Tipo de cuerpo",
+stepGenerate: "Generar",
+stepUploadProduct: "Fotos",
+stepScene: "Escena",
 
-    generation: {
-      generate: "Generar",
-      generating: "Generando...",
-      regenerate: "Rehacer",
-      regenerating: "Rehaciendo...",
-      download: "Descargar",
-      selectView: "¿Qué vistas querés generar?",
-      creditsToUse: "Créditos a consumir",
-      result: "Resultado",
     },
-
-    steps: {
-      upload: "Subir fotos",
-      category: "Categoría",
-      pockets: "Bolsillos",
-      measures: "Medidas (opcional)",
-      model: "Modelo",
-      ethnicity: "Etnia",
-      age: "Edad",
-      background: "Fondo",
-      pose: "Pose",
-      bodyType: "Tipo de cuerpo",
-      scene: "Escena",
-      generate: "Generar",
-    },
-
-    errors: {
-      requiredFront: "Subí la foto Delantera (obligatorio).",
-      requiredCategory: "Elegí una categoría.",
-      requiredPockets: "Indicá si tiene bolsillos.",
-      requiredModel: "Elegí el tipo de modelo.",
-      requiredEthnicity: "Elegí la etnia.",
-      requiredAge: "Elegí la edad.",
-      requiredPose: "Elegí la pose.",
-      requiredBodyType: "Elegí el tipo de cuerpo.",
-      requiredScene: "Escribí la escena (máx 10 palabras).",
-      noViews: "Elegí al menos 1 vista.",
-    },
-
-    history: {
-      title: "Historial de movimientos",
-      noMovements: "Sin movimientos",
-      loading: "Cargando...",
-      purchase: "Compra",
-      consume: "Consumo",
-      refund: "Reintegro",
-      grant: "Bonificación",
-    },
-
-    overlay: {
-      regenerating: "Rehaciendo imagen...",
-      doNotClose: "No cierres ni recargues la página.",
-    },
-  },
-
-  en: {
-    header: {
+    en: {
       title: "AI Generator",
       subtitle: "Choose the type of image you want to generate",
-    },
-
-    auth: {
-      signIn: "Sign in",
-      signInHint: "Sign in with Google to use the generator",
+      buyCredits: "Buy credits",
       logout: "Log out",
-    },
-
-    credits: {
-      label: "Credits",
-      buy: "Buy credits",
-      insufficient: "Insufficient credits",
-      added: "Credits added successfully",
-      rejected: "Payment was rejected",
-    },
-
-    navigation: {
+      credits: "Credits",
+      history: "Transaction history",
       next: "Next",
       back: "Back",
-      step: "Step",
-      of: "of",
+      signIn: "Sign in",
+      signInHint: "Sign in with Google to use the generator",
+      stepUploadModel: "Upload photos",
+stepCategory: "Category",
+stepPockets: "Pockets",
+stepMeasures: "Measurements (optional)",
+stepModel: "Model",
+stepEthnicity: "Ethnicity",
+stepAge: "Age",
+stepBackground: "Background",
+stepPose: "Pose",
+stepBodyType: "Body type",
+stepGenerate: "Generate",
+stepUploadProduct: "Photos",
+stepScene: "Scene",
+
     },
-
-    generation: {
-      generate: "Generate",
-      generating: "Generating...",
-      regenerate: "Regenerate",
-      regenerating: "Regenerating...",
-      download: "Download",
-      selectView: "Which views do you want to generate?",
-      creditsToUse: "Credits to consume",
-      result: "Result",
+    pt: {
+      title: "Gerador AI",
+      subtitle: "Escolha o tipo de imagem que deseja gerar",
+      buyCredits: "Comprar créditos",
+      logout: "Sair",
+      credits: "Créditos",
+      history: "Histórico de movimentos",
+      next: "Próximo",
+      back: "Voltar",
+      signIn: "Entrar",
+      signInHint: "Entre com Google para usar o gerador",
     },
-
-    steps: {
-      upload: "Upload photos",
-      category: "Category",
-      pockets: "Pockets",
-      measures: "Measurements (optional)",
-      model: "Model",
-      ethnicity: "Ethnicity",
-      age: "Age",
-      background: "Background",
-      pose: "Pose",
-      bodyType: "Body type",
-      scene: "Scene",
-      generate: "Generate",
+    ko: {
+      title: "AI 생성기",
+      subtitle: "생성할 이미지 유형을 선택하세요",
+      buyCredits: "크레딧 구매",
+      logout: "로그아웃",
+      credits: "크레딧",
+      history: "거래 내역",
+      next: "다음",
+      back: "뒤로",
+      signIn: "로그인",
+      signInHint: "Google로 로그인하여 사용하세요",
     },
-
-    errors: {
-      requiredFront: "Upload front photo (required).",
-      requiredCategory: "Select a category.",
-      requiredPockets: "Indicate if it has pockets.",
-      requiredModel: "Select model type.",
-      requiredEthnicity: "Select ethnicity.",
-      requiredAge: "Select age.",
-      requiredPose: "Select pose.",
-      requiredBodyType: "Select body type.",
-      requiredScene: "Write the scene (max 10 words).",
-      noViews: "Select at least 1 view.",
+    zh: {
+      title: "AI 生成器",
+      subtitle: "选择要生成的图片类型",
+      buyCredits: "购买积分",
+      logout: "退出登录",
+      credits: "积分",
+      history: "交易记录",
+      next: "下一步",
+      back: "返回",
+      signIn: "登录",
+      signInHint: "使用 Google 登录以使用生成器",
     },
+  } as const;
 
-    history: {
-      title: "Transaction history",
-      noMovements: "No movements",
-      loading: "Loading...",
-      purchase: "Purchase",
-      consume: "Consume",
-      refund: "Refund",
-      grant: "Bonus",
-    },
-
-    overlay: {
-      regenerating: "Regenerating image...",
-      doNotClose: "Do not close or refresh the page.",
-    },
-  },
-} as const;
-
-
- function t(path: string) {
-  return path
-    .split(".")
-    .reduce((acc: any, part) => acc?.[part], translations[language]);
-}
-
+ const tr = (key: string) =>
+  (translations as any)[language]?.[key] ?? (translations as any).es?.[key] ?? key;
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
@@ -429,27 +349,29 @@ export default function Home() {
   }, [modelType]);
 
   const steps = useMemo(() => {
-    if (mode === "product") {
-      return [
-        { title: "Fotos", key: "upload" },
-        { title: "Escena", key: "scene" },
-        { title: "Generar", key: "generate" },
-      ];
-    }
+  if (mode === "product") {
     return [
-      { title: "Subir fotos", key: "upload" },
-      { title: "Categoría", key: "category" },
-      { title: "Bolsillos", key: "pockets" },
-      { title: "Medidas (opcional)", key: "measures" },
-      { title: "Modelo", key: "model" },
-      { title: "Etnia", key: "ethnicity" },
-      { title: "Edad", key: "age" },
-      { title: "Fondo", key: "background" },
-      { title: "Pose", key: "pose" },
-      { title: "Tipo de cuerpo", key: "bodyType" },
-      { title: "Generar", key: "generate" },
+      { title: tr("stepUploadProduct"), key: "upload" },
+      { title: tr("stepScene"), key: "scene" },
+      { title: tr("stepGenerate"), key: "generate" },
     ];
-  }, [mode]);
+  }
+
+  return [
+    { title: tr("stepUploadModel"), key: "upload" },
+    { title: tr("stepCategory"), key: "category" },
+    { title: tr("stepPockets"), key: "pockets" },
+    { title: tr("stepMeasures"), key: "measures" },
+    { title: tr("stepModel"), key: "model" },
+    { title: tr("stepEthnicity"), key: "ethnicity" },
+    { title: tr("stepAge"), key: "age" },
+    { title: tr("stepBackground"), key: "background" },
+    { title: tr("stepPose"), key: "pose" },
+    { title: tr("stepBodyType"), key: "bodyType" },
+    { title: tr("stepGenerate"), key: "generate" },
+  ];
+}, [mode, language]);
+
 
   React.useEffect(() => {
     // ✅ si estamos restaurando desde localStorage, NO borres el resultado
