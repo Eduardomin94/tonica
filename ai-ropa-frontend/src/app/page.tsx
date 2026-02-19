@@ -1742,10 +1742,6 @@ setResultKeys(keysInOrder as any);
     alignItems: "center",
   }}
 >
-  <div style={{ ...styles.h1, color: "#9495B5" }}>
-    {t("title")}
-  </div>
-
   <a
     href="https://wa.me/5491123330696?text=Hola%20quiero%20ayuda%20con%20el%20generador"
     target="_blank"
