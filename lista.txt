@@ -2,7 +2,6 @@
 
 
 
-que las fotos tengan un botón de descargar y de rehacer individualmente.
 
 
 🌍 Traducir TODO el frontend correctamente
@@ -18,3 +17,4 @@ Mejorar prompt para generar imagenes. para que sean más fieles a los productos.
 
 agregar planos de fotos
 
+poner base de datos para que los clientes tengan una carpeta guardada en la nube

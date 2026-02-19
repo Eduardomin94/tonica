@@ -660,8 +660,12 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
-    setRegenLoading((m) => ({ ...m, [loadKey]: false }));
-  }
+  setRegenLoading((m) => {
+    const copy = { ...m };
+    delete copy[loadKey];
+    return copy;
+  });
+}
 }
 
 
