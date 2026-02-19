@@ -1462,8 +1462,10 @@ setResultKeys(keysInOrder as any);
   | "side"
   | "frontDetail"
   | "backDetail"
+  | "pantFrontDetail"
   | "left"
   | "right";
+
 
 
                     const loadKey = `regen:${idx}`;
