@@ -40,6 +40,8 @@ export default function Home() {
 
   const [isMobile, setIsMobile] = useState(false);
 
+  console.log("PAGE LOADED ✅", { isMobile });
+
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -836,8 +838,7 @@ function removeProductFile(index: number) {
     {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
   </Box>
 </TwoCols>
-
-          </>
+)}
         );
 
       case "category":
