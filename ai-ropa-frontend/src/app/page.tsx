@@ -1345,18 +1345,91 @@ void fetchEntries();
               )}
             </div>
 
-            {mode === "product" ? (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-                  ¿Qué vistas querés generar?
-                </div>
+           {mode === "product" ? (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+      ¿Qué vistas querés generar?
+    </div>
 
-                {[
-                  { key: "front", label: "Toma principal" },
-                  { key: "back", label: "Ángulo alternativo" },
-                  { key: "left", label: "Detalle cercano" },
-                  { key: "right", label: "Otro ángulo" },
-                ].map((v) => (
+    {[
+      { key: "front", label: "Toma principal" },
+      { key: "back", label: "Ángulo alternativo" },
+      { key: "left", label: "Detalle cercano" },
+      { key: "right", label: "Otro ángulo" },
+    ].map((v) => (
+      <label
+        key={v.key}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.06)",
+          marginBottom: 10,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+        <input
+          type="checkbox"
+          checked={(views as any)[v.key]}
+          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+          style={{ width: 18, height: 18 }}
+        />
+      </label>
+    ))}
+
+    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+      Créditos a consumir: {selectedCount}
+    </div>
+  </div>
+) : (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+      ¿Qué vistas querés generar?
+    </div>
+
+    {[
+      { key: "front", label: "Frente Completo" },
+      { key: "back", label: "Espalda Completo" },
+      { key: "side", label: "Costado Completo" },
+      { key: "detail_front", label: "Detalle Frente" },
+      { key: "detail_back", label: "Detalle Espalda" },
+      { key: "detail_pants_front", label: "Detalle Pantalón Frente" },
+      { key: "detail_pants_back", label: "Detalle Pantalón Espalda" },
+    ].map((v) => (
+      <label
+        key={v.key}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.06)",
+          marginBottom: 10,
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+        <input
+          type="checkbox"
+          checked={(views as any)[v.key]}
+          onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+          style={{ width: 18, height: 18 }}
+        />
+      </label>
+    ))}
+
+    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
+      Créditos a consumir: {selectedCount}
+    </div>
+  </div>
+)}
+
                   <label
                     key={v.key}
                     style={{
