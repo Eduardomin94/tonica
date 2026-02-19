@@ -99,8 +99,178 @@ export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
   const translations = {
+  es: {
+    header: {
+      title: "Generador IA",
+      subtitle: "Elegí el tipo de imagen que querés generar",
+    },
 
-  const t = (key: keyof typeof translations.es) => translations[language][key];
+    auth: {
+      signIn: "Iniciar sesión",
+      signInHint: "Accedé con tu cuenta de Google para usar el generador",
+      logout: "Cerrar sesión",
+    },
+
+    credits: {
+      label: "Créditos",
+      buy: "Comprar créditos",
+      insufficient: "Créditos insuficientes",
+      added: "Créditos agregados correctamente",
+      rejected: "El pago fue rechazado",
+    },
+
+    navigation: {
+      next: "Siguiente",
+      back: "Atrás",
+      step: "Paso",
+      of: "de",
+    },
+
+    generation: {
+      generate: "Generar",
+      generating: "Generando...",
+      regenerate: "Rehacer",
+      regenerating: "Rehaciendo...",
+      download: "Descargar",
+      selectView: "¿Qué vistas querés generar?",
+      creditsToUse: "Créditos a consumir",
+      result: "Resultado",
+    },
+
+    steps: {
+      upload: "Subir fotos",
+      category: "Categoría",
+      pockets: "Bolsillos",
+      measures: "Medidas (opcional)",
+      model: "Modelo",
+      ethnicity: "Etnia",
+      age: "Edad",
+      background: "Fondo",
+      pose: "Pose",
+      bodyType: "Tipo de cuerpo",
+      scene: "Escena",
+      generate: "Generar",
+    },
+
+    errors: {
+      requiredFront: "Subí la foto Delantera (obligatorio).",
+      requiredCategory: "Elegí una categoría.",
+      requiredPockets: "Indicá si tiene bolsillos.",
+      requiredModel: "Elegí el tipo de modelo.",
+      requiredEthnicity: "Elegí la etnia.",
+      requiredAge: "Elegí la edad.",
+      requiredPose: "Elegí la pose.",
+      requiredBodyType: "Elegí el tipo de cuerpo.",
+      requiredScene: "Escribí la escena (máx 10 palabras).",
+      noViews: "Elegí al menos 1 vista.",
+    },
+
+    history: {
+      title: "Historial de movimientos",
+      noMovements: "Sin movimientos",
+      loading: "Cargando...",
+      purchase: "Compra",
+      consume: "Consumo",
+      refund: "Reintegro",
+      grant: "Bonificación",
+    },
+
+    overlay: {
+      regenerating: "Rehaciendo imagen...",
+      doNotClose: "No cierres ni recargues la página.",
+    },
+  },
+
+  en: {
+    header: {
+      title: "AI Generator",
+      subtitle: "Choose the type of image you want to generate",
+    },
+
+    auth: {
+      signIn: "Sign in",
+      signInHint: "Sign in with Google to use the generator",
+      logout: "Log out",
+    },
+
+    credits: {
+      label: "Credits",
+      buy: "Buy credits",
+      insufficient: "Insufficient credits",
+      added: "Credits added successfully",
+      rejected: "Payment was rejected",
+    },
+
+    navigation: {
+      next: "Next",
+      back: "Back",
+      step: "Step",
+      of: "of",
+    },
+
+    generation: {
+      generate: "Generate",
+      generating: "Generating...",
+      regenerate: "Regenerate",
+      regenerating: "Regenerating...",
+      download: "Download",
+      selectView: "Which views do you want to generate?",
+      creditsToUse: "Credits to consume",
+      result: "Result",
+    },
+
+    steps: {
+      upload: "Upload photos",
+      category: "Category",
+      pockets: "Pockets",
+      measures: "Measurements (optional)",
+      model: "Model",
+      ethnicity: "Ethnicity",
+      age: "Age",
+      background: "Background",
+      pose: "Pose",
+      bodyType: "Body type",
+      scene: "Scene",
+      generate: "Generate",
+    },
+
+    errors: {
+      requiredFront: "Upload front photo (required).",
+      requiredCategory: "Select a category.",
+      requiredPockets: "Indicate if it has pockets.",
+      requiredModel: "Select model type.",
+      requiredEthnicity: "Select ethnicity.",
+      requiredAge: "Select age.",
+      requiredPose: "Select pose.",
+      requiredBodyType: "Select body type.",
+      requiredScene: "Write the scene (max 10 words).",
+      noViews: "Select at least 1 view.",
+    },
+
+    history: {
+      title: "Transaction history",
+      noMovements: "No movements",
+      loading: "Loading...",
+      purchase: "Purchase",
+      consume: "Consume",
+      refund: "Refund",
+      grant: "Bonus",
+    },
+
+    overlay: {
+      regenerating: "Regenerating image...",
+      doNotClose: "Do not close or refresh the page.",
+    },
+  },
+} as const;
+
+
+ function t(path: string) {
+  return path
+    .split(".")
+    .reduce((acc: any, part) => acc?.[part], translations[language]);
+}
+
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
