@@ -396,6 +396,8 @@ export default function Home() {
   detail_pants_side: false,
   detail_pants_back: false,
 } as any);
+setViewsProduct({ front: true, back: false, left: false, right: false } as any);
+
 
   }, [mode]);
 
@@ -1384,7 +1386,7 @@ void fetchEntries();
                     <input
                       type="checkbox"
                       checked={(viewsProduct as any)[v.key]}
-onChange={(e) => setViewsProduct((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+                      onChange={(e) => setViewsProduct((prev) => ({ ...prev, [v.key]: e.target.checked }))}
 
                       style={{ width: 18, height: 18 }}
                     />
