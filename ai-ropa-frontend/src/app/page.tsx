@@ -1467,8 +1467,7 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
                 <button
                   type="button"
                   onClick={() => handleRegenerateOne(viewKey, idx)}
-                  disabled={(regenLoading[loadKey] === true) || balance < 1}
-
+                  disabled={!!regenLoading[loadKey] || balance < 1}
                   style={{
                     ...styles.buyBtnFull,
                     height: 44,
