@@ -679,7 +679,8 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     await fetchEntries();
   } catch (e: any) {
     setError(String(e?.message || e));
-  } } finally {
+  } 
+   finally {
   setRegenLoading((m) => {
     const copy = { ...m };
     delete copy[loadKey];
@@ -692,6 +693,8 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     return copy;
   });
 
+  // 👇 ESTA LÍNEA ES LA QUE TE FALTABA
+  delete regenLockRef.current[lockKey];
 }
 
 
