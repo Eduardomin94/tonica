@@ -1421,7 +1421,7 @@ setResultKeys(keysInOrder as any);
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = (resultKeys[idx] || "front") as "front" | "back";
+                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "side";
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
@@ -1436,7 +1436,10 @@ setResultKeys(keysInOrder as any);
                       : "Otro ángulo"
                       : viewKey === "front"
                       ? "Frente Completo"
-                      : "Espalda Completa";
+                      : viewKey === "back"
+                      ? "Espalda Completo"
+                      : "Costado Completo";
+
 
 
                     return (
