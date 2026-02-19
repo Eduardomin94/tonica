@@ -908,7 +908,8 @@ void fetchEntries();
       case "upload":
         return (
           <>
-            <FieldTitle>1) Subí fotos</FieldTitle>
+            <FieldTitle>{tr("hUpload")}</FieldTitle>
+
 
             {mode === "product" ? (
               <Box>
@@ -1095,7 +1096,8 @@ void fetchEntries();
       case "category":
         return (
           <>
-            <FieldTitle>2) Elegí la categoría</FieldTitle>
+            <FieldTitle>{tr("hCategory")}</FieldTitle>
+
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {CATEGORIES.map((c) => (
@@ -1127,7 +1129,8 @@ void fetchEntries();
       case "pockets":
         return (
           <>
-            <FieldTitle>3) ¿Tiene bolsillos?</FieldTitle>
+            <FieldTitle>{tr("hPockets")}</FieldTitle>
+
             <RadioPills
               value={pockets}
               onChange={(v) => setPockets(v as any)}
@@ -1142,7 +1145,8 @@ void fetchEntries();
       case "measures":
         return (
           <>
-            <FieldTitle>4) Medidas (opcional)</FieldTitle>
+            <FieldTitle>{tr("hMeasures")}</FieldTitle>
+
             <SmallMuted>Podés poner cm. Ej: 52cm</SmallMuted>
 
             <Grid3>
