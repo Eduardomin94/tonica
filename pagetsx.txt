@@ -66,6 +66,8 @@ export default function Home() {
   front: true,
   back: false,
   side: false,
+  frontDetail: false,
+  backDetail: false,
 });
 
 
@@ -372,7 +374,15 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false, side: false });
+    setViews({
+  front: true,
+  back: false,
+  side: false,
+  frontDetail: false,
+  backDetail: false,
+});
+
+
 
   }, [mode]);
 
@@ -578,7 +588,7 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "side" | "left" | "right",
+  viewKey: "front" | "back" | "side" | "frontDetail" | "backDetail" | "left" | "right",
   index: number
 ) {
 
@@ -804,8 +814,12 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail"] as const).filter(
+  (k) => (views as any)[k]
+);
 setResultKeys(keysInOrder as any);
+
+
 
 
     setLoading(true);
@@ -1371,6 +1385,8 @@ setResultKeys(keysInOrder as any);
                 { key: "front", label: "Frente Completo" },
                 { key: "back", label: "Espalda Completa" },
                 { key: "side", label: "Costado Completo" },
+                { key: "frontDetail", label: "Detalle Frente" },
+                { key: "backDetail", label: "Detalle Espalda" },
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1422,24 +1438,38 @@ setResultKeys(keysInOrder as any);
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "side" | "left" | "right";
+                    const viewKey = (resultKeys[idx] || "front") as
+  | "front"
+  | "back"
+  | "side"
+  | "frontDetail"
+  | "backDetail"
+  | "left"
+  | "right";
+
+
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
                     const label =
-                    mode === "product"
-                      ? viewKey === "front"
-                      ? "Toma principal"
-                      : viewKey === "back"
-                      ? "Ángulo alternativo"
-                      : viewKey === "left"
-                      ? "Detalle cercano"
-                      : "Otro ángulo"
-                      : viewKey === "front"
-                      ? "Frente Completo"
-                      : viewKey === "back"
-                      ? "Espalda Completo"
-                      : "Costado Completo";
+  mode === "product"
+    ? viewKey === "front"
+      ? "Toma principal"
+      : viewKey === "back"
+      ? "Ángulo alternativo"
+      : viewKey === "left"
+      ? "Detalle cercano"
+      : "Otro ángulo"
+    : viewKey === "front"
+    ? "Frente Completo"
+    : viewKey === "back"
+    ? "Espalda Completo"
+    : viewKey === "side"
+    ? "Costado Completo"
+    : viewKey === "frontDetail"
+    ? "Detalle Frente"
+    : "Detalle Espalda";
+
 
 
 

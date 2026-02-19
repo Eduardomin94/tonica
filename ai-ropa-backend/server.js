@@ -219,9 +219,10 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = ["front", "back", "side", "frontDetail"].filter(
+   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail"].filter(
   (k) => !!selectedViews?.[k]
 );
+
 
 
 
@@ -434,6 +435,8 @@ Fondo: ${background}
   { key: "back", label: "vista trasera completa" },
   { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
   { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
+  { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
+
 ].filter((v) => selectedViews?.[v.key]);
 
 
@@ -473,6 +476,20 @@ TOMA OBLIGATORIA – DETALLE FRENTE:
 `
     : "";
 
+const backDetailHint =
+  v.key === "backDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE ESPALDA:
+- Plano medio cerrado.
+- Encuadre desde los hombros hasta la cintura.
+- Mostrar espalda claramente.
+- No mostrar piernas completas.
+- No mostrar cuerpo entero.
+- Mantener misma modelo y mismo rostro.
+`
+    : "";
+
+
 const viewPrompt = `
 ${basePrompt}
 
@@ -480,6 +497,8 @@ Cámara: ${v.label}.
 ${extraBackHint}
 ${sideHint}
 ${detailHint}
+${backDetailHint}
+
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.

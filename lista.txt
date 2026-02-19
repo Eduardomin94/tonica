@@ -2,7 +2,6 @@
 
  Agregar
  
-Detalle Espalda 
 Detalle Pantalón Frente
 Detalle Pantalón Espalda
 Detalle Pantalón Costado

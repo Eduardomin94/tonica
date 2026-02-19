@@ -68,6 +68,7 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
+  pantFrontDetail: false,
 });
 
 
@@ -172,6 +173,13 @@ export default function Home() {
     setAccessToken(null);
     setBalance(0);
   }
+
+  React.useEffect(() => {
+  if (category !== "Pantalón/Short/Pollera/Falda") {
+    setViews((prev) => ({ ...prev, pantFrontDetail: false }));
+  }
+  }, [category]);
+
 
   React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
@@ -380,6 +388,7 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
+  pantFrontDetail: false,
 });
 
 
@@ -588,7 +597,7 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "side" | "frontDetail" | "left" | "right",
+  viewKey: "front" | "back" | "side" | "frontDetail" | "backDetail" | "left" | "right",
   index: number
 ) {
 
@@ -814,8 +823,12 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side", "frontDetail"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail"] as const).filter(
+  (k) => (views as any)[k]
+);
+
 setResultKeys(keysInOrder as any);
+
 
 
 
@@ -1383,6 +1396,10 @@ setResultKeys(keysInOrder as any);
                 { key: "back", label: "Espalda Completa" },
                 { key: "side", label: "Costado Completo" },
                 { key: "frontDetail", label: "Detalle Frente" },
+                { key: "backDetail", label: "Detalle Espalda" },
+                 ...(category === "Pantalón/Short/Pollera/Falda"
+                    ? [{ key: "pantFrontDetail", label: "Detalle Pantalón Frente" }]
+                    : []),
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1439,8 +1456,10 @@ setResultKeys(keysInOrder as any);
   | "back"
   | "side"
   | "frontDetail"
+  | "backDetail"
   | "left"
   | "right";
+
 
                     const loadKey = `regen:${idx}`;
                     void nowTick;
@@ -1460,7 +1479,10 @@ setResultKeys(keysInOrder as any);
     ? "Espalda Completo"
     : viewKey === "side"
     ? "Costado Completo"
-    : "Detalle Frente";
+    : viewKey === "frontDetail"
+    ? "Detalle Frente"
+    : "Detalle Espalda";
+
 
 
 
