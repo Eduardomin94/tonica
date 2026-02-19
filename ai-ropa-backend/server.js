@@ -409,11 +409,27 @@ IMPORTANTE:
         const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
         const basePrompt = `
-Foto de moda e-commerce, fotorealista, iluminación suave tipo estudio.
-Usar EXACTAMENTE la prenda de las fotos referencia (color, textura, estampado, calce).
-Misma modelo y mismo rostro en todas las vistas (consistencia total).
-Sin texto, sin marcas de agua, sin logos, sin manos extra.
-Categoría: ${catFinal}
+Professional fashion catalog full-body studio shot.
+
+CRITICAL:
+- Full body portrait (head-to-toe).
+- Entire body must be visible.
+- Both feet fully visible.
+- Vertical composition.
+- Model centered.
+- Camera far enough to capture whole body.
+
+Style:
+- Clean e-commerce fashion photography.
+- Natural proportions.
+- No cropping.
+- No close-up.
+- No mid-shot.
+- No American shot.
+
+Use EXACT garment from reference images (same color, texture, fit).
+
+Category: ${catFinal}
 Bolsillos: ${pockets}
 Tipo de modelo: ${modelType}
 Etnia: ${ethnicity}
@@ -422,6 +438,7 @@ Pose: ${pose}
 Tipo de cuerpo: ${bodyType}
 Fondo: ${background}
 `.trim();
+
 
         const views = [
   { key: "front", label: "vista frontal completa" },
