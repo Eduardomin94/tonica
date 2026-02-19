@@ -298,27 +298,21 @@ Mantener exactamente el mismo producto, color y textura.
               const frontHint =
   v.key === "front"
     ? `
-COMPOSICIÓN OBLIGATORIA:
+TOMA OBLIGATORIA (CATÁLOGO):
 
-- Imagen vertical 4:5.
-- Cuerpo completo de pies a cabeza.
-- Los pies deben verse completamente.
-- No cortar cabeza.
-- No cortar piernas.
-- No plano medio.
-- No plano americano.
-- No acercamiento.
-- Distancia suficiente para ver el cuerpo entero.
+- Plano general (wide shot), cuerpo entero (head-to-toe).
+- Dejar margen: 8–12% de aire arriba de la cabeza y 10–15% debajo de los pies.
+- Los dos pies COMPLETOS deben entrar en el encuadre (incluyendo suela).
+- No recortar tobillos, pies ni cabeza.
+- Cámara más lejos (distancia 3–5 metros), lente normal 50mm (sin gran angular).
+- Formato vertical 4:5, modelo centrada.
 
 POSE:
-- Modelo de frente (frontal), centrada.
-- De pie, postura natural.
-- Manos dentro de bolsillos si existen.
-- Ambas piernas visibles completamente.
+- De frente, postura natural, brazos relajados.
+- Manos en bolsillos SOLO si existen; si no, manos relajadas a los costados.
 
-ENCADRE:
-- Cámara alejada lo suficiente para ver pies completos.
-- Proporciones naturales.
+FONDO:
+- Piso visible completo y continuo.
 `
     : "";
 
