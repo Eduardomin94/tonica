@@ -115,6 +115,7 @@ export default function Home() {
     en: {
       title: "AI Generator",
       subtitle: "Choose the type of image you want to generate",
+      errUploadFront: "Upload the front photo (required).",
       buyCredits: "Buy credits",
       logout: "Log out",
       credits: "Credits",
@@ -422,7 +423,7 @@ export default function Home() {
 
     if (key === "upload") {
       if (mode === "product") return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
-      return !frontFile ? "Subí la foto Delantera (obligatorio)." : null;
+      return !frontFile ? tr("errUploadFront") : null;
     }
 
     if (key === "category") {
