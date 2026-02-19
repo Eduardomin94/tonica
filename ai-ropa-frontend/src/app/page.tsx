@@ -803,7 +803,7 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = (["front", "back", "side"] as const).filter((k) => (views as any)[k]);
 setResultKeys(keysInOrder as any);
 
 
