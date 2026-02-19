@@ -798,7 +798,8 @@ void fetchEntries();
         return setError("Elegí al menos 1 vista.");
       }
     } else {
-      if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
+      if (!frontFile) return (goToFirstErrorStep(), setError(tr("errUploadFront"))
+);
       if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
       if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
         return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
