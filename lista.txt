@@ -1,9 +1,26 @@
+3. Agregar
+
+Costado Completo
+Detalle Frente
+Detalle Espalda 
+Detalle Pantalón Frente
+Detalle Pantalón Espalda
+
 
 especificar con ejemplo de como tiene que salir cada plano
 
+💰 Arreglar los precios reales de MercadoPago (ahora están en 1 ARS)
+Con respecto a precios, yo creo que deberiamos de ir:
+1. 50 creditos: $75.000
+2. ⁠100 creditos: $150.000
+3. ⁠200 creditos: $300.000
+4. MENSUAL: $850.000 (TOPE DE 600 CREDITOS)
 
-Traducir la página
+🧠 Mejorar prompt para evitar errores de Gemini
 
+🌎 Traducir TODO el frontend real (no solo header)
+
+🚀 Optimizar performance
 
 opcional:
 
