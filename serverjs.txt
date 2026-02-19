@@ -219,9 +219,17 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail"].filter(
-  (k) => !!selectedViews?.[k]
-);
+   const requestedKeys = [
+  "front",
+  "back",
+  "side",
+  "frontDetail",
+  "backDetail",
+  "pantFrontDetail",
+  "pantBackDetail",
+  "pantSideDetail",
+].filter((k) => !!selectedViews?.[k]);
+
 
 
 
@@ -386,6 +394,13 @@ IMPORTANTE:
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
         const category = String(req.body?.category || "");
+        const isPantsCategory = category === "Pantalón/Short/Pollera/Falda";
+if (!isPantsCategory) {
+  selectedViews.pantFrontDetail = false;
+  selectedViews.pantBackDetail = false;
+  selectedViews.pantSideDetail = false;
+}
+
         const otherCategory = String(req.body?.other_category || "");
         const pockets = String(req.body?.pockets || "");
         const modelType = String(req.body?.model_type || "");
@@ -436,6 +451,12 @@ Fondo: ${background}
   { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
   { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
   { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
+  { key: "pantFrontDetail", label: "detalle pantalón frente (desde cintura hasta pies)" },
+  { key: "pantBackDetail", label: "detalle pantalón espalda (desde cintura hasta pies)" },
+  { key: "pantSideDetail", label: "detalle pantalón costado (desde cintura hasta pies)" },
+
+
+
 
 ].filter((v) => selectedViews?.[v.key]);
 
@@ -488,6 +509,55 @@ TOMA OBLIGATORIA – DETALLE ESPALDA:
 - Mantener misma modelo y mismo rostro.
 `
     : "";
+const pantFrontDetailHint =
+  v.key === "pantFrontDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista frontal.
+- NO mostrar cabeza.
+- Enfocar caída de la tela y bolsillos.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+`
+    : "";
+
+const pantBackDetailHint =
+  v.key === "pantBackDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN ESPALDA:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista completamente trasera.
+- NO mostrar cabeza.
+- NO mostrar torso superior.
+- Enfocar caída de la tela y parte trasera de la prenda.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
+const pantSideDetailHint =
+  v.key === "pantSideDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista de costado 3/4 (NO completamente de perfil).
+- NO mostrar cabeza.
+- NO mostrar torso superior.
+- Mostrar bien el lateral: costura, caída, calce y bolsillos laterales si existen.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
 
 
 const viewPrompt = `
@@ -498,6 +568,9 @@ ${extraBackHint}
 ${sideHint}
 ${detailHint}
 ${backDetailHint}
+${pantFrontDetailHint}
+${pantBackDetailHint}
+${pantSideDetailHint}
 
 
 IMPORTANTE:

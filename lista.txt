@@ -1,5 +1,3 @@
-solo para categoría pantalon los detalles pantalones
-
 
 especificar con ejemplo de como tiene que salir cada plano
 
@@ -9,10 +7,11 @@ Mejoras anti-duplicados (si Gemini repite ángulos)
 
 💰 Arreglar los precios reales de MercadoPago (ahora están en 1 ARS)
 Con respecto a precios, yo creo que deberiamos de ir:
-1. 50 creditos: $75.000
-2. ⁠100 creditos: $150.000
-3. ⁠200 creditos: $300.000
-4. MENSUAL: $850.000 (TOPE DE 600 CREDITOS)
+1. 50 creditos: $75.000 
+2. ⁠100 creditos: $150.000 
+3. ⁠200 creditos: $300.000 
+4. Suscripción mensual (ilimitado): $900.000
+
 
 🧠 Mejorar prompt para evitar errores de Gemini
 

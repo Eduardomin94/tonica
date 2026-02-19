@@ -68,6 +68,9 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
+  pantFrontDetail: false,
+  pantBackDetail: false,
+  pantSideDetail: false,
 });
 
 
@@ -173,6 +176,9 @@ export default function Home() {
     setBalance(0);
   }
 
+  
+
+
   React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
     calc();
@@ -201,6 +207,17 @@ export default function Home() {
 
   // form
   const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
+  React.useEffect(() => {
+  if (category !== "Pantalón/Short/Pollera/Falda") {
+    setViews((prev) => ({
+      ...prev,
+      pantFrontDetail: false,
+      pantBackDetail: false,
+      pantSideDetail: false,
+    }));
+  }
+}, [category]);
+
   const [otherCategory, setOtherCategory] = useState("");
   const [pockets, setPockets] = useState<"si" | "no" | "">("");
   const [measures, setMeasures] = useState({
@@ -380,6 +397,9 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
+  pantFrontDetail: false,
+  pantBackDetail: false,
+  pantSideDetail: false,
 });
 
 
@@ -588,9 +608,22 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "side" | "frontDetail" | "backDetail" | "left" | "right",
+  viewKey:
+    | "front"
+    | "back"
+    | "side"
+    | "frontDetail"
+    | "backDetail"
+    | "pantFrontDetail"
+    | "pantBackDetail"
+    | "pantSideDetail"
+    | "left"
+    | "right",
   index: number
 ) {
+
+
+
 
   setError(null);
 
@@ -814,9 +847,18 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail"] as const).filter(
-  (k) => (views as any)[k]
-);
+    const keysInOrder = ([
+  "front",
+  "back",
+  "side",
+  "frontDetail",
+  "backDetail",
+  "pantFrontDetail",
+  "pantBackDetail",
+  "pantSideDetail",
+] as const).filter((k) => (views as any)[k]);
+
+
 setResultKeys(keysInOrder as any);
 
 
@@ -1387,6 +1429,14 @@ setResultKeys(keysInOrder as any);
                 { key: "side", label: "Costado Completo" },
                 { key: "frontDetail", label: "Detalle Frente" },
                 { key: "backDetail", label: "Detalle Espalda" },
+                ...(category === "Pantalón/Short/Pollera/Falda"
+  ? [
+      { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
+      { key: "pantBackDetail", label: "Detalle Pantalón Espalda" },
+      { key: "pantSideDetail", label: "Detalle Pantalón Costado" },
+    ]
+  : []),
+
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1444,8 +1494,14 @@ setResultKeys(keysInOrder as any);
   | "side"
   | "frontDetail"
   | "backDetail"
+  | "pantFrontDetail"
+  | "pantBackDetail"
+  | "pantSideDetail"
   | "left"
   | "right";
+
+
+
 
 
                     const loadKey = `regen:${idx}`;
@@ -1461,14 +1517,23 @@ setResultKeys(keysInOrder as any);
       ? "Detalle cercano"
       : "Otro ángulo"
     : viewKey === "front"
-    ? "Frente Completo"
-    : viewKey === "back"
-    ? "Espalda Completo"
-    : viewKey === "side"
-    ? "Costado Completo"
-    : viewKey === "frontDetail"
-    ? "Detalle Frente"
-    : "Detalle Espalda";
+? "Frente Completo"
+: viewKey === "back"
+? "Espalda Completo"
+: viewKey === "side"
+? "Costado Completo"
+: viewKey === "frontDetail"
+? "Detalle Frente"
+: viewKey === "backDetail"
+? "Detalle Espalda"
+: viewKey === "pantFrontDetail"
+? "Detalle Pantalón Frente"
+: viewKey === "pantBackDetail"
+? "Detalle Pantalón Espalda"
+: viewKey === "pantSideDetail"
+? "Detalle Pantalón Costado"
+: "Detalle Espalda";
+
 
 
 

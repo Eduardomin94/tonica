@@ -1839,8 +1839,8 @@ setResultKeys(keysInOrder as any);
           <div style={styles.packCard}>
             <select value={selectedPack} onChange={(e) => setSelectedPack(e.target.value as any)} style={styles.packSelect}>
               <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
-              <option value="pyme">🏢 Paquete PyME — 200 créditos / $300.000</option>
-              <option value="empresa">🏭 Paquete Empresa — 900 créditos / $800.000</option>
+<option value="pyme">🏢 Paquete PyME — 100 créditos / $150.000</option>
+<option value="empresa">📈 Paquete Empresa — 200 créditos / $300.000</option>
             </select>
 
             <button
@@ -1850,7 +1850,7 @@ setResultKeys(keysInOrder as any);
                 try {
                   setBuyLoading(true);
                   const token = localStorage.getItem("accessToken");
-                  const credits = selectedPack === "emprendedor" ? 50 : selectedPack === "pyme" ? 200 : 900;
+                  const credits = selectedPack === "emprendedor" ? 50 : selectedPack === "pyme" ? 100 : 200;
 
                   const res = await fetch(`${API}/mp/create-preference`, {
                     method: "POST",

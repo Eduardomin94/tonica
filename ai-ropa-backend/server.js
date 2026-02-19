@@ -665,14 +665,14 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     let unitPrice;
 
     if (credits === 50) {
-      unitPrice = 1;
-    } else if (credits === 200) {
-      unitPrice = 1;
-    } else if (credits === 900) {
-      unitPrice = 1;
-    } else {
-      return res.status(400).json({ error: "Paquete inválido" });
-    }
+  unitPrice = 75000;
+} else if (credits === 100) {
+  unitPrice = 150000;
+} else if (credits === 200) {
+  unitPrice = 300000;
+} else {
+  return res.status(400).json({ error: "Paquete inválido" });
+}
 
     const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
 
@@ -688,7 +688,7 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
         ],
         external_reference: String(req.userId),
         metadata: { user_id: req.userId, credits },
-        notification_url: `${be}/mp/webhook?source_news=webhooks`,
+        notification_url: `${be}/mp/webhook`,
         back_urls: {
           success: `${be}/pago-exitoso`,
           failure: `${be}/pago-fallido`,
