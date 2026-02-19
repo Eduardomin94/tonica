@@ -219,7 +219,7 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail"].filter(
+   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail"].filter(
   (k) => !!selectedViews?.[k]
 );
 

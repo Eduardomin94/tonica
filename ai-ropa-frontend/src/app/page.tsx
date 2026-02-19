@@ -816,9 +816,15 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail"] as const).filter(
-  (k) => (views as any)[k]
-);
+    const keysInOrder = ([
+  "front",
+  "back",
+  "side",
+  "frontDetail",
+  "backDetail",
+  "pantFrontDetail",
+] as const).filter((k) => (views as any)[k]);
+
 setResultKeys(keysInOrder as any);
 
 
@@ -1389,6 +1395,7 @@ setResultKeys(keysInOrder as any);
                 { key: "side", label: "Costado Completo" },
                 { key: "frontDetail", label: "Detalle Frente" },
                 { key: "backDetail", label: "Detalle Espalda" },
+                { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1463,15 +1470,18 @@ setResultKeys(keysInOrder as any);
       ? "Detalle cercano"
       : "Otro ángulo"
     : viewKey === "front"
-    ? "Frente Completo"
-    : viewKey === "back"
-    ? "Espalda Completo"
-    : viewKey === "side"
-    ? "Costado Completo"
-    : viewKey === "frontDetail"
-    ? "Detalle Frente"
-    : "Detalle Espalda";
-
+? "Frente Completo"
+: viewKey === "back"
+? "Espalda Completo"
+: viewKey === "side"
+? "Costado Completo"
+: viewKey === "frontDetail"
+? "Detalle Frente"
+: viewKey === "backDetail"
+? "Detalle Espalda"
+: viewKey === "pantFrontDetail"
+? "Detalle Pantalón Frente"
+: "Detalle Espalda";
 
 
 
