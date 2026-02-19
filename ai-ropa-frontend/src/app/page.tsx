@@ -580,7 +580,7 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "side" | "left" | "right",
+  viewKey: "front" | "back" | "side" | "frontDetail" | "left" | "right",
   index: number
 ) {
 
