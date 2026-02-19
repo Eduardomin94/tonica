@@ -219,9 +219,10 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail"].filter(
+   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail", "pantBackDetail"].filter(
   (k) => !!selectedViews?.[k]
 );
+
 
 
 
@@ -437,6 +438,8 @@ Fondo: ${background}
   { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
   { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
   { key: "pantFrontDetail", label: "detalle pantalón frente (desde cintura hasta pies)" },
+  { key: "pantBackDetail", label: "detalle pantalón espalda (desde cintura hasta pies)" },
+
 
 
 ].filter((v) => selectedViews?.[v.key]);
@@ -490,6 +493,20 @@ TOMA OBLIGATORIA – DETALLE ESPALDA:
 - Mantener misma modelo y mismo rostro.
 `
     : "";
+const pantFrontDetailHint =
+  v.key === "pantFrontDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista frontal.
+- NO mostrar cabeza.
+- Enfocar caída de la tela y bolsillos.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+`
+    : "";
 
 
 const viewPrompt = `
@@ -500,6 +517,7 @@ ${extraBackHint}
 ${sideHint}
 ${detailHint}
 ${backDetailHint}
+${pantFrontDetailHint}
 
 
 IMPORTANTE:
