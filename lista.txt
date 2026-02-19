@@ -1,12 +1,9 @@
+solo para categoría pantalon los detalles pantalones
 
-
- Agregar
- 
-
-
-Detalle Pantalón Costado
 
 especificar con ejemplo de como tiene que salir cada plano
+
+Mejoras anti-duplicados (si Gemini repite ángulos)
 
 
 

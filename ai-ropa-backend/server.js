@@ -219,9 +219,16 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = ["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail", "pantBackDetail"].filter(
-  (k) => !!selectedViews?.[k]
-);
+   const requestedKeys = [
+  "front",
+  "back",
+  "side",
+  "frontDetail",
+  "backDetail",
+  "pantFrontDetail",
+  "pantBackDetail",
+  "pantSideDetail",
+].filter((k) => !!selectedViews?.[k]);
 
 
 
@@ -439,6 +446,8 @@ Fondo: ${background}
   { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
   { key: "pantFrontDetail", label: "detalle pantalón frente (desde cintura hasta pies)" },
   { key: "pantBackDetail", label: "detalle pantalón espalda (desde cintura hasta pies)" },
+  { key: "pantSideDetail", label: "detalle pantalón costado (desde cintura hasta pies)" },
+
 
 
 
@@ -508,6 +517,41 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
 `
     : "";
 
+const pantBackDetailHint =
+  v.key === "pantBackDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN ESPALDA:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista completamente trasera.
+- NO mostrar cabeza.
+- NO mostrar torso superior.
+- Enfocar caída de la tela y parte trasera de la prenda.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
+const pantSideDetailHint =
+  v.key === "pantSideDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista de costado 3/4 (NO completamente de perfil).
+- NO mostrar cabeza.
+- NO mostrar torso superior.
+- Mostrar bien el lateral: costura, caída, calce y bolsillos laterales si existen.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
+
 
 const viewPrompt = `
 ${basePrompt}
@@ -518,6 +562,8 @@ ${sideHint}
 ${detailHint}
 ${backDetailHint}
 ${pantFrontDetailHint}
+${pantBackDetailHint}
+${pantSideDetailHint}
 
 
 IMPORTANTE:

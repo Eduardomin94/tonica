@@ -70,6 +70,7 @@ export default function Home() {
   backDetail: false,
   pantFrontDetail: false,
   pantBackDetail: false,
+  pantSideDetail: false,
 });
 
 
@@ -384,6 +385,7 @@ export default function Home() {
   backDetail: false,
   pantFrontDetail: false,
   pantBackDetail: false,
+  pantSideDetail: false,
 });
 
 
@@ -600,10 +602,12 @@ async function handleRegenerateOne(
     | "backDetail"
     | "pantFrontDetail"
     | "pantBackDetail"
+    | "pantSideDetail"
     | "left"
     | "right",
   index: number
 ) {
+
 
 
 
@@ -837,7 +841,9 @@ void fetchEntries();
   "backDetail",
   "pantFrontDetail",
   "pantBackDetail",
+  "pantSideDetail",
 ] as const).filter((k) => (views as any)[k]);
+
 
 setResultKeys(keysInOrder as any);
 
@@ -1411,6 +1417,7 @@ setResultKeys(keysInOrder as any);
                 { key: "backDetail", label: "Detalle Espalda" },
                 { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
                 { key: "pantBackDetail", label: "Detalle Pantalón Espalda" },
+                { key: "pantSideDetail", label: "Detalle Pantalón Costado" },
                 ].map((v) => (
                   <label
                     key={v.key}
@@ -1470,8 +1477,10 @@ setResultKeys(keysInOrder as any);
   | "backDetail"
   | "pantFrontDetail"
   | "pantBackDetail"
+  | "pantSideDetail"
   | "left"
   | "right";
+
 
 
 
@@ -1502,7 +1511,10 @@ setResultKeys(keysInOrder as any);
 ? "Detalle Pantalón Frente"
 : viewKey === "pantBackDetail"
 ? "Detalle Pantalón Espalda"
+: viewKey === "pantSideDetail"
+? "Detalle Pantalón Costado"
 : "Detalle Espalda";
+
 
 
 
