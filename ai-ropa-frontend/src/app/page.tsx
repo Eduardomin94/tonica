@@ -99,67 +99,6 @@ export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
   const translations = {
-    es: {
-      title: "Generador IA",
-      subtitle: "Elegí el tipo de imagen que querés generar",
-      buyCredits: "Comprar créditos",
-      logout: "Cerrar sesión",
-      credits: "Créditos",
-      history: "Historial de movimientos",
-      next: "Siguiente",
-      back: "Atrás",
-      signIn: "Iniciar sesión",
-      signInHint: "Accedé con tu cuenta de Google para usar el generador",
-    },
-    en: {
-      title: "AI Generator",
-      subtitle: "Choose the type of image you want to generate",
-      buyCredits: "Buy credits",
-      logout: "Log out",
-      credits: "Credits",
-      history: "Transaction history",
-      next: "Next",
-      back: "Back",
-      signIn: "Sign in",
-      signInHint: "Sign in with Google to use the generator",
-    },
-    pt: {
-      title: "Gerador AI",
-      subtitle: "Escolha o tipo de imagem que deseja gerar",
-      buyCredits: "Comprar créditos",
-      logout: "Sair",
-      credits: "Créditos",
-      history: "Histórico de movimentos",
-      next: "Próximo",
-      back: "Voltar",
-      signIn: "Entrar",
-      signInHint: "Entre com Google para usar o gerador",
-    },
-    ko: {
-      title: "AI 생성기",
-      subtitle: "생성할 이미지 유형을 선택하세요",
-      buyCredits: "크레딧 구매",
-      logout: "로그아웃",
-      credits: "크레딧",
-      history: "거래 내역",
-      next: "다음",
-      back: "뒤로",
-      signIn: "로그인",
-      signInHint: "Google로 로그인하여 사용하세요",
-    },
-    zh: {
-      title: "AI 生成器",
-      subtitle: "选择要生成的图片类型",
-      buyCredits: "购买积分",
-      logout: "退出登录",
-      credits: "积分",
-      history: "交易记录",
-      next: "下一步",
-      back: "返回",
-      signIn: "登录",
-      signInHint: "使用 Google 登录以使用生成器",
-    },
-  } as const;
 
   const t = (key: keyof typeof translations.es) => translations[language][key];
 
