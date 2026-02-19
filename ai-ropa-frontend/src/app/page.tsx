@@ -177,6 +177,18 @@ export default function Home() {
   }
 
   React.useEffect(() => {
+  if (category !== "Pantalón/Short/Pollera/Falda") {
+    setViews((prev) => ({
+      ...prev,
+      pantFrontDetail: false,
+      pantBackDetail: false,
+      pantSideDetail: false,
+    }));
+  }
+}, [category]);
+
+
+  React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
     calc();
     window.addEventListener("resize", calc);

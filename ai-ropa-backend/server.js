@@ -394,6 +394,13 @@ IMPORTANTE:
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
         const category = String(req.body?.category || "");
+        const isPantsCategory = category === "Pantalón/Short/Pollera/Falda";
+if (!isPantsCategory) {
+  selectedViews.pantFrontDetail = false;
+  selectedViews.pantBackDetail = false;
+  selectedViews.pantSideDetail = false;
+}
+
         const otherCategory = String(req.body?.other_category || "");
         const pockets = String(req.body?.pockets || "");
         const modelType = String(req.body?.model_type || "");
