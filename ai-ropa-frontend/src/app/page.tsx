@@ -44,7 +44,18 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
-  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
+  type ViewKey =
+  | "full_front"
+  | "full_side"
+  | "full_back"
+  | "detail_front"
+  | "detail_back"
+  | "detail_pants_front"
+  | "detail_pants_side"
+  | "detail_pants_back";
+
+const [resultKeys, setResultKeys] = useState<ViewKey[]>([]);
+
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -62,12 +73,17 @@ export default function Home() {
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
 
-  const [views, setViews] = useState({
-    front: true,
-    back: false,
-    left: false,
-    right: false,
-  });
+ const [views, setViews] = useState<Record<ViewKey, boolean>>({
+  full_front: true,
+  full_side: false,
+  full_back: false,
+  detail_front: false,
+  detail_back: false,
+  detail_pants_front: false,
+  detail_pants_side: false,
+  detail_pants_back: false,
+});
+
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -594,7 +610,8 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "left" | "right",
+  viewKey: ViewKey,
+
   index: number
 ) {
   setError(null);
@@ -820,7 +837,10 @@ void fetchEntries();
     }
 
     // Guardar orden de vistas para poder rehacer individualmente
-    const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = Object.keys(views).filter(
+  (k) => views[k as ViewKey]
+) as ViewKey[];
+
     setResultKeys(keysInOrder as any);
 
     setLoading(true);
@@ -1387,12 +1407,17 @@ void fetchEntries();
                   ¿Qué vistas querés generar?
                 </div>
 
-                {[
-                  { key: "front", label: "Delantera" },
-                  { key: "back", label: "Espalda" },
-                  { key: "left", label: "Frente izquierda" },
-                  { key: "right", label: "Frente derecha" },
-                ].map((v) => (
+               {[
+  { key: "full_front", label: "Frente completo" },
+  { key: "full_side", label: "Costado completo" },
+  { key: "full_back", label: "Espalda completo" },
+  { key: "detail_front", label: "Detalle frente" },
+  { key: "detail_back", label: "Detalle espalda" },
+  { key: "detail_pants_front", label: "Detalle pantalón frente" },
+  { key: "detail_pants_side", label: "Detalle pantalón costado" },
+  { key: "detail_pants_back", label: "Detalle pantalón espalda" },
+].map((v) => (
+
                   <label
                     key={v.key}
                     style={{
@@ -1456,13 +1481,22 @@ void fetchEntries();
                           : viewKey === "left"
                           ? "Detalle cercano"
                           : "Otro ángulo"
-                        : viewKey === "front"
-                        ? "Delantera"
-                        : viewKey === "back"
-                        ? "Espalda"
-                        : viewKey === "left"
-                        ? "Frente izquierda"
-                        : "Frente derecha";
+                        : viewKey === "full_front"
+? "Frente completo"
+: viewKey === "full_side"
+? "Costado completo"
+: viewKey === "full_back"
+? "Espalda completo"
+: viewKey === "detail_front"
+? "Detalle frente"
+: viewKey === "detail_back"
+? "Detalle espalda"
+: viewKey === "detail_pants_front"
+? "Detalle pantalón frente"
+: viewKey === "detail_pants_side"
+? "Detalle pantalón costado"
+: "Detalle pantalón espalda";
+
 
                     return (
                       <div key={idx} style={{ display: "grid", gap: 10 }}>
