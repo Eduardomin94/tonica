@@ -1368,7 +1368,7 @@ setResultKeys(keysInOrder as any);
 
                 {[
                 { key: "front", label: "Frente Completo" },
-                { key: "back", label: "Espalda Completo" },
+                { key: "back", label: "Espalda Completa" },
                 { key: "side", label: "Costado Completo" },
                 ].map((v) => (
                   <label
@@ -1436,7 +1436,7 @@ setResultKeys(keysInOrder as any);
                       : "Otro ángulo"
                       : viewKey === "front"
                       ? "Frente Completo"
-                      : "Espalda Completo";
+                      : "Espalda Completa";
 
 
                     return (
