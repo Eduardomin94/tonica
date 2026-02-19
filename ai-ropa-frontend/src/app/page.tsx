@@ -1851,7 +1851,18 @@ void fetchEntries();
                           ? "Bonificación"
                           : e.type;
 
-                     asd
+                      return (
+                        <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td
+                            style={{
+                              padding: "10px 10px",
+                              color: "#0f172a",
+                              whiteSpace: "normal",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              wordBreak: "break-word",
+                            }}
+                          >
                             {new Date(e.createdAt).toLocaleString()}
                           </td>
 
