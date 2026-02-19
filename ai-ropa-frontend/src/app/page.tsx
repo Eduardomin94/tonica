@@ -1687,7 +1687,16 @@ setResultKeys(keysInOrder as any);
           </div>
         </div>
       )}
-
+    {/* WhatsApp floating button */}
+<a
+  href="https://wa.me/5491123330696?text=Hola%20quiero%20ayuda%20con%20el%20generador"
+  target="_blank"
+  rel="noopener noreferrer"
+  style={styles.whatsappBtn}
+  aria-label="WhatsApp Atención al cliente"
+>
+  💬
+</a>
       <div style={styles.shell}>
         {topupStatus === "ok" && (
           <div
@@ -2571,6 +2580,24 @@ const styles: Record<string, React.CSSProperties> = {
   resultGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 },
   imgCard: { border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", background: "#ffffff" },
 
+  whatsappBtn: {
+  position: "fixed",
+  right: 18,
+  bottom: 18,
+  width: 56,
+  height: 56,
+  borderRadius: 999,
+  background: "#25D366",
+  color: "#ffffff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 26,
+  fontWeight: 900,
+  textDecoration: "none",
+  boxShadow: "0 14px 30px rgba(0,0,0,0.35)",
+  zIndex: 99999,
+},
   loginCard: {
     maxWidth: 420,
     margin: "80px auto",
