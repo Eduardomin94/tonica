@@ -1394,16 +1394,7 @@ void fetchEntries();
                 {[
   { key: "front", label: "Frente Completo" },
   { key: "back", label: "Espalda Completo" },
-
-  { key: "side", label: "Costado Completo" },
-
-  { key: "detail_front", label: "Detalle Frente" },
-  { key: "detail_back", label: "Detalle Espalda" },
-
-  { key: "detail_pants_front", label: "Detalle Pantalón Frente" },
-  { key: "detail_pants_back", label: "Detalle Pantalón Espalda" },
 ].map((v) => (
-
 
                   <label
                     key={v.key}
