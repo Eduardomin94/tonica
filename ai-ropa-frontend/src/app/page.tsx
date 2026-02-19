@@ -96,7 +96,8 @@ export default function Home() {
     setProductFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
+  const [language, setLanguage] = useState("en");
+
 
   const translations = {
     es: {
