@@ -590,9 +590,18 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "side" | "frontDetail" | "backDetail" | "left" | "right",
+  viewKey:
+    | "front"
+    | "back"
+    | "side"
+    | "frontDetail"
+    | "backDetail"
+    | "pantFrontDetail"
+    | "left"
+    | "right",
   index: number
 ) {
+
 
   setError(null);
 
