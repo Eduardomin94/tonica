@@ -1394,7 +1394,16 @@ void fetchEntries();
                 {[
   { key: "front", label: "Frente Completo" },
   { key: "back", label: "Espalda Completo" },
+
+  { key: "side", label: "Costado Completo" },
+
+  { key: "detail_front", label: "Detalle Frente" },
+  { key: "detail_back", label: "Detalle Espalda" },
+
+  { key: "detail_pants_front", label: "Detalle Pantalón Frente" },
+  { key: "detail_pants_back", label: "Detalle Pantalón Espalda" },
 ].map((v) => (
+
 
                   <label
                     key={v.key}
@@ -1653,7 +1662,10 @@ void fetchEntries();
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
           <div>
-            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+            <div style={{ ...styles.h1, color: "#9495B5" }}>
+  {t("title")} <span style={{ color: "yellow" }}>DEBUG_VISTAS_7</span>
+</div>
+
 
             <div
               style={{
