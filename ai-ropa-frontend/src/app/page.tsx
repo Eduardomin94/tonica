@@ -1415,9 +1415,14 @@ setResultKeys(keysInOrder as any);
                 { key: "side", label: "Costado Completo" },
                 { key: "frontDetail", label: "Detalle Frente" },
                 { key: "backDetail", label: "Detalle Espalda" },
-                { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
-                { key: "pantBackDetail", label: "Detalle Pantalón Espalda" },
-                { key: "pantSideDetail", label: "Detalle Pantalón Costado" },
+                ...(category === "Pantalón/Short/Pollera/Falda"
+  ? [
+      { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
+      { key: "pantBackDetail", label: "Detalle Pantalón Espalda" },
+      { key: "pantSideDetail", label: "Detalle Pantalón Costado" },
+    ]
+  : []),
+
                 ].map((v) => (
                   <label
                     key={v.key}
