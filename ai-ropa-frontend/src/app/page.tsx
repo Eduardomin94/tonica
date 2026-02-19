@@ -113,9 +113,8 @@ export default function Home() {
       stepUploadModel: "Subir fotos",
     },
     en: {
-      title: "AI Generator",
+      title: "AI Generator ✅",
       subtitle: "Choose the type of image you want to generate",
-      errUploadFront: "Upload the front photo (required).",
       buyCredits: "Buy credits",
       logout: "Log out",
       credits: "Credits",
