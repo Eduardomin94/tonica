@@ -295,26 +295,28 @@ Mantener exactamente el mismo producto, color y textura.
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
-              const frontHint =
-  v.key === "front"
+              const sideHint =
+  v.key === "side"
     ? `
-TOMA OBLIGATORIA (CATÁLOGO):
+TOMA OBLIGATORIA – COSTADO COMPLETO:
 
-- Plano general (wide shot), cuerpo entero (head-to-toe).
-- Dejar margen: 8–12% de aire arriba de la cabeza y 10–15% debajo de los pies.
-- Los dos pies COMPLETOS deben entrar en el encuadre (incluyendo suela).
-- No recortar tobillos, pies ni cabeza.
-- Cámara más lejos (distancia 3–5 metros), lente normal 50mm (sin gran angular).
-- Formato vertical 4:5, modelo centrada.
+- Cuerpo completo (head-to-toe).
+- Vista lateral 3/4 (no completamente de perfil).
+- Modelo girada aproximadamente 45 grados.
+- Piernas y pies completamente visibles.
+- No recortar cabeza.
+- No recortar pies.
+- Cámara lo suficientemente lejos para capturar cuerpo entero.
+- Formato vertical 4:5.
+- Modelo centrada.
 
 POSE:
-- De frente, postura natural, brazos relajados.
-- Manos en bolsillos SOLO si existen; si no, manos relajadas a los costados.
-
-FONDO:
-- Piso visible completo y continuo.
+- Postura natural, elegante.
+- Una mano en bolsillo si existen.
+- Hombros levemente girados hacia cámara.
 `
     : "";
+
 
 
 const viewPrompt = `
@@ -409,27 +411,11 @@ IMPORTANTE:
         const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
         const basePrompt = `
-Professional fashion catalog full-body studio shot.
-
-CRITICAL:
-- Full body portrait (head-to-toe).
-- Entire body must be visible.
-- Both feet fully visible.
-- Vertical composition.
-- Model centered.
-- Camera far enough to capture whole body.
-
-Style:
-- Clean e-commerce fashion photography.
-- Natural proportions.
-- No cropping.
-- No close-up.
-- No mid-shot.
-- No American shot.
-
-Use EXACT garment from reference images (same color, texture, fit).
-
-Category: ${catFinal}
+Foto de moda e-commerce, fotorealista, iluminación suave tipo estudio.
+Usar EXACTAMENTE la prenda de las fotos referencia (color, textura, estampado, calce).
+Misma modelo y mismo rostro en todas las vistas (consistencia total).
+Sin texto, sin marcas de agua, sin logos, sin manos extra.
+Categoría: ${catFinal}
 Bolsillos: ${pockets}
 Tipo de modelo: ${modelType}
 Etnia: ${ethnicity}
@@ -438,7 +424,6 @@ Pose: ${pose}
 Tipo de cuerpo: ${bodyType}
 Fondo: ${background}
 `.trim();
-
 
         const views = [
   { key: "front", label: "vista frontal completa" },

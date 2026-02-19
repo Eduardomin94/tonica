@@ -1,13 +1,17 @@
-3. Agregar
+
+
+ Agregar
 
 Costado Completo
 Detalle Frente
 Detalle Espalda 
 Detalle Pantalón Frente
 Detalle Pantalón Espalda
-
+Detalle Pantalón Costado
 
 especificar con ejemplo de como tiene que salir cada plano
+
+
 
 💰 Arreglar los precios reales de MercadoPago (ahora están en 1 ARS)
 Con respecto a precios, yo creo que deberiamos de ir:

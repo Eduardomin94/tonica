@@ -65,7 +65,9 @@ export default function Home() {
   const [views, setViews] = useState({
   front: true,
   back: false,
+  side: false,
 });
+
 
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -370,7 +372,8 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false });
+    setViews({ front: true, back: false, side: false });
+
   }, [mode]);
 
   React.useEffect(() => {
