@@ -1355,8 +1355,10 @@ void fetchEntries();
                 </div>
               )}
             </div>
+<div style={{ color: "yellow", fontWeight: 900, marginBottom: 10 }}>DEBUG mode: {mode}</div>
 
             {mode === "product" ? (
+              
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   ¿Qué vistas querés generar?
