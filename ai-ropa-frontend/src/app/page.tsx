@@ -63,6 +63,11 @@ export default function Home() {
   });
 const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
 const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
+const frontCameraRef = React.useRef<HTMLInputElement | null>(null);
+const frontGalleryRef = React.useRef<HTMLInputElement | null>(null);
+const backCameraRef = React.useRef<HTMLInputElement | null>(null);
+const backGalleryRef = React.useRef<HTMLInputElement | null>(null);
+
 
 function mergeFiles(prev: File[], incoming: File[]) {
   // evita duplicados por: name + size + lastModified
@@ -730,18 +735,107 @@ function removeProductFile(index: number) {
   </Box>
 ) : (
   <TwoCols>
-    <Box>
-      <Label>Delantera (obligatorio)</Label>
-      <InputFile onChange={(f) => setFrontFile(f)} isMobile={isMobile} />
-      {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
-    </Box>
-    <Box>
-      <Label>Espalda (opcional)</Label>
-      <InputFile onChange={(f) => setBackFile(f)} isMobile={isMobile} />
-      {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
-    </Box>
-  </TwoCols>
-)}
+  {/* DELANTERA */}
+  <Box>
+    <Label>Delantera (obligatorio)</Label>
+
+    {/* inputs ocultos */}
+    <input
+      ref={frontCameraRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={(e) => {
+        setFrontFile(e.target.files?.[0] || null);
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+    <input
+      ref={frontGalleryRef}
+      type="file"
+      accept="image/*"
+      onChange={(e) => {
+        setFrontFile(e.target.files?.[0] || null);
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+
+    {isMobile ? (
+      <div style={{ display: "grid", gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => frontCameraRef.current?.click()}
+          style={{ ...styles.buyBtnFull, height: 44 }}
+        >
+          📷 Sacar foto
+        </button>
+        <button
+          type="button"
+          onClick={() => frontGalleryRef.current?.click()}
+          style={{ ...styles.logoutBtnFull, height: 44, background: "#fff" }}
+        >
+          🖼️ Elegir de galería
+        </button>
+      </div>
+    ) : (
+      <InputFile onChange={(f) => setFrontFile(f)} />
+    )}
+
+    {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
+  </Box>
+
+  {/* ESPALDA */}
+  <Box>
+    <Label>Espalda (opcional)</Label>
+
+    <input
+      ref={backCameraRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={(e) => {
+        setBackFile(e.target.files?.[0] || null);
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+    <input
+      ref={backGalleryRef}
+      type="file"
+      accept="image/*"
+      onChange={(e) => {
+        setBackFile(e.target.files?.[0] || null);
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+
+    {isMobile ? (
+      <div style={{ display: "grid", gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => backCameraRef.current?.click()}
+          style={{ ...styles.buyBtnFull, height: 44 }}
+        >
+          📷 Sacar foto
+        </button>
+        <button
+          type="button"
+          onClick={() => backGalleryRef.current?.click()}
+          style={{ ...styles.logoutBtnFull, height: 44, background: "#fff" }}
+        >
+          🖼️ Elegir de galería
+        </button>
+      </div>
+    ) : (
+      <InputFile onChange={(f) => setBackFile(f)} />
+    )}
+
+    {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
+  </Box>
+</TwoCols>
 
           </>
         );
