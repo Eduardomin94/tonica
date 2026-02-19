@@ -284,7 +284,11 @@ export default function Home() {
 
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
-  const isRegenBusy = useMemo(() => Object.keys(regenLoading).length > 0, [regenLoading]);
+ const isRegenBusy = useMemo(
+  () => Object.values(regenLoading).some(Boolean),
+  [regenLoading]
+);
+
 
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
@@ -571,108 +575,167 @@ export default function Home() {
     }
   }
 
-  async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right", index: number) {
-    setError(null);
+async function handleRegenerateOne(
+  viewKey: "front" | "back" | "left" | "right",
+  index: number
+) {
+  setError(null);
 
-    const lockKey = `regen:${index}`;
-    if (regenLockRef.current[lockKey]) return; // ya hay rehacer corriendo
-    regenLockRef.current[lockKey] = true; // lock inmediato
+  const lockKey = `regen:${index}`;
 
-    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-    if (balance < 1) return setError("Créditos insuficientes (rehacer cuesta 1 crédito).");
+  // Si ya hay uno corriendo para ese índice, no hagas nada
+  if (regenLockRef.current[lockKey]) return;
+
+  // Tomo el lock
+  regenLockRef.current[lockKey] = true;
+
+  // Helper para salir pero liberando lock
+  const bail = (msg: string) => {
+    setError(msg);
+  };
+
+  try {
+    if (!API) {
+      bail("Falta NEXT_PUBLIC_API_BASE en .env.local");
+      return;
+    }
+
+    if (balance < 1) {
+      bail("Créditos insuficientes (rehacer cuesta 1 crédito).");
+      return;
+    }
 
     // Validaciones mínimas
     if (mode === "product") {
-      if (productFiles.length === 0) return setError("Subí al menos 1 foto del producto.");
-      if (!scene.trim() || wordCount(scene) > 10) return setError("Escribí la escena (máx 10 palabras).");
-    } else {
-      if (!frontFile) return setError("Falta la foto delantera.");
-      if (!category) return setError("Falta categoría.");
-      if (!pockets) return setError("Falta bolsillos.");
-      if (!modelType) return setError("Falta modelo.");
-      if (!ethnicity) return setError("Falta etnia.");
-      if (!ageRange) return setError("Falta edad.");
-      if (!background.trim() || wordCount(background) > 10) return setError("Falta fondo (máx 10 palabras).");
-      if (!pose) return setError("Falta pose.");
-      if (!bodyType) return setError("Falta tipo de cuerpo.");
-    }
-
-    const loadKey = lockKey;
-    setRegenLoading((m) => ({ ...m, [loadKey]: true }));
-    setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
-
-    try {
-      const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
-
-      const fd = new FormData();
-      fd.append("mode", mode);
-      fd.append("views", JSON.stringify(oneView));
-
-      if (mode === "product") {
-        productFiles.forEach((f) => fd.append("product_images", f));
-        fd.append("scene", scene.trim());
-      } else {
-        fd.append("front", frontFile as File);
-        if (backFile) fd.append("back", backFile);
-        fd.append("category", category);
-        if (category === "otro") fd.append("other_category", otherCategory.trim());
-        fd.append("pockets", pockets);
-        fd.append("hombros", measures.hombros);
-        fd.append("pecho", measures.pecho);
-        fd.append("manga", measures.manga);
-        fd.append("cintura", measures.cintura);
-        fd.append("cadera", measures.cadera);
-        fd.append("largo", measures.largo);
-        fd.append("model_type", modelType);
-        fd.append("ethnicity", ethnicity);
-        fd.append("age_range", ageRange);
-        fd.append("background", background.trim());
-        fd.append("pose", pose);
-        fd.append("body_type", bodyType);
+      if (productFiles.length === 0) {
+        bail("Subí al menos 1 foto del producto.");
+        return;
       }
-
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API}/generate`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: fd,
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || data?.message || "Error rehaciendo");
-
-      let url = "";
-      if (Array.isArray(data?.imageUrls) && data.imageUrls[0]) url = data.imageUrls[0];
-      else if (typeof data?.imageUrl === "string") url = data.imageUrl;
-
-      if (!url) throw new Error("El servidor no devolvió imagen.");
-
-      const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
-
-      setResult((prev) => {
-        if (!prev) return prev;
-        const copy = [...prev.imageUrls];
-        copy[index] = absolute;
-        return { ...prev, imageUrls: copy };
-      });
-
-      await fetchMe();
-      await fetchEntries();
-    } catch (e: any) {
-      setError(String(e?.message || e));
-    } finally {
-      setRegenLoading((m) => {
-        const copy = { ...m };
-        delete copy[loadKey];
-        return copy;
-      });
-      setRegenStartedAt((m) => {
-        const copy = { ...m };
-        delete copy[loadKey];
-        return copy;
-      });
+      if (!scene.trim() || wordCount(scene) > 10) {
+        bail("Escribí la escena (máx 10 palabras).");
+        return;
+      }
+    } else {
+      if (!frontFile) {
+        bail("Falta la foto delantera.");
+        return;
+      }
+      if (!category) {
+        bail("Falta categoría.");
+        return;
+      }
+      if (!pockets) {
+        bail("Falta bolsillos.");
+        return;
+      }
+      if (!modelType) {
+        bail("Falta modelo.");
+        return;
+      }
+      if (!ethnicity) {
+        bail("Falta etnia.");
+        return;
+      }
+      if (!ageRange) {
+        bail("Falta edad.");
+        return;
+      }
+      if (!background.trim() || wordCount(background) > 10) {
+        bail("Falta fondo (máx 10 palabras).");
+        return;
+      }
+      if (!pose) {
+        bail("Falta pose.");
+        return;
+      }
+      if (!bodyType) {
+        bail("Falta tipo de cuerpo.");
+        return;
+      }
     }
+
+    // Ahora sí: marcamos loading
+    setRegenLoading((m) => ({ ...m, [lockKey]: true }));
+    setRegenStartedAt((m) => ({ ...m, [lockKey]: Date.now() }));
+
+    const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
+
+    const fd = new FormData();
+    fd.append("mode", mode);
+    fd.append("views", JSON.stringify(oneView));
+
+    if (mode === "product") {
+      productFiles.forEach((f) => fd.append("product_images", f));
+      fd.append("scene", scene.trim());
+    } else {
+      fd.append("front", frontFile as File);
+      if (backFile) fd.append("back", backFile);
+
+      fd.append("category", category);
+      if (category === "otro") fd.append("other_category", otherCategory.trim());
+
+      fd.append("pockets", pockets);
+      fd.append("hombros", measures.hombros);
+      fd.append("pecho", measures.pecho);
+      fd.append("manga", measures.manga);
+      fd.append("cintura", measures.cintura);
+      fd.append("cadera", measures.cadera);
+      fd.append("largo", measures.largo);
+
+      fd.append("model_type", modelType);
+      fd.append("ethnicity", ethnicity);
+      fd.append("age_range", ageRange);
+      fd.append("background", background.trim());
+      fd.append("pose", pose);
+      fd.append("body_type", bodyType);
+    }
+
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch(`${API}/generate`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || data?.message || "Error rehaciendo");
+
+    let url = "";
+    if (Array.isArray(data?.imageUrls) && data.imageUrls[0]) url = data.imageUrls[0];
+    else if (typeof data?.imageUrl === "string") url = data.imageUrl;
+    if (!url) throw new Error("El servidor no devolvió imagen.");
+
+    const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
+
+    setResult((prev) => {
+      if (!prev) return prev;
+      const copy = [...prev.imageUrls];
+      copy[index] = absolute;
+      return { ...prev, imageUrls: copy };
+    });
+
+    await fetchMe();
+    await fetchEntries();
+  } catch (e: any) {
+    setError(String(e?.message || e));
+  } finally {
+    // ✅ SIEMPRE limpiar estados + liberar lock
+    setRegenLoading((m) => {
+      const copy = { ...m };
+      delete copy[lockKey];
+      return copy;
+    });
+
+    setRegenStartedAt((m) => {
+      const copy = { ...m };
+      delete copy[lockKey];
+      return copy;
+    });
+
+    delete regenLockRef.current[lockKey];
   }
+}
+
 
   async function handleSuggestBackground() {
     setError(null);
