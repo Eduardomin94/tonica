@@ -37,6 +37,8 @@ function wordCount(s: string) {
 
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+  const LAST_RESULT_KEY = "last_generation_result_v1";
+
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -280,6 +282,23 @@ function removeProductFile(index: number) {
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
+  React.useEffect(() => {
+  try {
+    if (!result) {
+      localStorage.removeItem(LAST_RESULT_KEY);
+      return;
+    }
+
+    const payload = {
+      result,
+      resultKeys,
+      mode,
+      savedAt: Date.now(),
+    };
+
+    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
+  } catch {}
+}, [result, resultKeys, mode]);
 
   const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
   const creditsNeeded = selectedCount;
@@ -350,6 +369,24 @@ function removeProductFile(index: number) {
     fetchEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API]);
+
+    React.useEffect(() => {
+  try {
+    const raw = localStorage.getItem(LAST_RESULT_KEY);
+    if (!raw) return;
+
+    const parsed = JSON.parse(raw);
+
+    if (parsed?.result?.imageUrls?.length) {
+      setResult(parsed.result);
+      if (Array.isArray(parsed.resultKeys)) setResultKeys(parsed.resultKeys);
+      if (parsed?.mode === "model" || parsed?.mode === "product") {
+        setMode(parsed.mode);
+      }
+    }
+  } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   const stepError = useMemo(() => {
     const key = steps[step]?.key;
@@ -669,6 +706,11 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
 
 
       const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
+setResultKeys(keysInOrder as any);
+
+    const keysInOrder = (["front", "back", "left", "right"] as const)
+  .filter((k) => (views as any)[k]);
+
 setResultKeys(keysInOrder as any);
 
     setLoading(true);
