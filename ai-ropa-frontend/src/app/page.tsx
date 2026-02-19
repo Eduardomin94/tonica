@@ -592,8 +592,9 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
     if (!bodyType) return setError("Falta tipo de cuerpo.");
   }
 
-  const loadKey = `${mode}:${viewKey}:${index}`;
-  setRegenLoading((m) => ({ ...m, [loadKey]: true }));
+ const loadKey = `regen:${index}`;
+setRegenLoading((m) => ({ ...m, [loadKey]: true }));
+
 
   try {
     const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
@@ -1379,7 +1380,8 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
     <div style={styles.resultGrid}>
       {result.imageUrls.map((u, idx) => {
         const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
-        const loadKey = `${mode}:${viewKey}:${idx}`;
+        const loadKey = `regen:${idx}`;
+
 
         const label =
           mode === "product"
