@@ -219,7 +219,16 @@ app.post(
       selectedViews = {};
     }
 
-    const requestedKeys = ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k]);
+    const requestedKeys = [
+  "front",
+  "back",
+  "side",
+  "detail_front",
+  "detail_back",
+  "detail_pants_front",
+  "detail_pants_back",
+].filter((k) => !!selectedViews?.[k]);
+
 
     const COST = requestedKeys.length;
 
@@ -399,11 +408,18 @@ Fondo: ${background}
 `.trim();
 
         const views = [
-          { key: "front", label: "vista frontal" },
-          { key: "back", label: "vista trasera" },
-          { key: "left", label: "vista costado izquierdo" },
-          { key: "right", label: "vista costado derecho" },
-        ].filter((v) => selectedViews?.[v.key]);
+  { key: "front", label: "vista frontal completa (cuerpo completo)" },
+  { key: "back", label: "vista trasera completa (cuerpo completo)" },
+
+  { key: "side", label: "vista costado completa (cuerpo completo)" },
+
+  { key: "detail_front", label: "detalle del frente de la prenda (primer plano)" },
+  { key: "detail_back", label: "detalle de la espalda de la prenda (primer plano)" },
+
+  { key: "detail_pants_front", label: "detalle del pantalón al frente (primer plano)" },
+  { key: "detail_pants_back", label: "detalle del pantalón por detrás (primer plano)" },
+].filter((v) => selectedViews?.[v.key]);
+
 
         if (!views.length) {
           return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
@@ -422,12 +438,21 @@ ${basePrompt}
 Cámara: ${v.label}.
 ${extraBackHint}
 
+const isDetail = String(v.key).startsWith("detail_");
+
+const viewPrompt = `
+${basePrompt}
+
+Cámara: ${v.label}.
+${extraBackHint}
+
 IMPORTANTE:
 - Generar UNA SOLA imagen.
 - NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
-- Un solo cuerpo completo, centrado.
+- ${isDetail ? "Primer plano del producto/prenda (sin cuerpo completo)." : "Un solo cuerpo completo, centrado."}
 - Fondo continuo (sin cortes).
 `.trim();
+
 
             const parts = [{ text: viewPrompt }, ...refParts];
 
