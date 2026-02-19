@@ -68,6 +68,7 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
+   pantFrontDetail: false,
 });
 
 
