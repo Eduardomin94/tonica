@@ -44,18 +44,6 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
-  type ViewKey =
-  | "full_front"
-  | "full_side"
-  | "full_back"
-  | "detail_front"
-  | "detail_back"
-  | "detail_pants_front"
-  | "detail_pants_side"
-  | "detail_pants_back";
-
-const [resultKeys, setResultKeys] = useState<ViewKey[]>([]);
-
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -71,19 +59,7 @@ const [resultKeys, setResultKeys] = useState<ViewKey[]>([]);
   const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
   const [buyLoading, setBuyLoading] = useState(false);
 
-  const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
-
- const [views, setViews] = useState<Record<ViewKey, boolean>>({
-  full_front: true,
-  full_side: false,
-  full_back: false,
-  detail_front: false,
-  detail_back: false,
-  detail_pants_front: false,
-  detail_pants_side: false,
-  detail_pants_back: false,
-});
-
+  const [mobileStepsOpen, setMobileStepsOpen] = useState(false);1
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -403,7 +379,17 @@ const [resultKeys, setResultKeys] = useState<ViewKey[]>([]);
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false, left: false, right: false });
+    setViews({
+  full_front: true,
+  full_side: false,
+  full_back: false,
+  detail_front: false,
+  detail_back: false,
+  detail_pants_front: false,
+  detail_pants_side: false,
+  detail_pants_back: false,
+} as any);
+
   }, [mode]);
 
   React.useEffect(() => {
