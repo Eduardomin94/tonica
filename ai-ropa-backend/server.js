@@ -467,7 +467,41 @@ Fondo: ${background}
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
-            const extraBackHint =
+
+const frontFullHint =
+  v.key === "front"
+    ? `
+TOMA OBLIGATORIA – FRENTE COMPLETO (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente frontal (NO 3/4, NO perfil).
+- Cámara a altura del torso.
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados.
+- Manos en bolsillos si existen, sin tapar la prenda.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme (sin sombras duras).
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
+
+const extraBackHint =
   v.key === "back" && !back
     ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
     : "";
@@ -564,6 +598,7 @@ const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
+${frontFullHint}
 ${extraBackHint}
 ${sideHint}
 ${detailHint}
