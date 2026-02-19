@@ -479,6 +479,7 @@ export default function Home() {
     pose,
     bodyType,
     scene,
+    language,
   ]);
 
   const canGoNext = !stepError && !loading;
