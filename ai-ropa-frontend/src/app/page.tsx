@@ -310,17 +310,17 @@ export default function Home() {
     return () => window.clearInterval(id);
   }, [isRegenBusy]);
 
-  React.useEffect(() => {
-    try {
-      if (!result) {
-        localStorage.removeItem(LAST_RESULT_KEY);
-        return;
-      }
-      const payload = { result, resultKeys: (typeof resultKeys !== "undefined" ? resultKeys : []), mode, savedAt: Date.now() };
+ React.useEffect(() => {
+  try {
+    if (!result) {
+      localStorage.removeItem(LAST_RESULT_KEY);
+      return;
+    }
+    const payload = { result, mode, savedAt: Date.now() };
+    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
+  } catch {}
+}, [result, mode]);
 
-      localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
-    } catch {}
-  }, [result, resultKeys, mode]);
 
   const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
   const creditsNeeded = selectedCount;
