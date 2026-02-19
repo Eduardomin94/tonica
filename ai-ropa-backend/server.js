@@ -219,7 +219,7 @@ app.post(
       selectedViews = {};
     }
 
-    const requestedKeys = ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k]);
+    const requestedKeys = ["front", "back"].filter((k) => !!selectedViews?.[k]);
 
     const COST = requestedKeys.length;
 
@@ -288,11 +288,10 @@ Mantener exactamente el mismo producto, color y textura.
 `.trim();
 
         const views = [
-          { key: "front", label: "toma principal" },
-          { key: "back", label: "ángulo alternativo" },
-          { key: "left", label: "detalle cercano" },
-          { key: "right", label: "otro ángulo" },
-        ].filter((v) => selectedViews?.[v.key]);
+  { key: "front", label: "toma principal" },
+  { key: "back", label: "ángulo alternativo" },
+].filter((v) => selectedViews?.[v.key]);
+
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
@@ -399,11 +398,10 @@ Fondo: ${background}
 `.trim();
 
         const views = [
-          { key: "front", label: "vista frontal" },
-          { key: "back", label: "vista trasera" },
-          { key: "left", label: "vista costado izquierdo" },
-          { key: "right", label: "vista costado derecho" },
-        ].filter((v) => selectedViews?.[v.key]);
+  { key: "front", label: "vista frontal completa" },
+  { key: "back", label: "vista trasera completa" },
+].filter((v) => selectedViews?.[v.key]);
+
 
         if (!views.length) {
           return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
