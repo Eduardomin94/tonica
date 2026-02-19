@@ -334,6 +334,7 @@ POSE:
 
 const viewPrompt = `
 ${basePrompt}
+${variationHint}
 
 Cámara: ${v.label}.
 ${extraBackHint}
@@ -388,6 +389,7 @@ IMPORTANTE:
       // MODEL MODE (1 crédito por vista)
       // =====================
       if (mode === "model") {
+        const regenVar = String(req.body?.regen_variation || "").trim();
         const front = req.files?.front?.[0];
         const back = req.files?.back?.[0];
 
@@ -500,21 +502,36 @@ REGLA CRÍTICA:
 `
     : "";
 
-
-const extraBackHint =
-  v.key === "back" && !back
-    ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
-    : "";
-
-const sideHint =
+const sideFullHint =
   v.key === "side"
     ? `
-TOMA OBLIGATORIA – COSTADO COMPLETO:
-- Cuerpo completo (cabeza y pies visibles), sin recortes.
-- Vista lateral 3/4 (NO completamente de perfil).
-- Modelo girada ~45 grados.
+TOMA OBLIGATORIA – COSTADO COMPLETO (3/4) – SIEMPRE CABEZA A PIES:
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
 - Formato vertical 4:5.
 - Modelo centrada.
+
+ÁNGULO:
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada aproximadamente 45 grados.
+- Hombros levemente hacia cámara.
+
+POSE:
+- Postura natural.
+- Peso en una pierna.
+- Una mano en bolsillo si existen (sin tapar prenda).
+- Brazos relajados.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si no entra cabeza y pies, ALEJAR cámara hasta que entren.
 `
     : "";
 
@@ -552,31 +569,86 @@ REGLA CRÍTICA:
 `
     : "";
 
+
+const extraBackHint =
+  v.key === "back" && !back
+    ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
+    : "";
+
+const sideHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO:
+- Cuerpo completo (cabeza y pies visibles), sin recortes.
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada ~45 grados.
+- Formato vertical 4:5.
+- Modelo centrada.
+`
+    : "";
+
+
 const detailHint =
   v.key === "frontDetail"
     ? `
-TOMA OBLIGATORIA – DETALLE FRENTE:
-- Plano medio cerrado.
-- Encuadre desde el pecho hasta la cintura.
-- No mostrar piernas completas.
-- No mostrar cuerpo entero.
-- Foco en la prenda y textura.
+TOMA OBLIGATORIA – DETALLE FRENTE (DESDE CINTURA HACIA ARRIBA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+CÁMARA:
+- Vista frontal directa.
+- Cámara a altura del pecho.
+- Distancia suficiente para incluir cabeza completa.
+
+FOCO:
+- Enfatizar textura, caída y costuras.
+- Mostrar claramente el escote y parte superior.
 - Mantener misma modelo y mismo rostro.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
 `
     : "";
 
 const backDetailHint =
   v.key === "backDetail"
     ? `
-TOMA OBLIGATORIA – DETALLE ESPALDA:
-- Plano medio cerrado.
-- Encuadre desde los hombros hasta la cintura.
-- Mostrar espalda claramente.
-- No mostrar piernas completas.
-- No mostrar cuerpo entero.
-- Mantener misma modelo y mismo rostro.
+TOMA OBLIGATORIA – DETALLE ESPALDA (DESDE CINTURA HASTA CABEZA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+ÁNGULO:
+- Vista de espaldas (espalda hacia cámara).
+- NO frontal.
+- NO mostrar el frente de la prenda.
+- Puede ser levemente 3/4 pero la ESPALDA debe dominar (como foto de referencia).
+
+FOCO:
+- Mostrar claramente espalda de la prenda: tiras, nudo/cierre, costuras y caída.
+- Mantener misma modelo y mismo rostro (consistencia).
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
 `
     : "";
+
+
 const pantFrontDetailHint =
   v.key === "pantFrontDetail"
     ? `
@@ -584,7 +656,8 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista frontal.
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
+- NO mostrar torso superior.
 - Enfocar caída de la tela y bolsillos.
 - Modelo centrada.
 - Fondo continuo.
@@ -599,7 +672,7 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN ESPALDA:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista completamente trasera.
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
 - NO mostrar torso superior.
 - Enfocar caída de la tela y parte trasera de la prenda.
 - Modelo centrada.
@@ -616,7 +689,7 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista de costado 3/4 (NO completamente de perfil).
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
 - NO mostrar torso superior.
 - Mostrar bien el lateral: costura, caída, calce y bolsillos laterales si existen.
 - Modelo centrada.
@@ -626,15 +699,28 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 `
     : "";
 
-
+const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER):
+- Mantener misma modelo y misma prenda (NO cambiar color, textura, diseño).
+- Mantener el mismo encuadre obligatorio de la vista.
+- Cambiar NOTABLEMENTE al menos 2 cosas:
+  1) micro-pose (peso en otra pierna, manos/brazos distintos, mirada distinta)
+  2) luz (más suave o un poco más contrastada, siempre estudio)
+  3) fondo (siempre estudio: blanco ↔ gris claro ↔ beige suave)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
 
 const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
 ${frontFullHint}
-${extraBackHint}
 ${backFullHint}
+${sideFullHint}
+${extraBackHint}
 ${sideHint}
 ${detailHint}
 ${backDetailHint}

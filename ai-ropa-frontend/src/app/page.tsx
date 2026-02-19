@@ -722,6 +722,7 @@ async function handleRegenerateOne(
     const fd = new FormData();
     fd.append("mode", mode);
     fd.append("views", JSON.stringify(oneView));
+    fd.append("regen_variation", String(Date.now()));
 
     if (mode === "product") {
       productFiles.forEach((f) => fd.append("product_images", f));
