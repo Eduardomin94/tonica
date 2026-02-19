@@ -295,16 +295,48 @@ Mantener exactamente el mismo producto, color y textura.
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
-            const viewPrompt = `
+              const frontHint =
+  v.key === "front"
+    ? `
+COMPOSICIÓN OBLIGATORIA:
+
+- Imagen vertical 4:5.
+- Cuerpo completo de pies a cabeza.
+- Los pies deben verse completamente.
+- No cortar cabeza.
+- No cortar piernas.
+- No plano medio.
+- No plano americano.
+- No acercamiento.
+- Distancia suficiente para ver el cuerpo entero.
+
+POSE:
+- Modelo de frente (frontal), centrada.
+- De pie, postura natural.
+- Manos dentro de bolsillos si existen.
+- Ambas piernas visibles completamente.
+
+ENCADRE:
+- Cámara alejada lo suficiente para ver pies completos.
+- Proporciones naturales.
+`
+    : "";
+
+
+const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
+${extraBackHint}
+${frontHint}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
 - NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
+- Un solo cuerpo completo, centrado.
 - Fondo continuo (sin cortes).
 `.trim();
+
 
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
