@@ -688,6 +688,8 @@ async function handleRegenerateOne(
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
+
+    console.log("FIN REGENERATE", { lockKey, loadKey });
     // ✅ limpiar loading
     setRegenLoading((m) => {
       const copy = { ...m };
