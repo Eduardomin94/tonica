@@ -68,7 +68,6 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
-  pantFrontDetail: false,
 });
 
 
@@ -173,13 +172,6 @@ export default function Home() {
     setAccessToken(null);
     setBalance(0);
   }
-
-  React.useEffect(() => {
-  if (category !== "Pantalón/Short/Pollera/Falda") {
-    setViews((prev) => ({ ...prev, pantFrontDetail: false }));
-  }
-  }, [category]);
-
 
   React.useEffect(() => {
     const calc = () => setIsMobile(window.innerWidth < 640);
@@ -388,7 +380,6 @@ export default function Home() {
   side: false,
   frontDetail: false,
   backDetail: false,
-  pantFrontDetail: false,
 });
 
 
@@ -823,10 +814,9 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail", "pantFrontDetail"] as const).filter(
+    const keysInOrder = (["front", "back", "side", "frontDetail", "backDetail"] as const).filter(
   (k) => (views as any)[k]
 );
-
 setResultKeys(keysInOrder as any);
 
 
@@ -1397,9 +1387,6 @@ setResultKeys(keysInOrder as any);
                 { key: "side", label: "Costado Completo" },
                 { key: "frontDetail", label: "Detalle Frente" },
                 { key: "backDetail", label: "Detalle Espalda" },
-                 ...(category === "Pantalón/Short/Pollera/Falda"
-                    ? [{ key: "pantFrontDetail", label: "Detalle Pantalón Frente" }]
-                    : []),
                 ].map((v) => (
                   <label
                     key={v.key}
