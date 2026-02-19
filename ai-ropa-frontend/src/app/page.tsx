@@ -61,6 +61,26 @@ export default function Home() {
     left: false,
     right: false,
   });
+const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
+const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
+
+function mergeFiles(prev: File[], incoming: File[]) {
+  // evita duplicados por: name + size + lastModified
+  const map = new Map<string, File>();
+  for (const f of prev) map.set(`${f.name}-${f.size}-${f.lastModified}`, f);
+  for (const f of incoming) map.set(`${f.name}-${f.size}-${f.lastModified}`, f);
+  return Array.from(map.values());
+}
+
+function addProductFiles(files: File[]) {
+  if (!files.length) return;
+  setProductFiles((prev) => mergeFiles(prev, files));
+}
+
+function removeProductFile(index: number) {
+  setProductFiles((prev) => prev.filter((_, i) => i !== index));
+}
+
 
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
@@ -605,29 +625,124 @@ export default function Home() {
             <FieldTitle>1) Subí fotos</FieldTitle>
 
             {mode === "product" ? (
-              <Box>
-                <Label>Fotos del producto (cuantas más, mejor)</Label>
-                <InputFiles onChange={setProductFiles} />
-                {productFiles.length > 0 && (
-                  <SmallMuted>
-                    {productFiles.length} archivo(s): {productFiles.map((f) => f.name).join(", ")}
-                  </SmallMuted>
-                )}
-              </Box>
-            ) : (
-              <TwoCols>
-                <Box>
-                  <Label>Delantera (obligatorio)</Label>
-                  <InputFile onChange={(f) => setFrontFile(f)} />
-                  {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
-                </Box>
-                <Box>
-                  <Label>Espalda (opcional)</Label>
-                  <InputFile onChange={(f) => setBackFile(f)} />
-                  {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
-                </Box>
-              </TwoCols>
-            )}
+  <Box>
+    <Label>Fotos del producto (cuantas más, mejor)</Label>
+
+    {/* Inputs ocultos */}
+    <input
+      ref={cameraInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={(e) => {
+        const files = Array.from(e.target.files || []);
+        addProductFiles(files);
+        // permitir volver a sacar la misma foto (reset value)
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+
+    <input
+      ref={galleryInputRef}
+      type="file"
+      accept="image/*"
+      multiple
+      onChange={(e) => {
+        const files = Array.from(e.target.files || []);
+        addProductFiles(files);
+        e.currentTarget.value = "";
+      }}
+      style={{ display: "none" }}
+    />
+
+    {/* Botonera pro */}
+    <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => {
+          // en desktop también puede abrir cámara si está disponible; si no, abre selector normal
+          cameraInputRef.current?.click();
+        }}
+        style={{
+          ...styles.buyBtnFull,
+          height: 44,
+          boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+        }}
+      >
+        📷 Sacar foto
+      </button>
+
+      <button
+        type="button"
+        onClick={() => galleryInputRef.current?.click()}
+        style={{
+          ...styles.logoutBtnFull,
+          height: 44,
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+        }}
+      >
+        🖼️ Elegir de galería
+      </button>
+    </div>
+
+    {/* contador */}
+    {productFiles.length > 0 && (
+      <SmallMuted style={{ marginTop: 10 }}>
+        {productFiles.length} foto(s) cargada(s)
+      </SmallMuted>
+    )}
+
+    {/* preview + borrar */}
+    {productFiles.length > 0 && (
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 900, marginBottom: 10 }}>Preview</div>
+
+        <div style={styles.previewGrid}>
+          {productFiles.map((file, i) => (
+            <div key={`${file.name}-${file.size}-${file.lastModified}-${i}`} style={styles.previewCard}>
+              <img src={URL.createObjectURL(file)} alt={`producto-${i}`} style={styles.previewImg} />
+
+              <button
+                type="button"
+                onClick={() => removeProductFile(i)}
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  height: 36,
+                  borderRadius: 12,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                ❌ Quitar
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </Box>
+) : (
+  <TwoCols>
+    <Box>
+      <Label>Delantera (obligatorio)</Label>
+      <InputFile onChange={(f) => setFrontFile(f)} isMobile={isMobile} />
+      {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
+    </Box>
+    <Box>
+      <Label>Espalda (opcional)</Label>
+      <InputFile onChange={(f) => setBackFile(f)} isMobile={isMobile} />
+      {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
+    </Box>
+  </TwoCols>
+)}
+
           </>
         );
 
@@ -1572,10 +1687,25 @@ function TextInput({
     />
   );
 }
-
-function InputFile({ onChange }: { onChange: (f: File | null) => void }) {
-  return <input type="file" accept="image/*" onChange={(e) => onChange(e.target.files?.[0] || null)} style={styles.file} />;
+function InputFile({
+  onChange,
+  isMobile,
+}: {
+  onChange: (f: File | null) => void;
+  isMobile?: boolean;
+}) {
+  return (
+    <input
+      type="file"
+      accept="image/*"
+      {...(isMobile ? ({ capture: "environment" } as any) : {})}
+      onChange={(e) => onChange(e.target.files?.[0] || null)}
+      style={styles.file}
+    />
+  );
 }
+
+
 
 function InputFiles({ onChange }: { onChange: (files: File[]) => void }) {
   return (
