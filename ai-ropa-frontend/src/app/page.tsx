@@ -111,6 +111,8 @@ export default function Home() {
       signIn: "Iniciar sesión",
       signInHint: "Accedé con tu cuenta de Google para usar el generador",
       stepUploadModel: "Subir fotos",
+      frontRequired: "Delantera (obligatorio)",
+
     },
     en: {
       title: "AI Generator ✅",
@@ -130,6 +132,8 @@ export default function Home() {
       hMeasures: "4) Measurements (optional)",
       errUploadProduct: "Upload at least 1 product photo.",
       errUploadFront: "Upload the front photo (required).",
+      frontRequired: "Front (required)",
+
     },
     pt: {
       title: "Gerador AI",
@@ -959,7 +963,8 @@ void fetchEntries();
               <TwoCols>
                 {/* DELANTERA */}
                 <Box>
-                  <Label>Delantera (obligatorio)</Label>
+                  <Label>{tr("frontRequired")}</Label>
+
 
                   <input
                     ref={frontCameraRef}
