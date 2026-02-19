@@ -518,6 +518,40 @@ TOMA OBLIGATORIA – COSTADO COMPLETO:
 `
     : "";
 
+const backFullHint =
+  v.key === "back"
+    ? `
+TOMA OBLIGATORIA – ESPALDA COMPLETA (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente trasera (espalda directa).
+- NO 3/4.
+- NO perfil.
+- La cara NO debe verse (o solo mínimamente de lado si es inevitable).
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados a los lados (no tapar la espalda de la prenda).
+- Pies apoyados, cuerpo derecho.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
 const detailHint =
   v.key === "frontDetail"
     ? `
@@ -600,6 +634,7 @@ ${basePrompt}
 Cámara: ${v.label}.
 ${frontFullHint}
 ${extraBackHint}
+${backFullHint}
 ${sideHint}
 ${detailHint}
 ${backDetailHint}
