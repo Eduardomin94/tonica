@@ -436,6 +436,8 @@ Fondo: ${background}
   { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
   { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
   { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
+  { key: "pantFrontDetail", label: "detalle pantalón frente (desde cintura hasta pies)" },
+
 
 ].filter((v) => selectedViews?.[v.key]);
 
