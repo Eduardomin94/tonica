@@ -219,7 +219,10 @@ app.post(
       selectedViews = {};
     }
 
-    const requestedKeys = ["front", "back", "side"].filter((k) => !!selectedViews?.[k]);
+   const requestedKeys = ["front", "back", "side", "frontDetail"].filter(
+  (k) => !!selectedViews?.[k]
+);
+
 
 
     const COST = requestedKeys.length;
@@ -430,6 +433,7 @@ Fondo: ${background}
   { key: "front", label: "vista frontal completa" },
   { key: "back", label: "vista trasera completa" },
   { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
+  { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
 ].filter((v) => selectedViews?.[v.key]);
 
 
@@ -456,12 +460,26 @@ TOMA OBLIGATORIA – COSTADO COMPLETO:
 `
     : "";
 
+const detailHint =
+  v.key === "frontDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE FRENTE:
+- Plano medio cerrado.
+- Encuadre desde el pecho hasta la cintura.
+- No mostrar piernas completas.
+- No mostrar cuerpo entero.
+- Foco en la prenda y textura.
+- Mantener misma modelo y mismo rostro.
+`
+    : "";
+
 const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
 ${extraBackHint}
 ${sideHint}
+${detailHint}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
