@@ -59,7 +59,14 @@ export default function Home() {
   const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
   const [buyLoading, setBuyLoading] = useState(false);
 
-  const [mobileStepsOpen, setMobileStepsOpen] = useState(false);1
+  const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
+  const [viewsProduct, setViewsProduct] = useState({
+  front: true,
+  back: false,
+  left: false,
+  right: false,
+});
+
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -1376,8 +1383,9 @@ void fetchEntries();
                     <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
                     <input
                       type="checkbox"
-                      checked={(views as any)[v.key]}
-                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+                      checked={(viewsProduct as any)[v.key]}
+onChange={(e) => setViewsProduct((prev) => ({ ...prev, [v.key]: e.target.checked }))}
+
                       style={{ width: 18, height: 18 }}
                     />
                   </label>
