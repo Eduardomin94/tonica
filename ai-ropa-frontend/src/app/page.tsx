@@ -42,6 +42,10 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
+  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
+const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
+
+
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -551,6 +555,121 @@ function removeProductFile(index: number) {
       if (!pose) return (goToFirstErrorStep(), setError("Falta pose."));
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
+    async function downloadImage(url: string, filename = "imagen.png") {
+  try {
+    const r = await fetch(url);
+    const blob = await r.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(objectUrl);
+  } catch (e) {
+    // fallback: abrir en pestaña
+    window.open(url, "_blank");
+  }
+}
+
+async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right", index: number) {
+  setError(null);
+  if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+  if (balance < 1) return setError("Créditos insuficientes para rehacer (1 crédito).");
+
+  // Validaciones básicas según modo
+  if (mode === "product") {
+    if (productFiles.length === 0) return setError("Subí al menos 1 foto del producto.");
+    if (!scene.trim() || wordCount(scene) > 10) return setError("Escribí la escena (máx 10 palabras).");
+  } else {
+    if (!frontFile) return setError("Falta la foto delantera.");
+    if (!category) return setError("Falta categoría.");
+    if (!pockets) return setError("Falta bolsillos.");
+    if (!modelType) return setError("Falta modelo.");
+    if (!ethnicity) return setError("Falta etnia.");
+    if (!ageRange) return setError("Falta edad.");
+    if (!background.trim() || wordCount(background) > 10) return setError("Falta fondo (máx 10 palabras).");
+    if (!pose) return setError("Falta pose.");
+    if (!bodyType) return setError("Falta tipo de cuerpo.");
+  }
+
+  const key = `${mode}:${viewKey}:${index}`;
+  setRegenLoading((m) => ({ ...m, [key]: true }));
+
+  try {
+    const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
+
+    const fd = new FormData();
+    fd.append("mode", mode);
+    fd.append("views", JSON.stringify(oneView));
+
+    if (mode === "product") {
+      productFiles.forEach((f) => fd.append("product_images", f));
+      fd.append("scene", scene.trim());
+    } else {
+      fd.append("front", frontFile as File);
+      if (backFile) fd.append("back", backFile);
+
+      fd.append("category", category);
+      if (category === "otro") fd.append("other_category", otherCategory.trim());
+      fd.append("pockets", pockets);
+
+      fd.append("hombros", measures.hombros);
+      fd.append("pecho", measures.pecho);
+      fd.append("manga", measures.manga);
+      fd.append("cintura", measures.cintura);
+      fd.append("cadera", measures.cadera);
+      fd.append("largo", measures.largo);
+
+      fd.append("model_type", modelType);
+      fd.append("ethnicity", ethnicity);
+      fd.append("age_range", ageRange);
+      fd.append("background", background.trim());
+      fd.append("pose", pose);
+      fd.append("body_type", bodyType);
+    }
+
+    const token = localStorage.getItem("accessToken");
+
+    const res = await fetch(`${API}/generate`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || data?.message || "Error rehaciendo");
+
+    let url = "";
+    if (Array.isArray(data?.imageUrls) && data.imageUrls[0]) url = data.imageUrls[0];
+    else if (typeof data?.imageUrl === "string") url = data.imageUrl;
+
+    if (!url) throw new Error("El servidor no devolvió imagen.");
+
+    const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
+
+    setResult((prev) => {
+      if (!prev) return prev;
+      const copy = [...prev.imageUrls];
+      copy[index] = absolute;
+      return { ...prev, imageUrls: copy };
+    });
+
+    await fetchMe();
+    await fetchEntries();
+  } catch (e: any) {
+    setError(String(e?.message || e));
+  } finally {
+    setRegenLoading((m) => ({ ...m, [key]: false }));
+  }
+}
+
+
+      const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
+setResultKeys(keysInOrder as any);
 
     setLoading(true);
     try {
@@ -1196,11 +1315,64 @@ function removeProductFile(index: number) {
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
                 <div style={styles.resultGrid}>
-                  {result.imageUrls.map((u, idx) => (
-                    <div key={idx} style={styles.imgCard}>
-                      <img src={u} alt={`img-${idx}`} style={{ width: "100%", display: "block" }} />
-                    </div>
-                  ))}
+                  {result.imageUrls.map((u, idx) => {
+  const viewKey = resultKeys[idx] || "front";
+  const loadKey = `${mode}:${viewKey}:${idx}`;
+  const label =
+    mode === "product"
+      ? viewKey === "front"
+        ? "Toma principal"
+        : viewKey === "back"
+          ? "Ángulo alternativo"
+          : viewKey === "left"
+            ? "Detalle cercano"
+            : "Otro ángulo"
+      : viewKey === "front"
+        ? "Delantera"
+        : viewKey === "back"
+          ? "Espalda"
+          : viewKey === "left"
+            ? "Frente izquierda"
+            : "Frente derecha";
+
+  return (
+    <div key={idx} style={styles.imgCard}>
+      <img src={u} alt={`img-${idx}`} style={{ width: "100%", display: "block" }} />
+
+      <div style={{ padding: 10, display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 900, color: "#0f172a" }}>{label}</div>
+
+        <button
+          type="button"
+          onClick={() => downloadImage(u, `${mode}-${label.replace(/\s+/g, "-").toLowerCase()}.png`)}
+          style={{
+            ...styles.logoutBtnFull,
+            height: 40,
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          ⬇️ Descargar
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleRegenerateOne(viewKey as any, idx)}
+          disabled={!!regenLoading[loadKey] || balance < 1}
+          style={{
+            ...styles.buyBtnFull,
+            height: 40,
+            opacity: !!regenLoading[loadKey] || balance < 1 ? 0.6 : 1,
+            cursor: !!regenLoading[loadKey] || balance < 1 ? "not-allowed" : "pointer",
+          }}
+        >
+          {regenLoading[loadKey] ? "Rehaciendo..." : balance < 1 ? "Sin créditos (1)" : "🔁 Rehacer (1 crédito)"}
+        </button>
+      </div>
+    </div>
+  );
+})}
+
                 </div>
               </div>
             )}
