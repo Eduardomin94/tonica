@@ -1372,71 +1372,88 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
                     : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
             </Button>
 
-            {result && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
-                <div style={styles.resultGrid}>
-                  {result.imageUrls.map((u, idx) => {
-  const viewKey = resultKeys[idx] || "front";
-  const loadKey = `${mode}:${viewKey}:${idx}`;
-  const label =
-    mode === "product"
-      ? viewKey === "front"
-        ? "Toma principal"
-        : viewKey === "back"
-          ? "Ángulo alternativo"
-          : viewKey === "left"
-            ? "Detalle cercano"
-            : "Otro ángulo"
-      : viewKey === "front"
-        ? "Delantera"
-        : viewKey === "back"
-          ? "Espalda"
-          : viewKey === "left"
-            ? "Frente izquierda"
-            : "Frente derecha";
+        {result && (
+  <div style={{ marginTop: 16 }}>
+    <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
 
-  return (
-    <div key={idx} style={styles.imgCard}>
-      <img src={u} alt={`img-${idx}`} style={{ width: "100%", display: "block" }} />
+    <div style={styles.resultGrid}>
+      {result.imageUrls.map((u, idx) => {
+        const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
+        const loadKey = `${mode}:${viewKey}:${idx}`;
 
-      <div style={{ padding: 10, display: "grid", gap: 8 }}>
-        <div style={{ fontWeight: 900, color: "#0f172a" }}>{label}</div>
+        const label =
+          mode === "product"
+            ? viewKey === "front"
+              ? "Toma principal"
+              : viewKey === "back"
+                ? "Ángulo alternativo"
+                : viewKey === "left"
+                  ? "Detalle cercano"
+                  : "Otro ángulo"
+            : viewKey === "front"
+              ? "Delantera"
+              : viewKey === "back"
+                ? "Espalda"
+                : viewKey === "left"
+                  ? "Frente izquierda"
+                  : "Frente derecha";
 
-        <button
-          type="button"
-          onClick={() => downloadImage(u, `${mode}-${label.replace(/\s+/g, "-").toLowerCase()}.png`)}
-          style={{
-            ...styles.logoutBtnFull,
-            height: 40,
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          ⬇️ Descargar
-        </button>
+        return (
+          <div key={idx} style={{ display: "grid", gap: 10 }}>
+            {/* Imagen */}
+            <div style={styles.imgCard}>
+              <img src={u} alt={`img-${idx}`} style={{ width: "100%", display: "block" }} />
+            </div>
 
-        <button
-          type="button"
-          onClick={() => handleRegenerateOne(viewKey as any, idx)}
-          disabled={!!regenLoading[loadKey] || balance < 1}
-          style={{
-            ...styles.buyBtnFull,
-            height: 40,
-            opacity: !!regenLoading[loadKey] || balance < 1 ? 0.6 : 1,
-            cursor: !!regenLoading[loadKey] || balance < 1 ? "not-allowed" : "pointer",
-          }}
-        >
-          {regenLoading[loadKey] ? "Rehaciendo..." : balance < 1 ? "Sin créditos (1)" : "🔁 Rehacer (1 crédito)"}
-        </button>
-      </div>
-    </div>
-  );
-})}
+            {/* Botones (afuera de imgCard para que no se “pierdan”) */}
+            <div
+              style={{
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.06)",
+                padding: 12,
+              }}
+            >
+              <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.9)" }}>{label}</div>
 
-                </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => downloadImage(u, `${mode}-${label.replace(/\s+/g, "-").toLowerCase()}.png`)}
+                  style={{
+                    ...styles.logoutBtnFull,
+                    height: 44,
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  ⬇️ Descargar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRegenerateOne(viewKey, idx)}
+                  disabled={!!regenLoading[loadKey] || balance < 1}
+                  style={{
+                    ...styles.buyBtnFull,
+                    height: 44,
+                    opacity: !!regenLoading[loadKey] || balance < 1 ? 0.6 : 1,
+                    cursor: !!regenLoading[loadKey] || balance < 1 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {regenLoading[loadKey] ? "Rehaciendo..." : balance < 1 ? "Sin créditos (1)" : "🔁 Rehacer (1 crédito)"}
+                </button>
               </div>
-            )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
+
+           
           </>
         );
 
