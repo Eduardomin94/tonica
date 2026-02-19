@@ -1364,11 +1364,10 @@ void fetchEntries();
                 </div>
 
                 {[
-                  { key: "front", label: "Frente" },
-                  { key: "back", label: "Espalda" },
-                  { key: "left", label: "Costado izquierda" },
-                  { key: "right", label: "Costado derecha" },
-                ].map((v) => (
+  { key: "front", label: "Frente Completo" },
+  { key: "back", label: "Espalda Completo" },
+].map((v) => (
+
                   <label
                     key={v.key}
                     style={{
