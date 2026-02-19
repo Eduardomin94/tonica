@@ -44,6 +44,7 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
+  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -60,13 +61,13 @@ export default function Home() {
   const [buyLoading, setBuyLoading] = useState(false);
 
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
-  const [viewsProduct, setViewsProduct] = useState({
-  front: true,
-  back: false,
-  left: false,
-  right: false,
-});
 
+  const [views, setViews] = useState({
+    front: true,
+    back: false,
+    left: false,
+    right: false,
+  });
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -95,8 +96,7 @@ export default function Home() {
     setProductFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const [language, setLanguage] = useState("en");
-
+  const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
 
   const translations = {
     es: {
@@ -110,12 +110,9 @@ export default function Home() {
       back: "Atrás",
       signIn: "Iniciar sesión",
       signInHint: "Accedé con tu cuenta de Google para usar el generador",
-      stepUploadModel: "Subir fotos",
-      frontRequired: "Delantera (obligatorio)",
-
     },
     en: {
-      title: "AI Generator ✅",
+      title: "AI Generator",
       subtitle: "Choose the type of image you want to generate",
       buyCredits: "Buy credits",
       logout: "Log out",
@@ -125,15 +122,6 @@ export default function Home() {
       back: "Back",
       signIn: "Sign in",
       signInHint: "Sign in with Google to use the generator",
-      stepUploadModel: "Upload photos",
-      hUpload: "1) Upload photos",
-      hCategory: "2) Choose category",
-      hPockets: "3) Does it have pockets?",
-      hMeasures: "4) Measurements (optional)",
-      errUploadProduct: "Upload at least 1 product photo.",
-      errUploadFront: "Upload the front photo (required).",
-      frontRequired: "Front (required)",
-
     },
     pt: {
       title: "Gerador AI",
@@ -173,8 +161,7 @@ export default function Home() {
     },
   } as const;
 
- const tr = (key: string) =>
-  (translations as any)[language]?.[key] ?? (translations as any).es?.[key] ?? key;
+  const t = (key: keyof typeof translations.es) => translations[language][key];
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
@@ -310,25 +297,18 @@ export default function Home() {
     return () => window.clearInterval(id);
   }, [isRegenBusy]);
 
- React.useEffect(() => {
-  try {
-    if (!result) {
-      localStorage.removeItem(LAST_RESULT_KEY);
-      return;
-    }
-    const payload = { result, mode, savedAt: Date.now() };
-    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
-  } catch {}
-}, [result, mode]);
+  React.useEffect(() => {
+    try {
+      if (!result) {
+        localStorage.removeItem(LAST_RESULT_KEY);
+        return;
+      }
+      const payload = { result, resultKeys, mode, savedAt: Date.now() };
+      localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
+    } catch {}
+  }, [result, resultKeys, mode]);
 
-
-  const selectedCount = useMemo(() => {
-  const currentViews = mode === "product" ? viewsProduct : viewsModel;
-
-  return Object.values(currentViews).filter(Boolean).length;
-}, [mode, viewsProduct, viewsModel]
-);
-
+  const selectedCount = useMemo(() => Object.values(views).filter(Boolean).length, [views]);
   const creditsNeeded = selectedCount;
   const hasSelection = creditsNeeded > 0;
 
@@ -340,29 +320,27 @@ export default function Home() {
   }, [modelType]);
 
   const steps = useMemo(() => {
-  if (mode === "product") {
+    if (mode === "product") {
+      return [
+        { title: "Fotos", key: "upload" },
+        { title: "Escena", key: "scene" },
+        { title: "Generar", key: "generate" },
+      ];
+    }
     return [
-      { title: tr("stepUploadProduct"), key: "upload" },
-      { title: tr("stepScene"), key: "scene" },
-      { title: tr("stepGenerate"), key: "generate" },
+      { title: "Subir fotos", key: "upload" },
+      { title: "Categoría", key: "category" },
+      { title: "Bolsillos", key: "pockets" },
+      { title: "Medidas (opcional)", key: "measures" },
+      { title: "Modelo", key: "model" },
+      { title: "Etnia", key: "ethnicity" },
+      { title: "Edad", key: "age" },
+      { title: "Fondo", key: "background" },
+      { title: "Pose", key: "pose" },
+      { title: "Tipo de cuerpo", key: "bodyType" },
+      { title: "Generar", key: "generate" },
     ];
-  }
-
-  return [
-    { title: tr("stepUploadModel"), key: "upload" },
-    { title: tr("stepCategory"), key: "category" },
-    { title: tr("stepPockets"), key: "pockets" },
-    { title: tr("stepMeasures"), key: "measures" },
-    { title: tr("stepModel"), key: "model" },
-    { title: tr("stepEthnicity"), key: "ethnicity" },
-    { title: tr("stepAge"), key: "age" },
-    { title: tr("stepBackground"), key: "background" },
-    { title: tr("stepPose"), key: "pose" },
-    { title: tr("stepBodyType"), key: "bodyType" },
-    { title: tr("stepGenerate"), key: "generate" },
-  ];
-}, [mode, language]);
-
+  }, [mode]);
 
   React.useEffect(() => {
     // ✅ si estamos restaurando desde localStorage, NO borres el resultado
@@ -393,19 +371,7 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({
-  full_front: true,
-  full_side: false,
-  full_back: false,
-  detail_front: false,
-  detail_back: false,
-  detail_pants_front: false,
-  detail_pants_side: false,
-  detail_pants_back: false,
-} as any);
-setViewsProduct({ front: true, back: false, left: false, right: false } as any);
-
-
+    setViews({ front: true, back: false, left: false, right: false });
   }, [mode]);
 
   React.useEffect(() => {
@@ -444,11 +410,10 @@ setViewsProduct({ front: true, back: false, left: false, right: false } as any);
   const stepError = useMemo(() => {
     const key = steps[step]?.key;
 
-   if (key === "upload") {
-  if (mode === "product") return productFiles.length === 0 ? tr("errUploadProduct") : null;
-  return !frontFile ? tr("errUploadFront") : null;
-}
-
+    if (key === "upload") {
+      if (mode === "product") return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
+      return !frontFile ? "Subí la foto Delantera (obligatorio)." : null;
+    }
 
     if (key === "category") {
       if (!category) return "Elegí una categoría.";
@@ -497,7 +462,6 @@ setViewsProduct({ front: true, back: false, left: false, right: false } as any);
     pose,
     bodyType,
     scene,
-    language,
   ]);
 
   const canGoNext = !stepError && !loading;
@@ -612,8 +576,7 @@ setViewsProduct({ front: true, back: false, left: false, right: false } as any);
   }
 
 async function handleRegenerateOne(
-  viewKey: ViewKey,
-
+  viewKey: "front" | "back" | "left" | "right",
   index: number
 ) {
   setError(null);
@@ -823,8 +786,7 @@ void fetchEntries();
         return setError("Elegí al menos 1 vista.");
       }
     } else {
-      if (!frontFile) return (goToFirstErrorStep(), setError(tr("errUploadFront"))
-);
+      if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
       if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
       if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
         return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
@@ -839,10 +801,7 @@ void fetchEntries();
     }
 
     // Guardar orden de vistas para poder rehacer individualmente
-    const keysInOrder = Object.keys(views).filter(
-  (k) => views[k as ViewKey]
-) as ViewKey[];
-
+    const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
     setResultKeys(keysInOrder as any);
 
     setLoading(true);
@@ -918,8 +877,7 @@ void fetchEntries();
       case "upload":
         return (
           <>
-            <FieldTitle>{tr("hUpload")}</FieldTitle>
-
+            <FieldTitle>1) Subí fotos</FieldTitle>
 
             {mode === "product" ? (
               <Box>
@@ -987,8 +945,7 @@ void fetchEntries();
               <TwoCols>
                 {/* DELANTERA */}
                 <Box>
-                  <Label>{tr("frontRequired")}</Label>
-
+                  <Label>Delantera (obligatorio)</Label>
 
                   <input
                     ref={frontCameraRef}
@@ -1107,8 +1064,7 @@ void fetchEntries();
       case "category":
         return (
           <>
-            <FieldTitle>{tr("hCategory")}</FieldTitle>
-
+            <FieldTitle>2) Elegí la categoría</FieldTitle>
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {CATEGORIES.map((c) => (
@@ -1140,8 +1096,7 @@ void fetchEntries();
       case "pockets":
         return (
           <>
-            <FieldTitle>{tr("hPockets")}</FieldTitle>
-
+            <FieldTitle>3) ¿Tiene bolsillos?</FieldTitle>
             <RadioPills
               value={pockets}
               onChange={(v) => setPockets(v as any)}
@@ -1156,8 +1111,7 @@ void fetchEntries();
       case "measures":
         return (
           <>
-            <FieldTitle>{tr("hMeasures")}</FieldTitle>
-
+            <FieldTitle>4) Medidas (opcional)</FieldTitle>
             <SmallMuted>Podés poner cm. Ej: 52cm</SmallMuted>
 
             <Grid3>
@@ -1362,10 +1316,8 @@ void fetchEntries();
                 </div>
               )}
             </div>
-<div style={{ color: "yellow", fontWeight: 900, marginBottom: 10 }}>DEBUG mode: {mode}</div>
 
             {mode === "product" ? (
-              
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   ¿Qué vistas querés generar?
@@ -1394,9 +1346,8 @@ void fetchEntries();
                     <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
                     <input
                       type="checkbox"
-                      checked={(viewsProduct as any)[v.key]}
-                      onChange={(e) => setViewsProduct((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-
+                      checked={(views as any)[v.key]}
+                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
                       style={{ width: 18, height: 18 }}
                     />
                   </label>
@@ -1412,17 +1363,12 @@ void fetchEntries();
                   ¿Qué vistas querés generar?
                 </div>
 
-               {[
-  { key: "full_front", label: "Frente completo" },
-  { key: "full_side", label: "Costado completo" },
-  { key: "full_back", label: "Espalda completo" },
-  { key: "detail_front", label: "Detalle frente" },
-  { key: "detail_back", label: "Detalle espalda" },
-  { key: "detail_pants_front", label: "Detalle pantalón frente" },
-  { key: "detail_pants_side", label: "Detalle pantalón costado" },
-  { key: "detail_pants_back", label: "Detalle pantalón espalda" },
-].map((v) => (
-
+                {[
+                  { key: "front", label: "Delantera" },
+                  { key: "back", label: "Espalda" },
+                  { key: "left", label: "Frente izquierda" },
+                  { key: "right", label: "Frente derecha" },
+                ].map((v) => (
                   <label
                     key={v.key}
                     style={{
@@ -1473,7 +1419,7 @@ void fetchEntries();
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = resultKeys[idx] || "front";
+                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
@@ -1486,22 +1432,13 @@ void fetchEntries();
                           : viewKey === "left"
                           ? "Detalle cercano"
                           : "Otro ángulo"
-                          : viewKey === "full_front"
-                          ? "Frente completo"
-                          : viewKey === "full_side"
-                          ? "Costado completo"
-                          : viewKey === "full_back"
-                          ? "Espalda completo"
-                          : viewKey === "detail_front"
-                          ? "Detalle frente"
-                          : viewKey === "detail_back"
-                          ? "Detalle espalda"
-                          : viewKey === "detail_pants_front"
-                          ? "Detalle pantalón frente"
-                          : viewKey === "detail_pants_side"
-                          ? "Detalle pantalón costado"
-                          : "Detalle pantalón espalda";
-
+                        : viewKey === "front"
+                        ? "Delantera"
+                        : viewKey === "back"
+                        ? "Espalda"
+                        : viewKey === "left"
+                        ? "Frente izquierda"
+                        : "Frente derecha";
 
                     return (
                       <div key={idx} style={{ display: "grid", gap: 10 }}>
