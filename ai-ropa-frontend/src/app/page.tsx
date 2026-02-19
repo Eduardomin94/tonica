@@ -129,7 +129,8 @@ export default function Home() {
       hCategory: "2) Choose category",
       hPockets: "3) Does it have pockets?",
       hMeasures: "4) Measurements (optional)",
-
+      errUploadProduct: "Upload at least 1 product photo.",
+      errUploadFront: "Upload the front photo (required).",
     },
     pt: {
       title: "Gerador AI",
@@ -421,10 +422,11 @@ export default function Home() {
   const stepError = useMemo(() => {
     const key = steps[step]?.key;
 
-    if (key === "upload") {
-      if (mode === "product") return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
-      return !frontFile ? tr("errUploadFront") : null;
-    }
+   if (key === "upload") {
+  if (mode === "product") return productFiles.length === 0 ? tr("errUploadProduct") : null;
+  return !frontFile ? tr("errUploadFront") : null;
+}
+
 
     if (key === "category") {
       if (!category) return "Elegí una categoría.";
