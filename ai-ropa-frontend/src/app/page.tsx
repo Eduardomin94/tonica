@@ -316,7 +316,8 @@ export default function Home() {
         localStorage.removeItem(LAST_RESULT_KEY);
         return;
       }
-      const payload = { result, resultKeys, mode, savedAt: Date.now() };
+      const payload = { result, resultKeys: (typeof resultKeys !== "undefined" ? resultKeys : []), mode, savedAt: Date.now() };
+
       localStorage.setItem(LAST_RESULT_KEY, JSON.stringify(payload));
     } catch {}
   }, [result, resultKeys, mode]);
