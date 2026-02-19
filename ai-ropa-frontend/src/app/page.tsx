@@ -627,241 +627,195 @@ function removeProductFile(index: number) {
   const panel = useMemo(() => {
     switch (steps[step].key) {
       case "upload":
-        return (
-          <>
-            <FieldTitle>1) Subí fotos</FieldTitle>
+  return (
+    <>
+      <FieldTitle>1) Subí fotos</FieldTitle>
 
-            {mode === "product" ? (
-  <Box>
-    <Label>Fotos del producto (cuantas más, mejor)</Label>
+      {mode === "product" ? (
+        <Box>
+          <Label>Fotos del producto (cuantas más, mejor)</Label>
 
-    {/* Inputs ocultos */}
-    <input
-      ref={cameraInputRef}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      onChange={(e) => {
-        const files = Array.from(e.target.files || []);
-        addProductFiles(files);
-        // permitir volver a sacar la misma foto (reset value)
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
+          {/* Inputs ocultos */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              addProductFiles(files);
+              e.currentTarget.value = "";
+            }}
+            style={{ display: "none" }}
+          />
 
-    <input
-      ref={galleryInputRef}
-      type="file"
-      accept="image/*"
-      multiple
-      onChange={(e) => {
-        const files = Array.from(e.target.files || []);
-        addProductFiles(files);
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              addProductFiles(files);
+              e.currentTarget.value = "";
+            }}
+            style={{ display: "none" }}
+          />
 
-    {/* Botonera pro */}
-    <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-      <button
-        type="button"
-        onClick={() => {
-          // en desktop también puede abrir cámara si está disponible; si no, abre selector normal
-          cameraInputRef.current?.click();
-        }}
-        style={{
-          ...styles.buyBtnFull,
-          height: 44,
-          boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
-          background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-        }}
-      >
-        📷 Sacar foto
-      </button>
+          <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              style={{
+                ...styles.buyBtnFull,
+                height: 44,
+                boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+              }}
+            >
+              📷 Sacar foto
+            </button>
 
-      <button
-        type="button"
-        onClick={() => galleryInputRef.current?.click()}
-        style={{
-          ...styles.logoutBtnFull,
-          height: 44,
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-        }}
-      >
-        🖼️ Elegir de galería
-      </button>
-    </div>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              style={{
+                ...styles.logoutBtnFull,
+                height: 44,
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              🖼️ Elegir de galería
+            </button>
+          </div>
 
-    {/* contador */}
-    {productFiles.length > 0 && (
-      <SmallMuted style={{ marginTop: 10 }}>
-        {productFiles.length} foto(s) cargada(s)
-      </SmallMuted>
-    )}
+          {productFiles.length > 0 && (
+            <SmallMuted style={{ marginTop: 10 }}>{productFiles.length} foto(s) cargada(s)</SmallMuted>
+          )}
+        </Box>
+      ) : (
+        <TwoCols>
+          {/* DELANTERA */}
+          <Box>
+            <Label>Delantera (obligatorio)</Label>
 
-    {/* preview + borrar */}
-    {productFiles.length > 0 && (
-      <div style={{ marginTop: 12 }}>
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>Preview</div>
+            <input
+              ref={frontCameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                setFrontFile(e.target.files?.[0] || null);
+                e.currentTarget.value = "";
+              }}
+              style={{ display: "none" }}
+            />
 
-        <div style={styles.previewGrid}>
-          {productFiles.map((file, i) => (
-            <div key={`${file.name}-${file.size}-${file.lastModified}-${i}`} style={styles.previewCard}>
-              <img src={URL.createObjectURL(file)} alt={`producto-${i}`} style={styles.previewImg} />
+            <input
+              ref={frontGalleryRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setFrontFile(e.target.files?.[0] || null);
+                e.currentTarget.value = "";
+              }}
+              style={{ display: "none" }}
+            />
+
+            <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => frontCameraRef.current?.click()}
+                style={{
+                  ...styles.buyBtnFull,
+                  height: 44,
+                  boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                }}
+              >
+                📷 Sacar foto
+              </button>
 
               <button
                 type="button"
-                onClick={() => removeProductFile(i)}
+                onClick={() => frontGalleryRef.current?.click()}
                 style={{
-                  marginTop: 8,
-                  width: "100%",
-                  height: 36,
-                  borderRadius: 12,
-                  border: "1px solid #fecaca",
-                  background: "#fef2f2",
-                  color: "#991b1b",
-                  fontWeight: 900,
-                  cursor: "pointer",
+                  ...styles.logoutBtnFull,
+                  height: 44,
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
                 }}
               >
-                ❌ Quitar
+                🖼️ Elegir de galería
               </button>
             </div>
-          ))}
-        </div>
-      </div>
-    )}
-  </Box>
-) : (
-  <TwoCols>
-    {/* DELANTERA */}
-    <Box>
-      <Label>Delantera (obligatorio)</Label>
 
-      {/* inputs ocultos */}
-      <input
-        ref={frontCameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          setFrontFile(e.target.files?.[0] || null);
-          e.currentTarget.value = "";
-        }}
-        style={{ display: "none" }}
-      />
+            {frontFile && <SmallMuted style={{ marginTop: 10 }}>{frontFile.name}</SmallMuted>}
+          </Box>
 
-      <input
-        ref={frontGalleryRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          setFrontFile(e.target.files?.[0] || null);
-          e.currentTarget.value = "";
-        }}
-        style={{ display: "none" }}
-      />
+          {/* ESPALDA */}
+          <Box>
+            <Label>Espalda (opcional)</Label>
 
-      {/* botonera igual a foto producto */}
-      <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-        <button
-          type="button"
-          onClick={() => frontCameraRef.current?.click()}
-          style={{
-            ...styles.buyBtnFull,
-            height: 44,
-            boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-          }}
-        >
-          📷 Sacar foto
-        </button>
+            <input
+              ref={backCameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                setBackFile(e.target.files?.[0] || null);
+                e.currentTarget.value = "";
+              }}
+              style={{ display: "none" }}
+            />
 
-        <button
-          type="button"
-          onClick={() => frontGalleryRef.current?.click()}
-          style={{
-            ...styles.logoutBtnFull,
-            height: 44,
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          🖼️ Elegir de galería
-        </button>
-      </div>
+            <input
+              ref={backGalleryRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setBackFile(e.target.files?.[0] || null);
+                e.currentTarget.value = "";
+              }}
+              style={{ display: "none" }}
+            />
 
-      {frontFile && <SmallMuted style={{ marginTop: 10 }}>{frontFile.name}</SmallMuted>}
-    </Box>
+            <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => backCameraRef.current?.click()}
+                style={{
+                  ...styles.buyBtnFull,
+                  height: 44,
+                  boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                }}
+              >
+                📷 Sacar foto
+              </button>
 
-    {/* ESPALDA */}
-    <Box>
-      <Label>Espalda (opcional)</Label>
+              <button
+                type="button"
+                onClick={() => backGalleryRef.current?.click()}
+                style={{
+                  ...styles.logoutBtnFull,
+                  height: 44,
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                🖼️ Elegir de galería
+              </button>
+            </div>
 
-      {/* inputs ocultos */}
-      <input
-        ref={backCameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => {
-          setBackFile(e.target.files?.[0] || null);
-          e.currentTarget.value = "";
-        }}
-        style={{ display: "none" }}
-      />
+            {backFile && <SmallMuted style={{ marginTop: 10 }}>{backFile.name}</SmallMuted>}
+          </Box>
+        </TwoCols>
+      )}
+    </>
+  );
 
-      <input
-        ref={backGalleryRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          setBackFile(e.target.files?.[0] || null);
-          e.currentTarget.value = "";
-        }}
-        style={{ display: "none" }}
-      />
-
-      {/* botonera igual a foto producto */}
-      <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-        <button
-          type="button"
-          onClick={() => backCameraRef.current?.click()}
-          style={{
-            ...styles.buyBtnFull,
-            height: 44,
-            boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-          }}
-        >
-          📷 Sacar foto
-        </button>
-
-        <button
-          type="button"
-          onClick={() => backGalleryRef.current?.click()}
-          style={{
-            ...styles.logoutBtnFull,
-            height: 44,
-            background: "#ffffff",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          🖼️ Elegir de galería
-        </button>
-      </div>
-
-      {backFile && <SmallMuted style={{ marginTop: 10 }}>{backFile.name}</SmallMuted>}
-    </Box>
-  </TwoCols>
-)
-
-
-)}
-        );
 
       case "category":
         return (
