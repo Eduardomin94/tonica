@@ -44,7 +44,18 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
-  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
+  const [resultKeys, setResultKeys] = useState<
+  Array<
+    | "front"
+    | "back"
+    | "side"
+    | "detail_front"
+    | "detail_back"
+    | "detail_pants_front"
+    | "detail_pants_back"
+  >
+>([]);
+
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -63,11 +74,17 @@ export default function Home() {
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
 
   const [views, setViews] = useState({
-    front: true,
-    back: false,
-    left: false,
-    right: false,
-  });
+  front: true,
+  back: false,
+
+  side: false,
+
+  detail_front: false,
+  detail_back: false,
+
+  detail_pants_front: false,
+  detail_pants_back: false,
+});
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -801,7 +818,18 @@ void fetchEntries();
     }
 
     // Guardar orden de vistas para poder rehacer individualmente
-    const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = (
+  [
+    "front",
+    "back",
+    "side",
+    "detail_front",
+    "detail_back",
+    "detail_pants_front",
+    "detail_pants_back",
+  ] as const
+).filter((k) => (views as any)[k]);
+
     setResultKeys(keysInOrder as any);
 
     setLoading(true);
