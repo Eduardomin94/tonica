@@ -38,6 +38,7 @@ function wordCount(s: string) {
 export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
   const LAST_RESULT_KEY = "last_generation_result_v1";
+  const [regenStartedAt, setRegenStartedAt] = useState<Record<string, number>>({});
 
 
   const [isMobile, setIsMobile] = useState(false);
@@ -283,6 +284,16 @@ function removeProductFile(index: number) {
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
+
+  const isRegenBusy = useMemo(() => Object.keys(regenLoading).length > 0, [regenLoading]);
+
+  const [nowTick, setNowTick] = useState(0);
+
+React.useEffect(() => {
+  if (!isRegenBusy) return;
+  const id = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+  return () => window.clearInterval(id);
+}, [isRegenBusy]);
 
   React.useEffect(() => {
   try {
@@ -594,6 +605,8 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
 
  const loadKey = `regen:${index}`;
 setRegenLoading((m) => ({ ...m, [loadKey]: true }));
+setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
+
 
 
   try {
@@ -665,7 +678,14 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
     delete copy[loadKey];
     return copy;
   });
+
+  setRegenStartedAt((m) => {
+    const copy = { ...m };
+    delete copy[loadKey];
+    return copy;
+  });
 }
+
 }
 
 
@@ -1365,7 +1385,8 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
 
             <Button
               onClick={handleGenerate}
-              disabled={loading || selectedCount === 0 || balance < selectedCount}
+              disabled={isRegenBusy || loading || selectedCount === 0 || balance < selectedCount}
+
               style={{ width: "100%", padding: "14px 16px" }}
             >
               {loading
@@ -1385,8 +1406,8 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
       {result.imageUrls.map((u, idx) => {
         const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
         const loadKey = `regen:${idx}`;
-
-
+        void nowTick;
+        
         const label =
           mode === "product"
             ? viewKey === "front"
@@ -1447,7 +1468,12 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
                     cursor: !!regenLoading[loadKey] || balance < 1 ? "not-allowed" : "pointer",
                   }}
                 >
-                  {regenLoading[loadKey] ? "Rehaciendo..." : balance < 1 ? "Sin créditos (1)" : "🔁 Rehacer (1 crédito)"}
+                {regenLoading[loadKey]
+  ? `Rehaciendo... (${Math.floor((Date.now() - (regenStartedAt[loadKey] || Date.now())) / 1000)}s)`
+  : balance < 1
+    ? "Sin créditos (1)"
+    : "🔁 Rehacer (1 crédito)"}
+
                 </button>
               </div>
             </div>
@@ -1514,6 +1540,41 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
   // ====== APP ======
   return (
     <div className={inter.className} style={styles.page}>
+      {isRegenBusy && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.55)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+    }}
+  >
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 420,
+        borderRadius: 18,
+        background: "#0b1220",
+        border: "1px solid rgba(255,255,255,0.15)",
+        boxShadow: "0 20px 80px rgba(0,0,0,0.45)",
+        padding: 18,
+        color: "#fff",
+        textAlign: "center",
+        fontWeight: 900,
+      }}
+    >
+      🔁 Rehaciendo imagen…<br />
+      <span style={{ fontWeight: 700, opacity: 0.85, fontSize: 13 }}>
+        No cierres ni recargues la página.
+      </span>
+    </div>
+  </div>
+)}
+
       <div style={styles.shell}>
         {topupStatus === "ok" && (
           <div
@@ -1940,12 +2001,14 @@ setRegenLoading((m) => ({ ...m, [loadKey]: true }));
     {panel}
 
     <div style={styles.footer}>
-      <Button variant="secondary" onClick={prev} disabled={step === 0 || loading}>
+      <Button variant="secondary" onClick={prev} disabled={isRegenBusy || step === 0 || loading}>
+
         {t("back")}
       </Button>
       <div style={{ flex: 1 }} />
       {!isLast ? (
-        <Button onClick={next} disabled={!canGoNext}>
+        <Button onClick={next} disabled={isRegenBusy || !canGoNext}>
+
           {t("next")}
         </Button>
       ) : null}
