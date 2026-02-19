@@ -585,7 +585,12 @@ React.useEffect(() => {
 
 async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right", index: number) {
   setError(null);
+  const lockKey = `regen:${index}`;
+if (regenLockRef.current[lockKey]) return;   // ya hay rehacer corriendo
+regenLockRef.current[lockKey] = true;        // lock inmediato
+
   if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+
   if (balance < 1) return setError("Créditos insuficientes (rehacer cuesta 1 crédito).");
 
   // Validaciones mínimas
@@ -604,9 +609,10 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
     if (!bodyType) return setError("Falta tipo de cuerpo.");
   }
 
- const loadKey = `regen:${index}`;
+const loadKey = lockKey;
 setRegenLoading((m) => ({ ...m, [loadKey]: true }));
 setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
+
 
 
 
@@ -673,7 +679,7 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     await fetchEntries();
   } catch (e: any) {
     setError(String(e?.message || e));
-  } finally {
+  } } finally {
   setRegenLoading((m) => {
     const copy = { ...m };
     delete copy[loadKey];
@@ -685,10 +691,9 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     delete copy[loadKey];
     return copy;
   });
-}
-  regenLockRef.current[lockKey] = false;
 
 }
+
 
 
 
@@ -723,9 +728,6 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
   async function handleGenerate() {
   setError(null);
   setResult(null);
-    const lockKey = `regen:${index}`;
-if (regenLockRef.current[lockKey]) return; // ✅ ya hay un rehacer en curso
-regenLockRef.current[lockKey] = true;      // ✅ lock inmediato (sin esperar render)
 
   if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
@@ -1465,7 +1467,8 @@ regenLockRef.current[lockKey] = true;      // ✅ lock inmediato (sin esperar re
                 <button
                   type="button"
                   onClick={() => handleRegenerateOne(viewKey, idx)}
-                  disabled={!!regenLoading[loadKey] || balance < 1}
+                  disabled={(regenLoading[loadKey] === true) || balance < 1}
+
                   style={{
                     ...styles.buyBtnFull,
                     height: 44,
@@ -2511,6 +2514,5 @@ previewImg: {
   display: "block",
   background: "rgba(255,255,255,0.06)",
 },
-
 
 };
