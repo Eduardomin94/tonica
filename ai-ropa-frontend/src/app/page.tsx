@@ -67,6 +67,7 @@ export default function Home() {
   back: false,
   side: false,
   frontDetail: false,
+  backDetail: false,
 });
 
 
@@ -373,7 +374,14 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false, side: false, frontDetail: false });
+    setViews({
+  front: true,
+  back: false,
+  side: false,
+  frontDetail: false,
+  backDetail: false,
+});
+
 
 
   }, [mode]);
@@ -1453,7 +1461,6 @@ setResultKeys(keysInOrder as any);
     : viewKey === "side"
     ? "Costado Completo"
     : "Detalle Frente";
-
 
 
 
