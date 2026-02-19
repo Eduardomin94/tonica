@@ -44,7 +44,7 @@ export default function Home() {
 
   console.log("PAGE LOADED ✅", { isMobile });
 
-  const [resultKeys, setResultKeys] = useState<Array<"front" | "back" | "left" | "right">>([]);
+  const [resultKeys, setResultKeys] = useState<Array<"front" | "back">>([]);
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
 
   const [user, setUser] = useState<any>(null);
@@ -63,11 +63,10 @@ export default function Home() {
   const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
 
   const [views, setViews] = useState({
-    front: true,
-    back: false,
-    left: false,
-    right: false,
-  });
+  front: true,
+  back: false,
+});
+
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -371,7 +370,7 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false, left: false, right: false });
+    setViews({ front: true, back: false });
   }, [mode]);
 
   React.useEffect(() => {
@@ -576,7 +575,7 @@ export default function Home() {
   }
 
 async function handleRegenerateOne(
-  viewKey: "front" | "back" | "left" | "right",
+  viewKey: "front" | "back",
   index: number
 ) {
   setError(null);
@@ -658,7 +657,8 @@ async function handleRegenerateOne(
     setRegenLoading((m) => ({ ...m, [lockKey]: true }));
     setRegenStartedAt((m) => ({ ...m, [lockKey]: Date.now() }));
 
-    const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
+   const oneView = { front: false, back: false, [viewKey]: true };
+
 
     const fd = new FormData();
     fd.append("mode", mode);
@@ -800,9 +800,9 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    // Guardar orden de vistas para poder rehacer individualmente
-    const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
-    setResultKeys(keysInOrder as any);
+    const keysInOrder = (["front", "back"] as const).filter((k) => (views as any)[k]);
+setResultKeys(keysInOrder as any);
+
 
     setLoading(true);
     try {
@@ -1417,7 +1417,7 @@ void fetchEntries();
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
+                    const viewKey = (resultKeys[idx] || "front") as "front" | "back";
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
