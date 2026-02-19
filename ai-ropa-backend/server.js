@@ -297,11 +297,18 @@ Mantener exactamente el mismo producto, color y textura.
 `.trim();
 
         const views = [
-          { key: "front", label: "toma principal" },
-          { key: "back", label: "ángulo alternativo" },
-          { key: "left", label: "detalle cercano" },
-          { key: "right", label: "otro ángulo" },
-        ].filter((v) => selectedViews?.[v.key]);
+  { key: "front", label: "vista frontal completa (cuerpo completo)" },
+  { key: "back", label: "vista trasera completa (cuerpo completo)" },
+
+  { key: "side", label: "vista costado completa (cuerpo completo)" },
+
+  { key: "detail_front", label: "detalle del frente de la prenda (primer plano)" },
+  { key: "detail_back", label: "detalle de la espalda de la prenda (primer plano)" },
+
+  { key: "detail_pants_front", label: "detalle del pantalón al frente (primer plano)" },
+  { key: "detail_pants_back", label: "detalle del pantalón por detrás (primer plano)" },
+].filter((v) => selectedViews?.[v.key]);
+
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
