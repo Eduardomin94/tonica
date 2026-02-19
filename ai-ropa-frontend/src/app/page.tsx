@@ -75,6 +75,7 @@ const frontCameraRef = React.useRef<HTMLInputElement | null>(null);
 const frontGalleryRef = React.useRef<HTMLInputElement | null>(null);
 const backCameraRef = React.useRef<HTMLInputElement | null>(null);
 const backGalleryRef = React.useRef<HTMLInputElement | null>(null);
+const hydratingRef = React.useRef(false);
 
 
 function mergeFiles(prev: File[], incoming: File[]) {
@@ -336,33 +337,41 @@ function removeProductFile(index: number) {
   }, [mode]);
 
   React.useEffect(() => {
-    setScene("");
-    setStep(0);
-    setError(null);
-    setResult(null);
-    setFrontFile(null);
-    setBackFile(null);
-    setCategory("");
-    setOtherCategory("");
-    setPockets("");
-    setMeasures({
-      hombros: "",
-      pecho: "",
-      manga: "",
-      cintura: "",
-      cadera: "",
-      largo: "",
-    });
-    setModelType("");
-    setEthnicity("");
-    setAgeRange("");
-    setBackground("");
-    setPose("");
-    setBodyType("");
-    setBgSuggestions([]);
-    setProductFiles([]);
-    setViews({ front: true, back: false, left: false, right: false });
-  }, [mode]);
+  // ✅ si estamos restaurando desde localStorage, NO borres el resultado
+  if (hydratingRef.current) return;
+
+  setScene("");
+  setStep(0);
+  setError(null);
+  setResult(null);
+
+  setFrontFile(null);
+  setBackFile(null);
+
+  setCategory("");
+  setOtherCategory("");
+  setPockets("");
+  setMeasures({
+    hombros: "",
+    pecho: "",
+    manga: "",
+    cintura: "",
+    cadera: "",
+    largo: "",
+  });
+
+  setModelType("");
+  setEthnicity("");
+  setAgeRange("");
+  setBackground("");
+  setPose("");
+  setBodyType("");
+  setBgSuggestions([]);
+
+  setProductFiles([]);
+  setViews({ front: true, back: false, left: false, right: false });
+}, [mode]);
+
 
   React.useEffect(() => {
     fetchMe();
@@ -376,17 +385,28 @@ function removeProductFile(index: number) {
     if (!raw) return;
 
     const parsed = JSON.parse(raw);
+    if (!parsed?.result?.imageUrls?.length) return;
 
-    if (parsed?.result?.imageUrls?.length) {
-      setResult(parsed.result);
-      if (Array.isArray(parsed.resultKeys)) setResultKeys(parsed.resultKeys);
-      if (parsed?.mode === "model" || parsed?.mode === "product") {
-        setMode(parsed.mode);
-      }
+    // ✅ activamos flag para que el reset por mode no borre el result
+    hydratingRef.current = true;
+
+    // setMode primero (si aplica)
+    if (parsed?.mode === "model" || parsed?.mode === "product") {
+      setMode(parsed.mode);
     }
+
+    // restaurar result y keys
+    setResult(parsed.result);
+    if (Array.isArray(parsed.resultKeys)) setResultKeys(parsed.resultKeys);
+
+    // ✅ desactivar flag en el próximo tick
+    setTimeout(() => {
+      hydratingRef.current = false;
+    }, 0);
   } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
 
   const stepError = useMemo(() => {
     const key = steps[step]?.key;
