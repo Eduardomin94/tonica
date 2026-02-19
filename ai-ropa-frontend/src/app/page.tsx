@@ -714,8 +714,9 @@ async function handleRegenerateOne(
       return { ...prev, imageUrls: copy };
     });
 
-    await fetchMe();
-    await fetchEntries();
+    void fetchMe();
+void fetchEntries();
+
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
