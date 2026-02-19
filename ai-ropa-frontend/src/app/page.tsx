@@ -39,6 +39,7 @@ export default function Home() {
   const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
   const LAST_RESULT_KEY = "last_generation_result_v1";
   const [regenStartedAt, setRegenStartedAt] = useState<Record<string, number>>({});
+  const regenLockRef = React.useRef<Record<string, boolean>>({});
 
 
   const [isMobile, setIsMobile] = useState(false);
@@ -685,6 +686,7 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     return copy;
   });
 }
+regenLockRef.current[lockKey] = false;
 
 }
 
@@ -721,6 +723,9 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
   async function handleGenerate() {
   setError(null);
   setResult(null);
+    const lockKey = `regen:${index}`;
+if (regenLockRef.current[lockKey]) return; // ✅ ya hay un rehacer en curso
+regenLockRef.current[lockKey] = true;      // ✅ lock inmediato (sin esperar render)
 
   if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
@@ -1407,7 +1412,7 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
         const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
         const loadKey = `regen:${idx}`;
         void nowTick;
-        
+
         const label =
           mode === "product"
             ? viewKey === "front"
