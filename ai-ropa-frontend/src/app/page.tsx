@@ -283,6 +283,7 @@ function removeProductFile(index: number) {
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
+
   React.useEffect(() => {
   try {
     if (!result) {
@@ -551,68 +552,7 @@ function removeProductFile(index: number) {
     }
   }
 
-  async function handleSuggestBackground() {
-    setError(null);
-    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-
-    setHelpLoading(true);
-    setBgSuggestions([]);
-
-    try {
-      const res = await fetch(`${API}/suggest-background`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: category || "",
-          model_type: modelType || "",
-          vibe: "catálogo e-commerce premium",
-        }),
-      });
-
-      const data = await res.json();
-      const options: string[] = Array.isArray(data?.options) ? data.options : [];
-      setBgSuggestions(options.slice(0, 3));
-    } catch (e: any) {
-      setError(`Error sugiriendo fondo: ${String(e?.message || e)}`);
-    } finally {
-      setHelpLoading(false);
-    }
-  }
-
-  async function handleGenerate() {
-    setError(null);
-    setResult(null);
-
-    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-
-    if (mode === "product") {
-      if (productFiles.length === 0) {
-        setStep(0);
-        return setError("Subí al menos 1 foto del producto.");
-      }
-      if (!scene.trim() || wordCount(scene) > 10) {
-        setStep(1);
-        return setError("Escribí la escena (máx 10 palabras).");
-      }
-      if (selectedCount === 0) {
-        setStep(2);
-        return setError("Elegí al menos 1 vista.");
-      }
-    } else {
-      if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
-      if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
-      if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
-        return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
-      if (!pockets) return (goToFirstErrorStep(), setError("Falta bolsillos."));
-      if (!modelType) return (goToFirstErrorStep(), setError("Falta modelo."));
-      if (!ethnicity) return (goToFirstErrorStep(), setError("Falta etnia."));
-      if (!ageRange) return (goToFirstErrorStep(), setError("Falta edad."));
-      if (!background.trim() || wordCount(background) > 10)
-        return (goToFirstErrorStep(), setError("Falta fondo o excede 10 palabras."));
-      if (!pose) return (goToFirstErrorStep(), setError("Falta pose."));
-      if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
-    }
-    async function downloadImage(url: string, filename = "imagen.png") {
+  async function downloadImage(url: string, filename = "imagen.png") {
   try {
     const r = await fetch(url);
     const blob = await r.blob();
@@ -626,8 +566,7 @@ function removeProductFile(index: number) {
     a.remove();
 
     URL.revokeObjectURL(objectUrl);
-  } catch (e) {
-    // fallback: abrir en pestaña
+  } catch {
     window.open(url, "_blank");
   }
 }
@@ -635,9 +574,9 @@ function removeProductFile(index: number) {
 async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right", index: number) {
   setError(null);
   if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
-  if (balance < 1) return setError("Créditos insuficientes para rehacer (1 crédito).");
+  if (balance < 1) return setError("Créditos insuficientes (rehacer cuesta 1 crédito).");
 
-  // Validaciones básicas según modo
+  // Validaciones mínimas
   if (mode === "product") {
     if (productFiles.length === 0) return setError("Subí al menos 1 foto del producto.");
     if (!scene.trim() || wordCount(scene) > 10) return setError("Escribí la escena (máx 10 palabras).");
@@ -653,8 +592,8 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
     if (!bodyType) return setError("Falta tipo de cuerpo.");
   }
 
-  const key = `${mode}:${viewKey}:${index}`;
-  setRegenLoading((m) => ({ ...m, [key]: true }));
+  const loadKey = `${mode}:${viewKey}:${index}`;
+  setRegenLoading((m) => ({ ...m, [loadKey]: true }));
 
   try {
     const oneView = { front: false, back: false, left: false, right: false, [viewKey]: true };
@@ -720,89 +659,149 @@ async function handleRegenerateOne(viewKey: "front" | "back" | "left" | "right",
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
-    setRegenLoading((m) => ({ ...m, [key]: false }));
+    setRegenLoading((m) => ({ ...m, [loadKey]: false }));
   }
 }
 
 
-      const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
-setResultKeys(keysInOrder as any);
 
-    const keysInOrder = (["front", "back", "left", "right"] as const)
-  .filter((k) => (views as any)[k]);
+  async function handleSuggestBackground() {
+    setError(null);
+    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
 
-setResultKeys(keysInOrder as any);
+    setHelpLoading(true);
+    setBgSuggestions([]);
 
-    setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("mode", mode);
-      fd.append("views", JSON.stringify(views));
-
-      if (mode === "product") {
-        productFiles.forEach((f) => fd.append("product_images", f));
-        fd.append("scene", scene.trim());
-      } else {
-        fd.append("front", frontFile as File);
-        if (backFile) fd.append("back", backFile);
-
-        fd.append("category", category);
-        if (category === "otro") fd.append("other_category", otherCategory.trim());
-        fd.append("pockets", pockets);
-
-        fd.append("hombros", measures.hombros);
-        fd.append("pecho", measures.pecho);
-        fd.append("manga", measures.manga);
-        fd.append("cintura", measures.cintura);
-        fd.append("cadera", measures.cadera);
-        fd.append("largo", measures.largo);
-
-        fd.append("model_type", modelType);
-        fd.append("ethnicity", ethnicity);
-        fd.append("age_range", ageRange);
-        fd.append("background", background.trim());
-        fd.append("pose", pose);
-        fd.append("body_type", bodyType);
-      }
-
-      const token = localStorage.getItem("accessToken");
-
-      const res = await fetch(`${API}/generate`, {
+      const res = await fetch(`${API}/suggest-background`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: category || "",
+          model_type: modelType || "",
+          vibe: "catálogo e-commerce premium",
+        }),
       });
 
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-
-      if (!res.ok) {
-        setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
-        return;
-      }
-
-      let urls: string[] = [];
-      if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
-      else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
-
-      if (!urls.length) return setError("El servidor no devolvió imágenes.");
-
-      const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
-      setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
-
-      await fetchMe();
-      await fetchEntries();
+      const data = await res.json();
+      const options: string[] = Array.isArray(data?.options) ? data.options : [];
+      setBgSuggestions(options.slice(0, 3));
     } catch (e: any) {
-      setError(String(e?.message || e));
+      setError(`Error sugiriendo fondo: ${String(e?.message || e)}`);
     } finally {
-      setLoading(false);
+      setHelpLoading(false);
     }
   }
+
+  async function handleGenerate() {
+  setError(null);
+  setResult(null);
+
+  if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+
+  // Validaciones
+  if (mode === "product") {
+    if (productFiles.length === 0) {
+      setStep(0);
+      return setError("Subí al menos 1 foto del producto.");
+    }
+    if (!scene.trim() || wordCount(scene) > 10) {
+      setStep(1);
+      return setError("Escribí la escena (máx 10 palabras).");
+    }
+    if (selectedCount === 0) {
+      setStep(2);
+      return setError("Elegí al menos 1 vista.");
+    }
+  } else {
+    if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
+    if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
+    if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
+      return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
+    if (!pockets) return (goToFirstErrorStep(), setError("Falta bolsillos."));
+    if (!modelType) return (goToFirstErrorStep(), setError("Falta modelo."));
+    if (!ethnicity) return (goToFirstErrorStep(), setError("Falta etnia."));
+    if (!ageRange) return (goToFirstErrorStep(), setError("Falta edad."));
+    if (!background.trim() || wordCount(background) > 10)
+      return (goToFirstErrorStep(), setError("Falta fondo o excede 10 palabras."));
+    if (!pose) return (goToFirstErrorStep(), setError("Falta pose."));
+    if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
+  }
+
+  // Guardar orden de vistas para poder rehacer individualmente
+  const keysInOrder = (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k]);
+  setResultKeys(keysInOrder as any);
+
+  setLoading(true);
+  try {
+    const fd = new FormData();
+    fd.append("mode", mode);
+    fd.append("views", JSON.stringify(views));
+
+    if (mode === "product") {
+      productFiles.forEach((f) => fd.append("product_images", f));
+      fd.append("scene", scene.trim());
+    } else {
+      fd.append("front", frontFile as File);
+      if (backFile) fd.append("back", backFile);
+
+      fd.append("category", category);
+      if (category === "otro") fd.append("other_category", otherCategory.trim());
+      fd.append("pockets", pockets);
+
+      fd.append("hombros", measures.hombros);
+      fd.append("pecho", measures.pecho);
+      fd.append("manga", measures.manga);
+      fd.append("cintura", measures.cintura);
+      fd.append("cadera", measures.cadera);
+      fd.append("largo", measures.largo);
+
+      fd.append("model_type", modelType);
+      fd.append("ethnicity", ethnicity);
+      fd.append("age_range", ageRange);
+      fd.append("background", background.trim());
+      fd.append("pose", pose);
+      fd.append("body_type", bodyType);
+    }
+
+    const token = localStorage.getItem("accessToken");
+
+    const res = await fetch(`${API}/generate`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    });
+
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+
+    if (!res.ok) {
+      setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
+      return;
+    }
+
+    let urls: string[] = [];
+    if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
+    else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
+
+    if (!urls.length) return setError("El servidor no devolvió imágenes.");
+
+    const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
+    setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
+
+    await fetchMe();
+    await fetchEntries();
+  } catch (e: any) {
+    setError(String(e?.message || e));
+  } finally {
+    setLoading(false);
+  }
+}
 
   // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {

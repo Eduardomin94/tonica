@@ -1,0 +1,20 @@
+
+
+
+
+que las fotos tengan un botón de descargar y de rehacer individualmente.
+
+
+🌍 Traducir TODO el frontend correctamente
+
+
+opcional:
+
+
+💎 Mejorar todavía más el diseño (nivel SaaS top tipo Stripe / Revolut)
+
+
+Mejorar prompt para generar imagenes. para que sean más fieles a los productos.
+
+agregar planos de fotos
+
