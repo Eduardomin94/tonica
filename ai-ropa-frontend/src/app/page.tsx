@@ -66,6 +66,7 @@ export default function Home() {
   front: true,
   back: false,
   side: false,
+  frontDetail: false,
 });
 
 
@@ -372,7 +373,8 @@ export default function Home() {
     setBodyType("");
     setBgSuggestions([]);
     setProductFiles([]);
-    setViews({ front: true, back: false, side: false });
+    setViews({ front: true, back: false, side: false, frontDetail: false });
+
 
   }, [mode]);
 
@@ -804,8 +806,9 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = (["front", "back", "side"] as const).filter((k) => (views as any)[k]);
+    const keysInOrder = (["front", "back", "side", "frontDetail"] as const).filter((k) => (views as any)[k]);
 setResultKeys(keysInOrder as any);
+
 
 
     setLoading(true);
@@ -1371,6 +1374,7 @@ setResultKeys(keysInOrder as any);
                 { key: "front", label: "Frente Completo" },
                 { key: "back", label: "Espalda Completa" },
                 { key: "side", label: "Costado Completo" },
+                { key: "frontDetail", label: "Detalle Frente" },
                 ].map((v) => (
                   <label
                     key={v.key}

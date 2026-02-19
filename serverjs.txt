@@ -219,7 +219,8 @@ app.post(
       selectedViews = {};
     }
 
-    const requestedKeys = ["front", "back"].filter((k) => !!selectedViews?.[k]);
+    const requestedKeys = ["front", "back", "side"].filter((k) => !!selectedViews?.[k]);
+
 
     const COST = requestedKeys.length;
 
@@ -428,6 +429,7 @@ Fondo: ${background}
         const views = [
   { key: "front", label: "vista frontal completa" },
   { key: "back", label: "vista trasera completa" },
+  { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
 ].filter((v) => selectedViews?.[v.key]);
 
 
@@ -438,15 +440,28 @@ Fondo: ${background}
         const settled = await Promise.allSettled(
           views.map(async (v) => {
             const extraBackHint =
-              v.key === "back" && !back
-                ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
-                : "";
+  v.key === "back" && !back
+    ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
+    : "";
 
-            const viewPrompt = `
+const sideHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO:
+- Cuerpo completo (cabeza y pies visibles), sin recortes.
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada ~45 grados.
+- Formato vertical 4:5.
+- Modelo centrada.
+`
+    : "";
+
+const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
 ${extraBackHint}
+${sideHint}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.

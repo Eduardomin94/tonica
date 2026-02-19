@@ -1,9 +1,7 @@
 
 
  Agregar
-
-Costado Completo
-Detalle Frente
+ 
 Detalle Espalda 
 Detalle Pantalón Frente
 Detalle Pantalón Espalda
