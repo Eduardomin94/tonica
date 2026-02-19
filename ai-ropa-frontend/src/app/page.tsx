@@ -586,6 +586,8 @@ async function handleRegenerateOne(
   viewKey: "front" | "back" | "left" | "right",
   index: number
 ) {
+  console.log("REGENERATE START", index);
+
   setError(null);
 
   const lockKey = `regen:${index}`;
