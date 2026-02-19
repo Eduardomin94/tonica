@@ -1369,6 +1369,7 @@ setResultKeys(keysInOrder as any);
                 {[
                 { key: "front", label: "Frente Completo" },
                 { key: "back", label: "Espalda Completo" },
+                { key: "side", label: "Costado Completo" },
                 ].map((v) => (
                   <label
                     key={v.key}
