@@ -1467,7 +1467,7 @@ void fetchEntries();
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
-                    const viewKey = (resultKeys[idx] || "front") as "front" | "back" | "left" | "right";
+                    const viewKey = resultKeys[idx] || "front";
                     const loadKey = `regen:${idx}`;
                     void nowTick;
 
