@@ -737,107 +737,202 @@ function removeProductFile(index: number) {
   </Box>
 ) : (
   <TwoCols>
-  {/* DELANTERA */}
-  <Box>
-    <Label>Delantera (obligatorio)</Label>
+    {/* DELANTERA */}
+    <Box>
+      <Label>Delantera (obligatorio)</Label>
 
-    {/* inputs ocultos */}
-    <input
-      ref={frontCameraRef}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      onChange={(e) => {
-        setFrontFile(e.target.files?.[0] || null);
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
-    <input
-      ref={frontGalleryRef}
-      type="file"
-      accept="image/*"
-      onChange={(e) => {
-        setFrontFile(e.target.files?.[0] || null);
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
+      {/* Inputs ocultos */}
+      <input
+        ref={frontCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const f = e.target.files?.[0] || null;
+          setFrontFile(f);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
 
-    {isMobile ? (
-      <div style={{ display: "grid", gap: 10 }}>
-        <button
-          type="button"
-          onClick={() => frontCameraRef.current?.click()}
-          style={{ ...styles.buyBtnFull, height: 44 }}
-        >
-          📷 Sacar foto
-        </button>
-        <button
-          type="button"
-          onClick={() => frontGalleryRef.current?.click()}
-          style={{ ...styles.logoutBtnFull, height: 44, background: "#fff" }}
-        >
-          🖼️ Elegir de galería
-        </button>
-      </div>
-    ) : (
-      <InputFile onChange={(f) => setFrontFile(f)} />
-    )}
+      <input
+        ref={frontGalleryRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const f = e.target.files?.[0] || null;
+          setFrontFile(f);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
 
-    {frontFile && <SmallMuted>{frontFile.name}</SmallMuted>}
-  </Box>
+      {/* Botonera mobile */}
+      {isMobile ? (
+        <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => frontCameraRef.current?.click()}
+            style={{
+              ...styles.buyBtnFull,
+              height: 44,
+              boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+              background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+            }}
+          >
+            📷 Sacar foto
+          </button>
 
-  {/* ESPALDA */}
-  <Box>
-    <Label>Espalda (opcional)</Label>
+          <button
+            type="button"
+            onClick={() => frontGalleryRef.current?.click()}
+            style={{
+              ...styles.logoutBtnFull,
+              height: 44,
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            🖼️ Elegir de galería
+          </button>
+        </div>
+      ) : (
+        <InputFile onChange={(f) => setFrontFile(f)} />
+      )}
 
-    <input
-      ref={backCameraRef}
-      type="file"
-      accept="image/*"
-      capture="environment"
-      onChange={(e) => {
-        setBackFile(e.target.files?.[0] || null);
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
-    <input
-      ref={backGalleryRef}
-      type="file"
-      accept="image/*"
-      onChange={(e) => {
-        setBackFile(e.target.files?.[0] || null);
-        e.currentTarget.value = "";
-      }}
-      style={{ display: "none" }}
-    />
+      {/* Preview + Quitar */}
+      {frontFile ? (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, marginBottom: 10 }}>Preview</div>
 
-    {isMobile ? (
-      <div style={{ display: "grid", gap: 10 }}>
-        <button
-          type="button"
-          onClick={() => backCameraRef.current?.click()}
-          style={{ ...styles.buyBtnFull, height: 44 }}
-        >
-          📷 Sacar foto
-        </button>
-        <button
-          type="button"
-          onClick={() => backGalleryRef.current?.click()}
-          style={{ ...styles.logoutBtnFull, height: 44, background: "#fff" }}
-        >
-          🖼️ Elegir de galería
-        </button>
-      </div>
-    ) : (
-      <InputFile onChange={(f) => setBackFile(f)} />
-    )}
+          <div style={styles.previewGrid}>
+            <div style={styles.previewCard}>
+              <img src={URL.createObjectURL(frontFile)} alt="delantera" style={styles.previewImg} />
 
-    {backFile && <SmallMuted>{backFile.name}</SmallMuted>}
-  </Box>
-</TwoCols>
+              <button
+                type="button"
+                onClick={() => setFrontFile(null)}
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  height: 36,
+                  borderRadius: 12,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                ❌ Quitar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <SmallMuted style={{ marginTop: 8 }}>Todavía no cargaste la delantera.</SmallMuted>
+      )}
+    </Box>
+
+    {/* ESPALDA */}
+    <Box>
+      <Label>Espalda (opcional)</Label>
+
+      {/* Inputs ocultos */}
+      <input
+        ref={backCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(e) => {
+          const f = e.target.files?.[0] || null;
+          setBackFile(f);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+
+      <input
+        ref={backGalleryRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const f = e.target.files?.[0] || null;
+          setBackFile(f);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+
+      {/* Botonera mobile */}
+      {isMobile ? (
+        <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => backCameraRef.current?.click()}
+            style={{
+              ...styles.buyBtnFull,
+              height: 44,
+              boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+              background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+            }}
+          >
+            📷 Sacar foto
+          </button>
+
+          <button
+            type="button"
+            onClick={() => backGalleryRef.current?.click()}
+            style={{
+              ...styles.logoutBtnFull,
+              height: 44,
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            🖼️ Elegir de galería
+          </button>
+        </div>
+      ) : (
+        <InputFile onChange={(f) => setBackFile(f)} />
+      )}
+
+      {/* Preview + Quitar */}
+      {backFile ? (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, marginBottom: 10 }}>Preview</div>
+
+          <div style={styles.previewGrid}>
+            <div style={styles.previewCard}>
+              <img src={URL.createObjectURL(backFile)} alt="espalda" style={styles.previewImg} />
+
+              <button
+                type="button"
+                onClick={() => setBackFile(null)}
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  height: 36,
+                  borderRadius: 12,
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                ❌ Quitar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <SmallMuted style={{ marginTop: 8 }}>Opcional: podés cargar la espalda.</SmallMuted>
+      )}
+    </Box>
+  </TwoCols>
+)
+
 )}
         );
 
