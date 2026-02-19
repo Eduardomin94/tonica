@@ -1473,11 +1473,12 @@ regenLockRef.current[lockKey] = true;      // ✅ lock inmediato (sin esperar re
                     cursor: !!regenLoading[loadKey] || balance < 1 ? "not-allowed" : "pointer",
                   }}
                 >
-                {regenLoading[loadKey]
+                {(regenLoading[loadKey] === true)
   ? `Rehaciendo... (${Math.floor((Date.now() - (regenStartedAt[loadKey] || Date.now())) / 1000)}s)`
   : balance < 1
     ? "Sin créditos (1)"
     : "🔁 Rehacer (1 crédito)"}
+
 
                 </button>
               </div>
