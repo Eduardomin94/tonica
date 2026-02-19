@@ -176,16 +176,7 @@ export default function Home() {
     setBalance(0);
   }
 
-  React.useEffect(() => {
-  if (category !== "Pantalón/Short/Pollera/Falda") {
-    setViews((prev) => ({
-      ...prev,
-      pantFrontDetail: false,
-      pantBackDetail: false,
-      pantSideDetail: false,
-    }));
-  }
-}, [category]);
+  
 
 
   React.useEffect(() => {
@@ -216,6 +207,17 @@ export default function Home() {
 
   // form
   const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
+  React.useEffect(() => {
+  if (category !== "Pantalón/Short/Pollera/Falda") {
+    setViews((prev) => ({
+      ...prev,
+      pantFrontDetail: false,
+      pantBackDetail: false,
+      pantSideDetail: false,
+    }));
+  }
+}, [category]);
+
   const [otherCategory, setOtherCategory] = useState("");
   const [pockets, setPockets] = useState<"si" | "no" | "">("");
   const [measures, setMeasures] = useState({
