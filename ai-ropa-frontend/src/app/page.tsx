@@ -686,7 +686,7 @@ setRegenStartedAt((m) => ({ ...m, [loadKey]: Date.now() }));
     return copy;
   });
 }
-regenLockRef.current[lockKey] = false;
+  regenLockRef.current[lockKey] = false;
 
 }
 
