@@ -62,6 +62,9 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
+  const [welcomeBonus, setWelcomeBonus] = useState<number>(0);
+  const [welcomeExpiresAt, setWelcomeExpiresAt] = useState<string | null>(null);
+  const [welcomeTick, setWelcomeTick] = useState(0);
 
   const [loadingMe, setLoadingMe] = useState(false);
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
@@ -188,7 +191,11 @@ export default function Home() {
     setBalance(0);
   }
 
-  
+  React.useEffect(() => {
+  if (!welcomeExpiresAt) return;
+  const id = window.setInterval(() => setWelcomeTick((n) => n + 1), 1000);
+  return () => window.clearInterval(id);
+}, [welcomeExpiresAt]);
 
 
   React.useEffect(() => {
@@ -267,6 +274,8 @@ export default function Home() {
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
+            setWelcomeBonus(data?.wallet?.welcomeBonus ?? 0);
+            setWelcomeExpiresAt(data?.wallet?.welcomeExpiresAt ?? null);
             fetchEntries();
           } catch (err: any) {
             console.error(err);
@@ -580,6 +589,8 @@ export default function Home() {
       if (!res.ok) return;
       setUser(data);
       setBalance(data?.wallet?.balance ?? 0);
+      setWelcomeBonus(data?.wallet?.welcomeBonus ?? 0);
+      setWelcomeExpiresAt(data?.wallet?.welcomeExpiresAt ?? null);
     } finally {
       setLoadingMe(false);
     }
@@ -1722,6 +1733,38 @@ setResultKeys(keysInOrder as any);
         </div>
       )}
       <div style={styles.shell}>
+        {(() => {
+  if (!welcomeExpiresAt) return null;
+
+  const msLeft = new Date(welcomeExpiresAt).getTime() - Date.now();
+  if (msLeft <= 0 || welcomeBonus <= 0) return null;
+
+  const totalSec = Math.floor(msLeft / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+
+  void welcomeTick;
+
+  return (
+    <div
+      style={{
+        background: "#fef9c3",
+        border: "1px solid #f59e0b",
+        color: "#92400e",
+        padding: "12px",
+        borderRadius: "12px",
+        marginBottom: "16px",
+        fontWeight: 800,
+      }}
+    >
+      🎁 Tenés <b>{welcomeBonus}</b> créditos bonificados para probar el generador.{" "}
+      <span style={{ fontWeight: 900 }}>
+        Caducan en {h}h {m}m {String(s).padStart(2, "0")}s
+      </span>
+    </div>
+  );
+})()}
         {topupStatus === "ok" && (
           <div
             style={{
