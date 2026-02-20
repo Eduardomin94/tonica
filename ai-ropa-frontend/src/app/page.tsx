@@ -591,13 +591,27 @@ export default function Home() {
 
     setLoadingEntries(true);
     try {
-      const res = await fetch(`${API}/wallet/entries`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) return;
-      setEntries(Array.isArray(data?.entries) ? data.entries : []);
-    } finally {
+  const res = await fetch(`${API}/wallet/entries`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!res.ok) {
+    setError(`entries ${res.status}: ${data?.error || data?.message || text}`);
+    return;
+  }
+
+  setEntries(Array.isArray(data?.entries) ? data.entries : []);
+} finally {
+  setLoadingEntries(false);
+} finally {
       setLoadingEntries(false);
     }
   }
