@@ -2071,10 +2071,12 @@ if (welcomeBonus <= 0) return null;
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
                       const label =
-  (typeof e.refType === "string" && e.refType.startsWith("WELCOME_BONUS") && e.amount < 0)
-  ? "Caducado"
+  e.refType === "WELCOME_BONUS_EXPIRED"
+    ? "Caducado"
     : e.refType === "WELCOME_BONUS"
     ? "Bonificación"
+    : e.type === "CONSUME" && e.amount < 0 && e.refType?.includes("WELCOME")
+    ? "Caducado"
     : e.type === "PURCHASE"
     ? "Compra"
     : e.type === "CONSUME"
