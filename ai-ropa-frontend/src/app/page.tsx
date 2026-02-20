@@ -121,7 +121,7 @@ export default function Home() {
 
   const translations = {
     es: {
-      title: "Generador IA",
+      title: "Generador IA (TEST-123)",
       subtitle: "Elegí el tipo de imagen que querés generar",
       buyCredits: "Comprar créditos",
       logout: "Cerrar sesión",
