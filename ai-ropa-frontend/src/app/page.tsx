@@ -62,9 +62,6 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [balance, setBalance] = useState<number>(0);
-  const [welcomeBonus, setWelcomeBonus] = useState<number>(0);
-  const [welcomeExpiresAt, setWelcomeExpiresAt] = useState<string | null>(null);
-  const [welcomeTick, setWelcomeTick] = useState(0);
 
   const [loadingMe, setLoadingMe] = useState(false);
   const [topupStatus, setTopupStatus] = useState<string | null>(null);
@@ -121,7 +118,7 @@ export default function Home() {
 
   const translations = {
     es: {
-      title: "Generador IA (TEST-123456)",
+      title: "Generador IA",
       subtitle: "Elegí el tipo de imagen que querés generar",
       buyCredits: "Comprar créditos",
       logout: "Cerrar sesión",
@@ -191,11 +188,7 @@ export default function Home() {
     setBalance(0);
   }
 
-  React.useEffect(() => {
-  if (!welcomeExpiresAt) return;
-  const id = window.setInterval(() => setWelcomeTick((n) => n + 1), 1000);
-  return () => window.clearInterval(id);
-}, [welcomeExpiresAt]);
+  
 
 
   React.useEffect(() => {
@@ -274,10 +267,6 @@ export default function Home() {
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
-            setWelcomeBonus(data?.wallet?.welcomeBonus ?? 0);
-            setWelcomeExpiresAt(data?.wallet?.welcomeExpiresAt ?? null);
-            fetchEntries();
-            fetchMe();
           } catch (err: any) {
             console.error(err);
             alert(`Error login Google: ${err?.message || err}`);
@@ -332,24 +321,6 @@ export default function Home() {
   [regenLoading]
 );
 
-React.useEffect(() => {
-  if (!welcomeExpiresAt) return;
-
-  const expiresMs = new Date(welcomeExpiresAt).getTime();
-  if (!Number.isFinite(expiresMs)) return;
-
-  const msLeft = expiresMs - Date.now();
-  if (msLeft <= 0) return;
-
-  const id = window.setTimeout(() => {
-    // cuando vence: actualizar UI + traer historial
-    setWelcomeBonus(0);
-    fetchEntries();
-    fetchMe();
-  }, msLeft + 50); // +50ms de margen
-
-  return () => window.clearTimeout(id);
-}, [welcomeExpiresAt]);
 
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
@@ -608,44 +579,28 @@ React.useEffect(() => {
       if (!res.ok) return;
       setUser(data);
       setBalance(data?.wallet?.balance ?? 0);
-      setWelcomeBonus(data?.wallet?.welcomeBonus ?? 0);
-      setWelcomeExpiresAt(data?.wallet?.welcomeExpiresAt ?? null);
     } finally {
       setLoadingMe(false);
     }
   }
 
   async function fetchEntries() {
-  if (!API) return;
-  const token = localStorage.getItem("accessToken");
-  if (!token) return;
+    if (!API) return;
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
 
-  setLoadingEntries(true);
-  try {
-    const res = await fetch(`${API}/wallet/entries`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const text = await res.text();
-    let data: any = null;
+    setLoadingEntries(true);
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
+      const res = await fetch(`${API}/wallet/entries`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) return;
+      setEntries(Array.isArray(data?.entries) ? data.entries : []);
+    } finally {
+      setLoadingEntries(false);
     }
-
-    if (!res.ok) {
-      setError(`entries ${res.status}: ${data?.error || data?.message || text}`);
-      return;
-    }
-
-    setEntries(Array.isArray(data?.entries) ? data.entries : []);
-  } catch (e: any) {
-    setError(`entries fetch failed: ${String(e?.message || e)}`);
-  } finally {
-    setLoadingEntries(false);
   }
-}
 
   async function downloadImage(url: string, filename = "imagen.png") {
     try {
@@ -1752,46 +1707,6 @@ setResultKeys(keysInOrder as any);
         </div>
       )}
       <div style={styles.shell}>
-        {(() => {
-  if (!welcomeExpiresAt) return null;
-
-  const msLeft = new Date(welcomeExpiresAt).getTime() - Date.now();
-  if (msLeft <= 0) {
-  if (welcomeBonus !== 0) {
-    setWelcomeBonus(0);
-    fetchEntries(); // 👈 actualiza historial sin F5
-  }
-  return null;
-}
-
-if (welcomeBonus <= 0) return null;
-
-  const totalSec = Math.floor(msLeft / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-
-  void welcomeTick;
-
-  return (
-    <div
-      style={{
-        background: "#fef9c3",
-        border: "1px solid #f59e0b",
-        color: "#92400e",
-        padding: "12px",
-        borderRadius: "12px",
-        marginBottom: "16px",
-        fontWeight: 800,
-      }}
-    >
-      🎁 Tenés <b>{welcomeBonus}</b> créditos bonificados para probar el generador.{" "}
-      <span style={{ fontWeight: 900 }}>
-        Caducan en {h}h {m}m {String(s).padStart(2, "0")}s
-      </span>
-    </div>
-  );
-})()}
         {topupStatus === "ok" && (
           <div
             style={{
@@ -2059,99 +1974,73 @@ if (welcomeBonus <= 0) return null;
               >
                 <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
-  <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-    <th style={{ padding: "10px 14px", color: "#475569", width: "32%" }}>Fecha</th>
-    <th style={{ padding: "10px 14px", color: "#475569", width: "28%" }}>Movimiento</th>
-    <th style={{ padding: "10px 14px", color: "#475569", width: "25%" }}>Ref</th>
-    <th style={{ padding: "10px 14px", textAlign: "right", color: "#475569", width: "15%" }}>Cantidad</th>
-  </tr>
-</thead>
+                    <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                      <th style={{ padding: "10px 14px", color: "#475569", width: "40%" }}>Fecha</th>
+                      <th style={{ padding: "10px 14px", color: "#475569", width: "35%" }}>Movimiento</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", color: "#475569", width: "25%" }}>
+                        Cantidad
+                      </th>
+                    </tr>
+                  </thead>
 
                   <tbody>
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
-                      const isWelcomeExpired =
-  e.refType === "WELCOME_BONUS_EXPIRED" ||
-  (e.type === "CONSUME" && e.amount < 0 && String(e.refType || "").startsWith("WELCOME_BONUS"));
-
-const refType = String(e.refType || "");
-const isExpired =
-  refType === "WELCOME_BONUS_EXPIRED" ||
-  refType === "WELCOME_BONUS_CONSUME" || // por si lo usás
-  (e.type === "CONSUME" && e.amount < 0 && refType.startsWith("WELCOME"));
-
-const label =
-  isExpired ? "Expirado" :
-  refType === "WELCOME_BONUS" ? "Bonificación" :
-  e.type === "PURCHASE" ? "Compra" :
-  e.type === "CONSUME" ? "Consumo" :
-  e.type === "REFUND" ? "Reintegro" :
-  e.type === "GRANT" ? "Bonificación" :
-  e.type;
-                          
+                      const label =
+                        e.type === "PURCHASE"
+                          ? "Compra"
+                          : e.type === "CONSUME"
+                          ? "Consumo"
+                          : e.type === "REFUND"
+                          ? "Reintegro"
+                          : e.type === "GRANT"
+                          ? "Bonificación"
+                          : e.type;
 
                       return (
                         <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-  {/* Fecha */}
-  <td
-    style={{
-      padding: "10px 14px",
-      color: "#0f172a",
-      whiteSpace: "normal",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      wordBreak: "break-word",
-    }}
-  >
-    {new Date(e.createdAt).toLocaleString()}
-  </td>
+                          <td
+                            style={{
+                              padding: "10px 10px",
+                              color: "#0f172a",
+                              whiteSpace: "normal",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {new Date(e.createdAt).toLocaleString()}
+                          </td>
 
-  {/* Movimiento */}
-  <td style={{ padding: "10px 14px" }}>
-    <span
-      style={{
-        display: "inline-block",
-        fontWeight: 800,
-        fontSize: 12,
-        padding: "4px 10px",
-        borderRadius: 999,
-        border: "1px solid #e2e8f0",
-        background: "#ffffff",
-        color: "#0f172a",
-      }}
-    >
-      {label}
-    </span>
-  </td>
+                          <td style={{ padding: "10px 10px" }}>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                fontWeight: 800,
+                                fontSize: 12,
+                                padding: "4px 10px",
+                                borderRadius: 999,
+                                border: "1px solid #e2e8f0",
+                                background: "#ffffff",
+                                color: "#0f172a",
+                              }}
+                            >
+                              {label}
+                            </span>
+                          </td>
 
-  {/* Ref */}
-  <td
-    style={{
-      padding: "10px 14px",
-      color: "#0f172a",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      fontWeight: 800,
-    }}
-    title={String(e.refType || "")}
-  >
-    {String(e.refType || "—")}
-  </td>
-
-  {/* Cantidad */}
-  <td
-    style={{
-      padding: "10px 14px",
-      textAlign: "right",
-      fontWeight: 900,
-      color: isPlus ? "#16a34a" : "#dc2626",
-      whiteSpace: "nowrap",
-    }}
-  >
-    {isPlus ? `+${e.amount}` : e.amount}
-  </td>
-</tr>
+                          <td
+                            style={{
+                              padding: "10px 14px",
+                              textAlign: "right",
+                              fontWeight: 900,
+                              color: isPlus ? "#16a34a" : "#dc2626",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {isPlus ? `+${e.amount}` : e.amount}
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>
