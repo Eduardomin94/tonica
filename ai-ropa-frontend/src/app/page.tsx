@@ -277,6 +277,7 @@ export default function Home() {
             setWelcomeBonus(data?.wallet?.welcomeBonus ?? 0);
             setWelcomeExpiresAt(data?.wallet?.welcomeExpiresAt ?? null);
             fetchEntries();
+            fetchMe();
           } catch (err: any) {
             console.error(err);
             alert(`Error login Google: ${err?.message || err}`);
