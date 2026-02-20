@@ -42,13 +42,23 @@ router.post("/google", async (req, res) => {
           image: picture ?? null,
         },
         create: {
-          email,
-          name: name ?? null,
-          image: picture ?? null,
-          wallet: {
-            create: { balance: 0 },
-          },
+  email,
+  name: name ?? null,
+  image: picture ?? null,
+  wallet: {
+    create: {
+      balance: 3, // 👈 3 créditos gratis al registrarse
+      entries: {
+        create: {
+          type: "GRANT",
+          amount: 3,
+          idempotencyKey: `welcome-${email}`, // 👈 para no duplicar
+          refType: "WELCOME_BONUS",
         },
+      },
+    },
+  },
+},
         include: { wallet: true },
       });
 
