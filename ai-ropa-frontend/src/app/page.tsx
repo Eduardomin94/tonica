@@ -860,17 +860,19 @@ void fetchEntries();
       if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
     }
 
-    const keysInOrder = ([
-  "front",
-  "back",
-  "side",
-  "frontDetail",
-  "backDetail",
-  "pantFrontDetail",
-  "pantBackDetail",
-  "pantSideDetail",
-] as const).filter((k) => (views as any)[k]);
-
+ const keysInOrder =
+  mode === "product"
+    ? (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k])
+    : ([
+        "front",
+        "back",
+        "side",
+        "frontDetail",
+        "backDetail",
+        "pantFrontDetail",
+        "pantBackDetail",
+        "pantSideDetail",
+      ] as const).filter((k) => (views as any)[k]);
 
 setResultKeys(keysInOrder as any);
 
