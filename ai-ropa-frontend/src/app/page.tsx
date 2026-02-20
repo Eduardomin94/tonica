@@ -2091,48 +2091,66 @@ const label = isWelcomeExpired
 
                       return (
                         <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td
-                            style={{
-                              padding: "10px 10px",
-                              color: "#0f172a",
-                              whiteSpace: "normal",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {new Date(e.createdAt).toLocaleString()}
-                          </td>
+  {/* Fecha */}
+  <td
+    style={{
+      padding: "10px 14px",
+      color: "#0f172a",
+      whiteSpace: "normal",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      wordBreak: "break-word",
+    }}
+  >
+    {new Date(e.createdAt).toLocaleString()}
+  </td>
 
-                          <td style={{ padding: "10px 10px" }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                fontWeight: 800,
-                                fontSize: 12,
-                                padding: "4px 10px",
-                                borderRadius: 999,
-                                border: "1px solid #e2e8f0",
-                                background: "#ffffff",
-                                color: "#0f172a",
-                              }}
-                            >
-                              {label} ({e.refType})
-                            </span>
-                          </td>
+  {/* Movimiento */}
+  <td style={{ padding: "10px 14px" }}>
+    <span
+      style={{
+        display: "inline-block",
+        fontWeight: 800,
+        fontSize: 12,
+        padding: "4px 10px",
+        borderRadius: 999,
+        border: "1px solid #e2e8f0",
+        background: "#ffffff",
+        color: "#0f172a",
+      }}
+    >
+      {label}
+    </span>
+  </td>
 
-                          <td
-                            style={{
-                              padding: "10px 14px",
-                              textAlign: "right",
-                              fontWeight: 900,
-                              color: isPlus ? "#16a34a" : "#dc2626",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {isPlus ? `+${e.amount}` : e.amount}
-                          </td>
-                        </tr>
+  {/* Ref */}
+  <td
+    style={{
+      padding: "10px 14px",
+      color: "#0f172a",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      fontWeight: 800,
+    }}
+    title={String(e.refType || "")}
+  >
+    {String(e.refType || "—")}
+  </td>
+
+  {/* Cantidad */}
+  <td
+    style={{
+      padding: "10px 14px",
+      textAlign: "right",
+      fontWeight: 900,
+      color: isPlus ? "#16a34a" : "#dc2626",
+      whiteSpace: "nowrap",
+    }}
+  >
+    {isPlus ? `+${e.amount}` : e.amount}
+  </td>
+</tr>
                       );
                     })}
                   </tbody>
