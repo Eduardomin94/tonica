@@ -34,51 +34,63 @@ router.post("/google", async (req, res) => {
       return res.status(400).json({ error: "Google token missing email" });
     }
 
-    const user = await prisma.$transaction(async (tx) => {
-      const u = await tx.user.upsert({
-        where: { email },
-        update: {
-          name: name ?? null,
-          image: picture ?? null,
-        },
-        create: {
-  email,
-  name: name ?? null,
-  image: picture ?? null,
-  wallet: {
-    create: {
-      balance: 3, // 👈 3 créditos gratis al registrarse
-      entries: {
-        create: {
-          type: "GRANT",
-          amount: 3,
-          idempotencyKey: `welcome-${email}`, // 👈 para no duplicar
-          refType: "WELCOME_BONUS",
+   const user = await prisma.$transaction(async (tx) => {
+  const existing = await tx.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  // ✅ Usuario NUEVO → 3 créditos gratis + historial
+  if (!existing) {
+    const created = await tx.user.create({
+      data: {
+        email,
+        name: name ?? null,
+        image: picture ?? null,
+        wallet: {
+          create: {
+            balance: 3,
+            entries: {
+              create: {
+                type: "GRANT",
+                amount: 3,
+                idempotencyKey: `welcome-${email}`,
+                refType: "WELCOME_BONUS",
+              },
+            },
+          },
         },
       },
-    },
-  },
-},
-        include: { wallet: true },
-      });
-
-      if (!u.wallet) {
-        await tx.wallet.create({
-          data: {
-            userId: u.id,
-            balance: 0,
-          },
-        });
-
-        return tx.user.findUnique({
-          where: { id: u.id },
-          include: { wallet: true },
-        });
-      }
-
-      return u;
+      include: { wallet: true },
     });
 
+    return created;
+  }
+
+  // ✅ Usuario EXISTENTE → solo actualizar datos
+  const updated = await tx.user.update({
+    where: { email },
+    data: {
+      name: name ?? null,
+      image: picture ?? null,
+    },
+    include: { wallet: true },
+  });
+
+  // Si por alguna razón no tenía wallet, la creamos (sin bono)
+  if (!updated.wallet) {
+    await tx.wallet.create({
+      data: { userId: updated.id, balance: 0 },
+    });
+
+    return tx.user.findUnique({
+      where: { id: updated.id },
+      include: { wallet: true },
+    });
+  }
+
+  return updated;
+});
     const accessToken = jwt.sign(
       { sub: user.id },
       process.env.AUTH_JWT_SECRET,
