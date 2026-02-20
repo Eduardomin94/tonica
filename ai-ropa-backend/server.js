@@ -72,13 +72,14 @@ app.get("/wallet/entries", requireAuth, async (req, res) => {
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
-        id: true,
-        type: true,
-        amount: true,
-        refType: true,
-        refId: true,
-        createdAt: true,
-      },
+  id: true,
+  type: true,
+  amount: true,
+  refType: true,
+  refId: true,
+  metadata: true,
+  createdAt: true,
+},
     });
 
     return res.json({ entries });

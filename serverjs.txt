@@ -219,16 +219,19 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = [
-  "front",
-  "back",
-  "side",
-  "frontDetail",
-  "backDetail",
-  "pantFrontDetail",
-  "pantBackDetail",
-  "pantSideDetail",
-].filter((k) => !!selectedViews?.[k]);
+   const requestedKeys =
+  mode === "product"
+    ? ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k])
+    : [
+        "front",
+        "back",
+        "side",
+        "frontDetail",
+        "backDetail",
+        "pantFrontDetail",
+        "pantBackDetail",
+        "pantSideDetail",
+      ].filter((k) => !!selectedViews?.[k]);
 
 
 
@@ -239,7 +242,8 @@ app.post(
     if (COST <= 0) {
       return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
     }
-
+let takeFromBonus = 0;
+let takeFromPaid = 0;
     let wallet = null;
     let consumeEntry = null;
 
@@ -255,26 +259,72 @@ app.post(
       wallet = user?.wallet;
       if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
-      // ---------- COBRO (UNA VEZ) ----------
-      const updated = await prisma.wallet.updateMany({
-        where: { id: wallet.id, balance: { gte: COST } },
-        data: { balance: { decrement: COST } },
-      });
+     // ---------- COBRO (BONUS PRIMERO, LUEGO PAGO) ----------
+const bonusEntries = await prisma.creditEntry.findMany({
+  where: {
+    walletId: wallet.id,
+    refType: { startsWith: "WELCOME_BONUS" },
+  },
+  select: { amount: true, refType: true, metadata: true },
+});
 
-      if (updated.count === 0) {
-        return res.status(402).json({ error: "Sin créditos suficientes" });
-      }
+// buscar el GRANT original (tiene expiresAt)
+const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
+const expiresAtIso = grant?.metadata?.expiresAt;
+const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
 
-      consumeEntry = await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "CONSUME",
-          amount: -COST,
-          idempotencyKey: String(idem),
-          refType: "GENERATION",
-          metadata: mode === "model" ? selectedViews : undefined,
-        },
-      });
+const bonusActive = expiresAtMs && Date.now() < expiresAtMs;
+
+// saldo de bonus = suma de todos los entries WELCOME_BONUS* (GRANT + CONSUME + RESTORE)
+const bonusBalance = bonusActive
+  ? Math.max(
+      0,
+      bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    )
+  : 0;
+
+takeFromBonus = Math.min(COST, bonusBalance);
+takeFromPaid = COST - takeFromBonus;
+
+// 1) descontar pagos (solo si hace falta)
+if (takeFromPaid > 0) {
+  const updated = await prisma.wallet.updateMany({
+    where: { id: wallet.id, balance: { gte: takeFromPaid } },
+    data: { balance: { decrement: takeFromPaid } },
+  });
+
+  if (updated.count === 0) {
+    return res.status(402).json({ error: "Sin créditos suficientes" });
+  }
+
+  consumeEntry = await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromPaid,
+      idempotencyKey: String(idem),
+      refType: "GENERATION",
+      metadata: mode === "model" ? selectedViews : undefined,
+    },
+  });
+}
+
+// 2) descontar bonus (si hace falta)
+if (takeFromBonus > 0) {
+  await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromBonus,
+      idempotencyKey: `${idem}:welcome`,
+      refType: "WELCOME_BONUS_CONSUME",
+      metadata: {
+        mode,
+        views: selectedViews,
+      },
+    },
+  });
+}
 
       // =====================
       // PRODUCT MODE (1 crédito fijo)
@@ -282,6 +332,7 @@ app.post(
       if (mode === "product") {
         const files = req.files?.product_images || [];
         const scene = String(req.body?.scene || "").trim();
+        const regenVar = String(req.body?.regen_variation || "").trim();
 
         if (!files.length) return res.status(400).json({ error: "Faltan fotos del producto" });
         if (!scene) return res.status(400).json({ error: "Falta escena" });
@@ -300,9 +351,25 @@ Escena: ${scene}.
 Mantener exactamente el mismo producto, color y textura.
 `.trim();
 
+        const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER PRODUCTO):
+- Mantener EXACTAMENTE el mismo producto (NO cambiar color, textura, forma, detalles).
+- Mantener misma escena general: ${scene}.
+- Cambiar NOTABLEMENTE al menos 2 cosas (sin salir de estudio e-commerce):
+  1) iluminación (más suave ↔ un poco más contrastada)
+  2) fondo estudio (blanco ↔ gris claro ↔ beige suave)
+  3) micro-ángulo (ligero cambio de cámara, sin deformar producto)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
+
         const views = [
   { key: "front", label: "toma principal" },
   { key: "back", label: "ángulo alternativo" },
+  { key: "left", label: "detalle cercano" },
+  { key: "right", label: "otro ángulo" },
 ].filter((v) => selectedViews?.[v.key]);
 
 
@@ -334,18 +401,17 @@ POSE:
 
 const viewPrompt = `
 ${basePrompt}
+${variationHint}
 
 Cámara: ${v.label}.
-${extraBackHint}
-${frontHint}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
 - NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
-- Un solo cuerpo completo, centrado.
-- Fondo continuo (sin cortes).
+- Solo el producto (sin personas, sin manos).
+- Un solo producto, centrado.
+- Fondo continuo de estudio.
 `.trim();
-
 
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
@@ -388,6 +454,7 @@ IMPORTANTE:
       // MODEL MODE (1 crédito por vista)
       // =====================
       if (mode === "model") {
+        const regenVar = String(req.body?.regen_variation || "").trim();
         const front = req.files?.front?.[0];
         const back = req.files?.back?.[0];
 
@@ -467,7 +534,108 @@ Fondo: ${background}
 
         const settled = await Promise.allSettled(
           views.map(async (v) => {
-            const extraBackHint =
+
+const frontFullHint =
+  v.key === "front"
+    ? `
+TOMA OBLIGATORIA – FRENTE COMPLETO (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente frontal (NO 3/4, NO perfil).
+- Cámara a altura del torso.
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados.
+- Manos en bolsillos si existen, sin tapar la prenda.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme (sin sombras duras).
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
+const sideFullHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO (3/4) – SIEMPRE CABEZA A PIES:
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Formato vertical 4:5.
+- Modelo centrada.
+
+ÁNGULO:
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada aproximadamente 45 grados.
+- Hombros levemente hacia cámara.
+
+POSE:
+- Postura natural.
+- Peso en una pierna.
+- Una mano en bolsillo si existen (sin tapar prenda).
+- Brazos relajados.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si no entra cabeza y pies, ALEJAR cámara hasta que entren.
+`
+    : "";
+
+const backFullHint =
+  v.key === "back"
+    ? `
+TOMA OBLIGATORIA – ESPALDA COMPLETA (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente trasera (espalda directa).
+- NO 3/4.
+- NO perfil.
+- La cara NO debe verse (o solo mínimamente de lado si es inevitable).
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados a los lados (no tapar la espalda de la prenda).
+- Pies apoyados, cuerpo derecho.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
+
+const extraBackHint =
   v.key === "back" && !back
     ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
     : "";
@@ -484,31 +652,68 @@ TOMA OBLIGATORIA – COSTADO COMPLETO:
 `
     : "";
 
+
 const detailHint =
   v.key === "frontDetail"
     ? `
-TOMA OBLIGATORIA – DETALLE FRENTE:
-- Plano medio cerrado.
-- Encuadre desde el pecho hasta la cintura.
-- No mostrar piernas completas.
-- No mostrar cuerpo entero.
-- Foco en la prenda y textura.
+TOMA OBLIGATORIA – DETALLE FRENTE (DESDE CINTURA HACIA ARRIBA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+CÁMARA:
+- Vista frontal directa.
+- Cámara a altura del pecho.
+- Distancia suficiente para incluir cabeza completa.
+
+FOCO:
+- Enfatizar textura, caída y costuras.
+- Mostrar claramente el escote y parte superior.
 - Mantener misma modelo y mismo rostro.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
 `
     : "";
 
 const backDetailHint =
   v.key === "backDetail"
     ? `
-TOMA OBLIGATORIA – DETALLE ESPALDA:
-- Plano medio cerrado.
-- Encuadre desde los hombros hasta la cintura.
-- Mostrar espalda claramente.
-- No mostrar piernas completas.
-- No mostrar cuerpo entero.
-- Mantener misma modelo y mismo rostro.
+TOMA OBLIGATORIA – DETALLE ESPALDA (DESDE CINTURA HASTA CABEZA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+ÁNGULO:
+- Vista de espaldas (espalda hacia cámara).
+- NO frontal.
+- NO mostrar el frente de la prenda.
+- Puede ser levemente 3/4 pero la ESPALDA debe dominar (como foto de referencia).
+
+FOCO:
+- Mostrar claramente espalda de la prenda: tiras, nudo/cierre, costuras y caída.
+- Mantener misma modelo y mismo rostro (consistencia).
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
 `
     : "";
+
+
 const pantFrontDetailHint =
   v.key === "pantFrontDetail"
     ? `
@@ -516,7 +721,8 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista frontal.
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
+- NO mostrar torso superior.
 - Enfocar caída de la tela y bolsillos.
 - Modelo centrada.
 - Fondo continuo.
@@ -531,7 +737,7 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN ESPALDA:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista completamente trasera.
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
 - NO mostrar torso superior.
 - Enfocar caída de la tela y parte trasera de la prenda.
 - Modelo centrada.
@@ -548,7 +754,7 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 
 - Encuadre desde la cintura hasta los pies.
 - Vista de costado 3/4 (NO completamente de perfil).
-- NO mostrar cabeza.
+- NO mostrar cintura para arriba.
 - NO mostrar torso superior.
 - Mostrar bien el lateral: costura, caída, calce y bolsillos laterales si existen.
 - Modelo centrada.
@@ -558,12 +764,27 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 `
     : "";
 
-
+const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER):
+- Mantener misma modelo y misma prenda (NO cambiar color, textura, diseño).
+- Mantener el mismo encuadre obligatorio de la vista.
+- Cambiar NOTABLEMENTE al menos 2 cosas:
+  1) micro-pose (peso en otra pierna, manos/brazos distintos, mirada distinta)
+  2) luz (más suave o un poco más contrastada, siempre estudio)
+  3) fondo (siempre estudio: blanco ↔ gris claro ↔ beige suave)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
 
 const viewPrompt = `
 ${basePrompt}
 
 Cámara: ${v.label}.
+${frontFullHint}
+${backFullHint}
+${sideFullHint}
 ${extraBackHint}
 ${sideHint}
 ${detailHint}
@@ -624,28 +845,42 @@ IMPORTANTE:
     } catch (err) {
       console.error("GENERATE ERROR:", err);
 
-      // REFUND del COST real
-      try {
-        if (wallet) {
-          await prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: COST } },
-          });
+      // REFUND (devolver pagos y bonus)
+try {
+  if (wallet) {
+    if (takeFromPaid > 0) {
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: takeFromPaid } },
+      });
 
-          await prisma.creditEntry.create({
-            data: {
-              walletId: wallet.id,
-              type: "REFUND",
-              amount: COST,
-              idempotencyKey: `refund:${idem}`,
-              refType: "GENERATION",
-              refId: consumeEntry?.id || null,
-            },
-          });
-        }
-      } catch (refundError) {
-        console.error("REFUND FAILED:", refundError);
-      }
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "REFUND",
+          amount: takeFromPaid,
+          idempotencyKey: `refund:${idem}`,
+          refType: "GENERATION",
+          refId: consumeEntry?.id || null,
+        },
+      });
+    }
+
+    if (takeFromBonus > 0) {
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "GRANT",
+          amount: takeFromBonus,
+          idempotencyKey: `restore:${idem}`,
+          refType: "WELCOME_BONUS_RESTORE",
+        },
+      });
+    }
+  }
+} catch (refundError) {
+  console.error("REFUND FAILED:", refundError);
+}
 
       return res.status(500).json({
         error: "Error en generate",
