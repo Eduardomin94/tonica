@@ -1741,6 +1741,7 @@ setResultKeys(keysInOrder as any);
   if (msLeft <= 0) {
   if (welcomeBonus !== 0) {
     setWelcomeBonus(0);
+    fetchEntries();
     fetchEntries(); // 👈 actualiza historial sin F5
   }
   return null;
