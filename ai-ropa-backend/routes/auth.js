@@ -164,7 +164,38 @@ router.get("/me", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    return res.json(user);
+    const now = Date.now();
+
+const entries = user.wallet?.entries || [];
+const bonusEntries = entries.filter(
+  (e) => typeof e.refType === "string" && e.refType.startsWith("WELCOME_BONUS")
+);
+
+const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
+const expiresAtIso = grant?.metadata?.expiresAt;
+const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
+
+const bonusActive = expiresAtMs && now < expiresAtMs;
+
+const welcomeBonus = bonusActive
+  ? Math.max(0, bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0))
+  : 0;
+
+const paidBalance = user.wallet?.balance ?? 0;
+const totalBalance = paidBalance + welcomeBonus;
+
+return res.json({
+  ...user,
+  wallet: user.wallet
+    ? {
+        ...user.wallet,
+        paidBalance,
+        welcomeBonus,
+        welcomeExpiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
+        balance: totalBalance, // 👈 este es el que usa tu frontend
+      }
+    : null,
+});
   } catch (err) {
     console.error("AUTH /me error:", err);
     return res.status(500).json({ error: "Error fetching user" });
