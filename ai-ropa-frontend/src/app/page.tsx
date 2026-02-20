@@ -780,20 +780,24 @@ void fetchEntries();
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
-    // ✅ SIEMPRE limpiar estados + liberar lock
-    setRegenLoading((m) => {
-      const copy = { ...m };
-      delete copy[lockKey];
-      return copy;
-    });
+    // ✅ esperar 2 frames para que el <img> pinte antes de sacar el overlay
+await new Promise<void>((resolve) => {
+  requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+});
 
-    setRegenStartedAt((m) => {
-      const copy = { ...m };
-      delete copy[lockKey];
-      return copy;
-    });
+setRegenLoading((m) => {
+  const copy = { ...m };
+  delete copy[lockKey];
+  return copy;
+});
 
-    delete regenLockRef.current[lockKey];
+setRegenStartedAt((m) => {
+  const copy = { ...m };
+  delete copy[lockKey];
+  return copy;
+});
+
+delete regenLockRef.current[lockKey];
   }
 }
 
