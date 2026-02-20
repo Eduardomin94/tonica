@@ -429,6 +429,8 @@ React.useEffect(() => {
   pantFrontDetail: false,
   pantBackDetail: false,
   pantSideDetail: false,
+  left: false,
+  right: false,
 });
 
 
