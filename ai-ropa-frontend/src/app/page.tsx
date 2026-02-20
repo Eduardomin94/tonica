@@ -2115,7 +2115,7 @@ if (welcomeBonus <= 0) return null;
                                 color: "#0f172a",
                               }}
                             >
-                              {label}
+                              {label} ({e.refType})
                             </span>
                           </td>
 
