@@ -267,6 +267,7 @@ export default function Home() {
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
+            fetchEntries();
           } catch (err: any) {
             console.error(err);
             alert(`Error login Google: ${err?.message || err}`);
