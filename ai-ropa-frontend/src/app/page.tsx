@@ -332,6 +332,24 @@ export default function Home() {
   [regenLoading]
 );
 
+React.useEffect(() => {
+  if (!welcomeExpiresAt) return;
+
+  const expiresMs = new Date(welcomeExpiresAt).getTime();
+  if (!Number.isFinite(expiresMs)) return;
+
+  const msLeft = expiresMs - Date.now();
+  if (msLeft <= 0) return;
+
+  const id = window.setTimeout(() => {
+    // cuando vence: actualizar UI + traer historial
+    setWelcomeBonus(0);
+    fetchEntries();
+    fetchMe();
+  }, msLeft + 50); // +50ms de margen
+
+  return () => window.clearTimeout(id);
+}, [welcomeExpiresAt]);
 
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
@@ -1741,7 +1759,6 @@ setResultKeys(keysInOrder as any);
   if (msLeft <= 0) {
   if (welcomeBonus !== 0) {
     setWelcomeBonus(0);
-    fetchEntries();
     fetchEntries(); // 👈 actualiza historial sin F5
   }
   return null;
