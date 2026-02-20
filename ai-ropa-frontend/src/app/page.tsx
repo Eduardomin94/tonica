@@ -223,6 +223,30 @@ export default function Home() {
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
   const [productFiles, setProductFiles] = useState<File[]>([]);
+  // ===== PREVIEWS (con cleanup para no filtrar memoria) =====
+const frontPreview = useMemo(() => (frontFile ? URL.createObjectURL(frontFile) : null), [frontFile]);
+React.useEffect(() => {
+  return () => {
+    if (frontPreview) URL.revokeObjectURL(frontPreview);
+  };
+}, [frontPreview]);
+
+const backPreview = useMemo(() => (backFile ? URL.createObjectURL(backFile) : null), [backFile]);
+React.useEffect(() => {
+  return () => {
+    if (backPreview) URL.revokeObjectURL(backPreview);
+  };
+}, [backPreview]);
+
+const productPreviews = useMemo(
+  () => productFiles.map((f) => ({ file: f, url: URL.createObjectURL(f) })),
+  [productFiles]
+);
+React.useEffect(() => {
+  return () => {
+    productPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+  };
+}, [productPreviews]);
 
   // form
   const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
@@ -1038,6 +1062,42 @@ setResultKeys(keysInOrder as any);
                 {productFiles.length > 0 && (
                   <SmallMuted style={{ marginTop: 10 }}>{productFiles.length} foto(s) cargada(s)</SmallMuted>
                 )}
+                {productPreviews.length > 0 && (
+  <div style={{ marginTop: 12 }}>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "#0f172a" }}>Preview</div>
+
+    <div style={styles.previewGridCompact}>
+      {productPreviews.map((p, i) => (
+        <div key={`${p.file.name}-${p.file.size}-${p.file.lastModified}`} style={{ ...styles.previewCard, position: "relative" }}>
+          <img src={p.url} alt={`producto-${i}`} 
+          style={styles.previewImgCompact} />
+
+          <button
+            type="button"
+            onClick={() => removeProductFile(i)}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 34,
+              height: 34,
+              borderRadius: 999,
+              border: "1px solid rgba(15,23,42,0.12)",
+              background: "rgba(15,23,42,0.85)",
+              color: "#ffffff",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+            aria-label="Quitar imagen"
+            title="Quitar"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
               </Box>
             ) : (
               <TwoCols>
@@ -1095,7 +1155,40 @@ setResultKeys(keysInOrder as any);
                     </button>
                   </div>
 
-                  {frontFile && <SmallMuted style={{ marginTop: 10 }}>{frontFile.name}</SmallMuted>}
+                  {frontFile && (
+  <div style={{ marginTop: 12 }}>
+    <div style={{ ...styles.previewCard, position: "relative" }}>
+      <img src={frontPreview || ""} alt="delantera" style={styles.previewImg} />
+      <button
+        type="button"
+        onClick={() => setFrontFile(null)}
+       style={{
+  position: "absolute",
+  top: 10,
+  right: 10,
+  width: 32,
+  height: 32,
+  borderRadius: 999,
+  border: "1px solid rgba(15,23,42,0.15)",
+  background: "rgba(255,255,255,0.95)",
+  color: "#0f172a",
+  fontWeight: 900,
+  fontSize: 16,
+  display: "grid",
+  placeItems: "center",
+  cursor: "pointer",
+  boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
+}}
+        aria-label="Quitar delantera"
+        title="Quitar"
+      >
+        ✕
+      </button>
+    </div>
+
+    <SmallMuted style={{ marginTop: 8 }}>{frontFile.name}</SmallMuted>
+  </div>
+)}
                 </Box>
 
                 {/* ESPALDA */}
@@ -1152,7 +1245,40 @@ setResultKeys(keysInOrder as any);
                     </button>
                   </div>
 
-                  {backFile && <SmallMuted style={{ marginTop: 10 }}>{backFile.name}</SmallMuted>}
+                  {backFile && (
+  <div style={{ marginTop: 12 }}>
+    <div style={{ ...styles.previewCard, position: "relative" }}>
+      <img src={backPreview || ""} alt="espalda" style={styles.previewImg} />
+      <button
+        type="button"
+        onClick={() => setBackFile(null)}
+        style={{
+  position: "absolute",
+  top: 10,
+  right: 10,
+  width: 32,
+  height: 32,
+  borderRadius: 999,
+  border: "1px solid rgba(15,23,42,0.15)",
+  background: "rgba(255,255,255,0.95)",
+  color: "#0f172a",
+  fontWeight: 900,
+  fontSize: 16,
+  display: "grid",
+  placeItems: "center",
+  cursor: "pointer",
+  boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
+}}
+        aria-label="Quitar espalda"
+        title="Quitar"
+      >
+        ✕
+      </button>
+    </div>
+
+    <SmallMuted style={{ marginTop: 8 }}>{backFile.name}</SmallMuted>
+  </div>
+)}
                 </Box>
               </TwoCols>
             )}
@@ -2772,7 +2898,11 @@ const styles: Record<string, React.CSSProperties> = {
   loginTitle: { fontSize: 24, fontWeight: 800, color: "#0f172a" },
   loginSub: { marginTop: 16, fontSize: 13, color: "#64748b" },
 
-  previewGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 },
+  previewGrid: { 
+    display: "grid", 
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", 
+    gap: 10,
+  },
   previewCard: {
     borderRadius: 14,
     overflow: "hidden",
@@ -2787,6 +2917,21 @@ const styles: Record<string, React.CSSProperties> = {
     display: "block",
     background: "rgba(255,255,255,0.06)",
   },
+  previewGridCompact: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(160px, 160px))",
+  gap: 10,
+  justifyContent: "center",
+},
+
+previewImgCompact: {
+  width: "100%",
+  height: 160,
+  objectFit: "cover",
+  display: "block",
+  borderRadius: 12,
+  background: "rgba(255,255,255,0.06)",
+},
   pagerBtn: {
   height: 34,
   padding: "0 12px",
