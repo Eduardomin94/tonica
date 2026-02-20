@@ -217,7 +217,7 @@ export default function Home() {
     }
   }, []);
 
-  const [mode, setMode] = useState<"model" | "product">("model");
+ const [mode, setMode] = useState<"model" | "product" | "tryon">("model");
 
   // files
   const [frontFile, setFrontFile] = useState<File | null>(null);
@@ -1928,7 +1928,7 @@ onMouseLeave={(e) => {
               style={{
                 marginTop: 16,
                 position: "relative",
-                width: 360,
+                width: 600,
                 maxWidth: "100%",
                 height: 52,
                 borderRadius: 999,
@@ -1940,18 +1940,23 @@ onMouseLeave={(e) => {
               }}
             >
               <div
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  left: mode === "model" ? 6 : "calc(50% + 0px)",
-                  width: "calc(50% - 6px)",
-                  height: 40,
-                  borderRadius: 999,
-                  background: "#ffffff",
-                  transition: "left 0.25s ease",
-                  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-                }}
-              />
+  style={{
+    position: "absolute",
+    top: 6,
+    left:
+      mode === "model"
+        ? 6
+        : mode === "product"
+        ? "calc(33.333% + 6px)"
+        : "calc(66.666% + 6px)",
+    width: "calc(33.333% - 12px)",
+    height: 40,
+    borderRadius: 999,
+    background: "#ffffff",
+    transition: "left 0.25s ease",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+  }}
+/>
 
               <button
                 type="button"
@@ -1996,6 +2001,27 @@ onMouseLeave={(e) => {
               >
                 ⚛️Foto producto
               </button>
+              <button
+  type="button"
+  onClick={() => setMode("tryon")}
+  style={{
+    position: "relative",
+    zIndex: 2,
+    flex: 1,
+    height: 40,
+    borderRadius: 999,
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    fontWeight: 900,
+    fontSize: 14,
+    color: mode === "tryon" ? "#7c3aed" : "#ffffff",
+    transition: "color 0.25s ease",
+    whiteSpace: "nowrap",
+  }}
+>
+  👗Probador
+</button>
             </div>
 
             <div style={{ ...styles.h2, color: "#cbd5e1" }}>{t("subtitle")}</div>
