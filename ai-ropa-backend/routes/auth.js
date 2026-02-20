@@ -42,7 +42,7 @@ router.post("/google", async (req, res) => {
 
   // ✅ Usuario NUEVO → 3 créditos gratis + historial
  if (!existing) {
-  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
+ const expiresAt = new Date(Date.now() + 10 * 1000); // 10 segundos (modo test)
 
   const created = await tx.user.create({
     data: {
