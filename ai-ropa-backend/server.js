@@ -381,17 +381,15 @@ POSE:
 
 const viewPrompt = `
 ${basePrompt}
-${variationHint}
 
 Cámara: ${v.label}.
-${extraBackHint}
-${frontHint}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
 - NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
-- Un solo cuerpo completo, centrado.
-- Fondo continuo (sin cortes).
+- Solo el producto (sin personas, sin manos).
+- Un solo producto, centrado.
+- Fondo continuo de estudio.
 `.trim();
 
 
