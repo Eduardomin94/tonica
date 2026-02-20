@@ -2073,9 +2073,9 @@ if (welcomeBonus <= 0) return null;
                       const isPlus = e.amount > 0;
                       const label =
   e.refType === "WELCOME_BONUS_EXPIRED"
-    ? "Bonus caducado"
+    ? "Caducado"
     : e.refType === "WELCOME_BONUS"
-    ? "Bonificación (bienvenida)"
+    ? "Bonificación"
     : e.type === "PURCHASE"
     ? "Compra"
     : e.type === "CONSUME"
