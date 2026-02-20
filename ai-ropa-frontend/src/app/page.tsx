@@ -1738,7 +1738,15 @@ setResultKeys(keysInOrder as any);
   if (!welcomeExpiresAt) return null;
 
   const msLeft = new Date(welcomeExpiresAt).getTime() - Date.now();
-  if (msLeft <= 0 || welcomeBonus <= 0) return null;
+  if (msLeft <= 0) {
+  if (welcomeBonus !== 0) {
+    setWelcomeBonus(0);
+    fetchEntries(); // 👈 actualiza historial sin F5
+  }
+  return null;
+}
+
+if (welcomeBonus <= 0) return null;
 
   const totalSec = Math.floor(msLeft / 1000);
   const h = Math.floor(totalSec / 3600);
