@@ -47,7 +47,10 @@ if (typeof document !== "undefined") {
 
 /* ================== APP ================== */
 export default function Home() {
-  const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+  //const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+
+  const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  console.log("API URL:", API);
   const LAST_RESULT_KEY = "last_generation_result_v1";
 
   const [regenStartedAt, setRegenStartedAt] = useState<Record<string, number>>({});
@@ -68,6 +71,8 @@ export default function Home() {
 
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [entriesPage, setEntriesPage] = useState(1);
+  const ENTRIES_PAGE_SIZE = 10;
 
   const [selectedPack, setSelectedPack] = useState<"emprendedor" | "pyme" | "empresa">("emprendedor");
   const [buyLoading, setBuyLoading] = useState(false);
@@ -83,6 +88,8 @@ export default function Home() {
   pantFrontDetail: false,
   pantBackDetail: false,
   pantSideDetail: false,
+  left: false,
+  right: false,
 });
 
 
@@ -255,7 +262,7 @@ export default function Home() {
         callback: async (response: any) => {
           try {
             const res = await fetch(`${API}/auth/google`, {
-              method: "POST",
+            method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ idToken: response.credential }),
             });
@@ -267,6 +274,9 @@ export default function Home() {
             setAccessToken(data.accessToken);
             localStorage.setItem("accessToken", data.accessToken);
             setBalance(data?.wallet?.balance ?? 0);
+
+            await fetchMe();
+            await fetchEntries();
           } catch (err: any) {
             console.error(err);
             alert(`Error login Google: ${err?.message || err}`);
@@ -321,6 +331,13 @@ export default function Home() {
   [regenLoading]
 );
 
+
+  const [bonusTick, setBonusTick] = useState(0);
+
+React.useEffect(() => {
+  const id = window.setInterval(() => setBonusTick((n) => n + 1), 1000);
+  return () => window.clearInterval(id);
+}, []);
 
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
@@ -596,7 +613,9 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) return;
-      setEntries(Array.isArray(data?.entries) ? data.entries : []);
+      const list = Array.isArray(data?.entries) ? data.entries : [];
+setEntries(list);
+setEntriesPage(1);
     } finally {
       setLoadingEntries(false);
     }
@@ -1755,14 +1774,17 @@ setResultKeys(keysInOrder as any);
     rel="noopener noreferrer"
     style={styles.whatsappInlineBtn}
     aria-label="WhatsApp Atención al cliente"
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "scale(1.08)";
-      e.currentTarget.style.boxShadow = "0 16px 32px rgba(37,211,102,0.55)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "scale(1)";
-      e.currentTarget.style.boxShadow = "0 10px 22px rgba(37,211,102,0.35)";
-    }}
+  onMouseEnter={(e) => {
+  e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
+  e.currentTarget.style.boxShadow =
+    "0 16px 40px rgba(37,211,102,0.45), inset 0 1px 0 rgba(255,255,255,0.4)";
+}}
+
+onMouseLeave={(e) => {
+  e.currentTarget.style.transform = "translateY(0) scale(1)";
+  e.currentTarget.style.boxShadow =
+    "0 10px 30px rgba(37,211,102,0.35), inset 0 1px 0 rgba(255,255,255,0.35)";
+}}
   >
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="#ffffff">
       <path d="M19.11 17.36c-.27-.14-1.59-.78-1.84-.87-.25-.09-.43-.14-.61.14-.18.27-.7.87-.86 1.05-.16.18-.32.2-.59.07-.27-.14-1.13-.42-2.16-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.13-.13.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.48-.84-2.03-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29 0 1.34.98 2.64 1.12 2.82.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.58.66.21 1.26.18 1.73.11.53-.08 1.59-.65 1.82-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"/>
@@ -1879,7 +1901,46 @@ setResultKeys(keysInOrder as any);
         {/* User card (NO overflow) */}
         <div style={styles.userCard}>
           <div style={styles.userEmail}>{user?.email || user?.name}</div>
+              {(() => {
+  void bonusTick;
 
+  const paid = user?.wallet?.paidBalance ?? 0;
+  const hasBonus = balance > paid;
+
+  const expIso = user?.wallet?.welcomeExpiresAt;
+  const expMs = expIso ? new Date(expIso).getTime() : null;
+
+  const diffMs = expMs ? expMs - Date.now() : 0;
+const totalSec = Math.max(0, Math.floor(diffMs / 1000));
+
+const hours = Math.floor(totalSec / 3600);
+const minutes = Math.floor((totalSec % 3600) / 60);
+const seconds = totalSec % 60;
+
+const hh = String(hours).padStart(2, "0");
+const mm = String(minutes).padStart(2, "0");
+const ss = String(seconds).padStart(2, "0");
+
+  if (!hasBonus || !expMs || totalSec <= 0) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: 6,
+        padding: "6px 10px",
+        borderRadius: 999,
+        background: "#fff7ed",
+        border: "1px solid #fdba74",
+        color: "#9a3412",
+        fontSize: 12,
+        fontWeight: 800,
+        display: "inline-block",
+      }}
+    >
+      🎁 Bonus de 3 créditos — expira en {hh}:{mm}:{ss}
+    </div>
+  );
+})()}
           <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
             <div style={styles.badgeClamp}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
           </div>
@@ -1984,18 +2045,22 @@ setResultKeys(keysInOrder as any);
                   </thead>
 
                   <tbody>
-                    {entries.map((e) => {
+  {entries
+    .slice((entriesPage - 1) * ENTRIES_PAGE_SIZE, entriesPage * ENTRIES_PAGE_SIZE)
+    .map((e) => {
                       const isPlus = e.amount > 0;
                       const label =
-                        e.type === "PURCHASE"
-                          ? "Compra"
-                          : e.type === "CONSUME"
-                          ? "Consumo"
-                          : e.type === "REFUND"
-                          ? "Reintegro"
-                          : e.type === "GRANT"
-                          ? "Bonificación"
-                          : e.type;
+  e.refType === "WELCOME_BONUS_EXPIRE"
+    ? "Expirado"
+    : e.type === "PURCHASE"
+    ? "Compra"
+    : e.type === "CONSUME"
+    ? "Consumo"
+    : e.type === "REFUND"
+    ? "Reintegro"
+    : e.type === "GRANT"
+    ? "Bonificación"
+    : e.type;
 
                       return (
                         <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -2045,6 +2110,47 @@ setResultKeys(keysInOrder as any);
                     })}
                   </tbody>
                 </table>
+                {(() => {
+  const totalPages = Math.max(1, Math.ceil(entries.length / ENTRIES_PAGE_SIZE));
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "flex-end", padding: 10 }}>
+      <button
+        type="button"
+        onClick={() => setEntriesPage((p) => Math.max(1, p - 1))}
+        disabled={entriesPage <= 1}
+        style={{
+  ...styles.pagerBtn,
+  opacity: entriesPage <= 1 ? 0.5 : 1,
+  cursor: entriesPage <= 1 ? "not-allowed" : "pointer",
+}}
+      >
+        ← Anterior
+      </button>
+
+      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+        Página {entriesPage} / {totalPages}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setEntriesPage((p) => Math.min(totalPages, p + 1))}
+        disabled={entriesPage >= totalPages}
+        style={{
+  ...styles.pagerBtn,
+  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+  color: "#ffffff",
+  border: "none",
+  opacity: entriesPage >= totalPages ? 0.5 : 1,
+  cursor: entriesPage >= totalPages ? "not-allowed" : "pointer",
+}}
+      >
+        Siguiente →
+      </button>
+    </div>
+  );
+})()}
               </div>
             )}
           </div>
@@ -2620,18 +2726,34 @@ const styles: Record<string, React.CSSProperties> = {
   imgCard: { border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", background: "#ffffff" },
 
  whatsappInlineBtn: {
+  position: "relative",
   display: "inline-flex",
   alignItems: "center",
-  gap: 8,
-  padding: "10px 14px",
+  gap: 10,
+  padding: "10px 16px",
   borderRadius: 999,
-  background: "linear-gradient(135deg,#25D366,#1ebe5d)",
+
+  // Glass premium
+  background: "linear-gradient(135deg, rgba(37,211,102,0.95) 0%, rgba(22,163,74,0.95) 100%)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+
   color: "#ffffff",
   textDecoration: "none",
-  border: "1px solid rgba(255,255,255,0.18)",
-  boxShadow: "0 10px 22px rgba(37,211,102,0.35)",
+  border: "1px solid rgba(255,255,255,0.28)",
+
+  // Glow elegante (no exagerado)
+  boxShadow: `
+    0 10px 30px rgba(37,211,102,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.35)
+  `,
+
+  fontWeight: 900,
+  fontSize: 13,
+  letterSpacing: 0.3,
+
   transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
-  transform: "scale(1)",
+  transform: "translateY(0)",
   userSelect: "none",
 },
   loginCard: {
@@ -2663,4 +2785,29 @@ const styles: Record<string, React.CSSProperties> = {
     display: "block",
     background: "rgba(255,255,255,0.06)",
   },
+  pagerBtn: {
+  height: 34,
+  padding: "0 12px",
+  borderRadius: 10,
+  fontWeight: 900,
+  fontSize: 12,
+  cursor: "pointer",
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  color: "#0f172a",
+  boxShadow: "0 6px 16px rgba(15,23,42,0.06)",
+},
+
+pagerBtnPrimary: {
+  height: 34,
+  padding: "0 12px",
+  borderRadius: 10,
+  fontWeight: 900,
+  fontSize: 12,
+  cursor: "pointer",
+  border: "none",
+  color: "#ffffff",
+  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+  boxShadow: "0 10px 22px rgba(99,102,241,0.28)",
+},
 };

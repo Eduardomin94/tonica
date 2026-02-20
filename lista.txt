@@ -2,18 +2,11 @@
 
 
 
-mejorar botón de whatsapp
-
-cambiar dominio a fotonine.com
-
-
-🌎 Traducir TODO el frontend real (no solo header)
-
-
 vistas en foto producto
 
 
-opcional:
 
-🚀 Optimizar performance
-💎 Mejorar todavía más el diseño (nivel SaaS top tipo Stripe / Revolut)
+
+
+
+🌎 Traducir TODO el frontend real (no solo header)

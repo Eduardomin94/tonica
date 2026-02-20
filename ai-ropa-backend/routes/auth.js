@@ -1,7 +1,7 @@
 import express from "express";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
-import { prisma } from "../prisma.js";
+import { prisma } from "../prismaClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 
 
@@ -13,21 +13,30 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 ================================ */
 
 router.post("/google", async (req, res) => {
+  let ticket;
   try {
-    const { idToken } = req.body ?? {};
-    if (!idToken) {
-      return res.status(400).json({ error: "Missing idToken" });
-    }
+  const idToken = req.body?.idToken;
+  if (!idToken) {
+    console.log("NO ID TOKEN RECIBIDO");
+    return res.status(400).json({ error: "Missing idToken" });
+  }
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+  // 🔍 VER PAYLOAD SIN VERIFICAR FIRMA (solo debug)
+  const payloadPart = idToken.split(".")[1];
+  const raw = Buffer.from(payloadPart, "base64").toString("utf8");
+  console.log("GOOGLE TOKEN PAYLOAD RAW:", raw);
 
-    const payload = ticket.getPayload();
-    if (!payload) {
-      return res.status(401).json({ error: "Invalid Google token payload" });
-    }
+  ticket = await googleClient.verifyIdToken({
+  idToken,
+  audience: process.env.GOOGLE_CLIENT_ID,
+});
+
+const payload = ticket.getPayload();
+
+  console.log("GOOGLE VERIFIED:", {
+    aud: payload?.aud,
+    email: payload?.email,
+  });
 
     const { email, name, picture } = payload;
     if (!email) {
@@ -42,7 +51,7 @@ router.post("/google", async (req, res) => {
 
   // ✅ Usuario NUEVO → 3 créditos gratis + historial
  if (!existing) {
-const expiresAt = new Date(Date.now() + 5 * 1000); // 30 segundos (TEST)
+const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
   const created = await tx.user.create({
     data: {
       email,

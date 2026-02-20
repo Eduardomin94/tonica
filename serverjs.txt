@@ -7,12 +7,17 @@ import path from "path";
 
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
-import { prisma } from "./prisma.js";
+import { prisma } from "./prismaClient.js";
 
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import fetch from "node-fetch";
 
 dotenv.config();
+console.log("ENV CHECK:", {
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET ? "OK" : "MISSING",
+  FRONTEND_URL: process.env.FRONTEND_URL,
+});
 fs.mkdirSync("uploads", { recursive: true });
 
 const app = express();
@@ -38,14 +43,21 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("CORS not allowed"));
+    origin: (origin, cb) => {
+      // Permitir requests server-to-server / herramientas sin origin
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS not allowed: ${origin}`));
     },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key"],
   })
 );
-app.options(/.*/, cors());
+
+// Preflight
+app.options("*", cors());
+
 app.use(express.json({ limit: "10mb" }));
 
 // =====================
@@ -53,6 +65,54 @@ app.use(express.json({ limit: "10mb" }));
 // =====================
 app.use("/auth", authRoutes);
 
+async function applyWelcomeBonusExpiry(walletId) {
+  // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
+  const bonusEntries = await prisma.creditEntry.findMany({
+    where: { walletId, refType: { startsWith: "WELCOME_BONUS" } },
+    select: { id: true, amount: true, refType: true, metadata: true },
+  });
+
+  if (!bonusEntries.length) return;
+
+  // 2) encontrar algún movimiento que tenga expiresAt en metadata (no depende de refType exacto)
+  const withExpiry = bonusEntries.find((e) => e?.metadata?.expiresAt);
+  const expiresAtIso = withExpiry?.metadata?.expiresAt;
+  if (!expiresAtIso) return;
+
+  const expiresAtMs = new Date(expiresAtIso).getTime();
+  if (!Number.isFinite(expiresAtMs)) return;
+
+  // si todavía no venció, no hacemos nada
+  if (Date.now() < expiresAtMs) return;
+
+  // 3) si ya registramos expiración, no duplicar
+  const alreadyExpired = await prisma.creditEntry.findFirst({
+    where: { walletId, refType: "WELCOME_BONUS_EXPIRE" },
+    select: { id: true },
+  });
+  if (alreadyExpired) return;
+
+  // 4) bonus restante = suma de todos los WELCOME_BONUS*
+  const remaining = Math.max(
+    0,
+    bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+  );
+
+  // 5) crear movimiento "expirado" consumiendo lo que quedaba
+  await prisma.creditEntry.create({
+    data: {
+      walletId,
+      type: "CONSUME",
+      amount: remaining > 0 ? -remaining : 0,
+      idempotencyKey: `welcome-expire:${walletId}:${expiresAtIso}`,
+      refType: "WELCOME_BONUS_EXPIRE",
+      metadata: {
+        expiresAt: expiresAtIso,
+        expiredAt: new Date().toISOString(),
+      },
+    },
+  });
+}
 // =====================
 // WALLET: CREDIT ENTRIES (HISTORIAL)
 // =====================
@@ -66,7 +126,12 @@ app.get("/wallet/entries", requireAuth, async (req, res) => {
     });
 
     if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
-
+    const allEntries = await prisma.creditEntry.findMany({
+  where: { walletId: user.wallet.id },
+  select: { refType: true, metadata: true, amount: true },
+});
+console.log("BONUS ENTRIES DEBUG:", allEntries);
+    await applyWelcomeBonusExpiry(user.wallet.id);
     const entries = await prisma.creditEntry.findMany({
       where: { walletId: user.wallet.id },
       orderBy: { createdAt: "desc" },
@@ -606,10 +671,9 @@ const backFullHint =
 TOMA OBLIGATORIA – ESPALDA COMPLETA (SIEMPRE CABEZA A PIES):
 
 ENCUADRE:
-- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- Dejar aire arriba y abajo (margen visible).
 - NO recortar cabeza.
 - NO recortar pies.
-- Dejar aire arriba y abajo (margen visible).
 - Modelo centrada.
 - Formato vertical 4:5.
 
