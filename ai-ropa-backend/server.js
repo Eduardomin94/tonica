@@ -66,6 +66,43 @@ app.get("/wallet/entries", requireAuth, async (req, res) => {
     });
 
     if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
+    // ====== WELCOME BONUS: marcar caducado al ver historial ======
+try {
+  const bonusEntries = await prisma.creditEntry.findMany({
+    where: {
+      walletId: user.wallet.id,
+      refType: { startsWith: "WELCOME_BONUS" },
+    },
+    select: { amount: true, refType: true, metadata: true },
+  });
+
+  const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
+  const expiresAtIso = grant?.metadata?.expiresAt;
+  const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
+
+  const alreadyExpired = bonusEntries.some((e) => e.refType === "WELCOME_BONUS_EXPIRED");
+
+  if (expiresAtMs && Date.now() >= expiresAtMs && !alreadyExpired) {
+    const remaining = Math.max(
+      0,
+      bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    );
+
+    if (remaining > 0) {
+      await prisma.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "CONSUME",
+          amount: -remaining,
+          idempotencyKey: `expired-${user.wallet.id}`,
+          refType: "WELCOME_BONUS_EXPIRED",
+        },
+      });
+    }
+  }
+} catch (e) {
+  console.error("WELCOME_BONUS expire check (entries) failed:", e);
+}
 
     const entries = await prisma.creditEntry.findMany({
       where: { walletId: user.wallet.id },
