@@ -2046,7 +2046,9 @@ setResultKeys(keysInOrder as any);
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
                       const label =
-                        e.type === "PURCHASE"
+                        e.refType === "WELCOME_BONUS_EXPIRED"
+                          ? "Bonus caducado"
+                          : e.type === "PURCHASE"
                           ? "Compra"
                           : e.type === "CONSUME"
                           ? "Consumo"
@@ -2055,6 +2057,7 @@ setResultKeys(keysInOrder as any);
                           : e.type === "GRANT"
                           ? "Bonificación"
                           : e.type;
+                          
 
                       return (
                         <tr key={e.id} style={{ borderBottom: "1px solid #f1f5f9" }}>

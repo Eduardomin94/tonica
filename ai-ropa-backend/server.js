@@ -275,6 +275,31 @@ const expiresAtIso = grant?.metadata?.expiresAt;
 const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
 
 const bonusActive = expiresAtMs && Date.now() < expiresAtMs;
+// 🔔 Si el bonus venció y todavía tenía saldo, marcar como caducado
+if (expiresAtMs && Date.now() >= expiresAtMs) {
+  const bonusRemaining = Math.max(
+    0,
+    bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+  );
+
+  if (bonusRemaining > 0) {
+    const alreadyExpired = bonusEntries.find(
+      (e) => e.refType === "WELCOME_BONUS_EXPIRED"
+    );
+
+    if (!alreadyExpired) {
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "CONSUME",
+          amount: -bonusRemaining,
+          idempotencyKey: `expired-${wallet.id}`,
+          refType: "WELCOME_BONUS_EXPIRED",
+        },
+      });
+    }
+  }
+}
 
 // saldo de bonus = suma de todos los entries WELCOME_BONUS* (GRANT + CONSUME + RESTORE)
 const bonusBalance = bonusActive
