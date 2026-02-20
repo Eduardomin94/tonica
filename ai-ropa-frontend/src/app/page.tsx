@@ -2085,7 +2085,7 @@ const label = isWelcomeExpired
   : e.type === "REFUND"
   ? "Reintegro"
   : e.type === "GRANT"
-  ? "Bonificación"
+
   : e.type;
                           
 
