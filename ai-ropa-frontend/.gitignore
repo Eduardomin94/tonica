@@ -11,3 +11,5 @@ ai-ropa-backend/outputs/
 
 # Next
 .next/
+
+.vercel
