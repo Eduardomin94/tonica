@@ -585,36 +585,36 @@ export default function Home() {
   }
 
   async function fetchEntries() {
-    if (!API) return;
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
+  if (!API) return;
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
 
-    setLoadingEntries(true);
-    try {
-  const res = await fetch(`${API}/wallet/entries`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const text = await res.text();
-  let data: any = null;
+  setLoadingEntries(true);
   try {
-    data = JSON.parse(text);
-  } catch {
-    data = { raw: text };
-  }
+    const res = await fetch(`${API}/wallet/entries`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-  if (!res.ok) {
-    setError(`entries ${res.status}: ${data?.error || data?.message || text}`);
-    return;
-  }
-
-  setEntries(Array.isArray(data?.entries) ? data.entries : []);
-} finally {
-  setLoadingEntries(false);
-} finally {
-      setLoadingEntries(false);
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
     }
+
+    if (!res.ok) {
+      setError(`entries ${res.status}: ${data?.error || data?.message || text}`);
+      return;
+    }
+
+    setEntries(Array.isArray(data?.entries) ? data.entries : []);
+  } catch (e: any) {
+    setError(`entries fetch failed: ${String(e?.message || e)}`);
+  } finally {
+    setLoadingEntries(false);
   }
+}
 
   async function downloadImage(url: string, filename = "imagen.png") {
     try {
