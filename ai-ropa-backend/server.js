@@ -239,7 +239,8 @@ app.post(
     if (COST <= 0) {
       return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
     }
-
+let takeFromBonus = 0;
+let takeFromPaid = 0;
     let wallet = null;
     let consumeEntry = null;
 
@@ -255,26 +256,72 @@ app.post(
       wallet = user?.wallet;
       if (!wallet) return res.status(400).json({ error: "Wallet not found" });
 
-      // ---------- COBRO (UNA VEZ) ----------
-      const updated = await prisma.wallet.updateMany({
-        where: { id: wallet.id, balance: { gte: COST } },
-        data: { balance: { decrement: COST } },
-      });
+     // ---------- COBRO (BONUS PRIMERO, LUEGO PAGO) ----------
+const bonusEntries = await prisma.creditEntry.findMany({
+  where: {
+    walletId: wallet.id,
+    refType: { startsWith: "WELCOME_BONUS" },
+  },
+  select: { amount: true, refType: true, metadata: true },
+});
 
-      if (updated.count === 0) {
-        return res.status(402).json({ error: "Sin créditos suficientes" });
-      }
+// buscar el GRANT original (tiene expiresAt)
+const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
+const expiresAtIso = grant?.metadata?.expiresAt;
+const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
 
-      consumeEntry = await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "CONSUME",
-          amount: -COST,
-          idempotencyKey: String(idem),
-          refType: "GENERATION",
-          metadata: mode === "model" ? selectedViews : undefined,
-        },
-      });
+const bonusActive = expiresAtMs && Date.now() < expiresAtMs;
+
+// saldo de bonus = suma de todos los entries WELCOME_BONUS* (GRANT + CONSUME + RESTORE)
+const bonusBalance = bonusActive
+  ? Math.max(
+      0,
+      bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    )
+  : 0;
+
+takeFromBonus = Math.min(COST, bonusBalance);
+takeFromPaid = COST - takeFromBonus;
+
+// 1) descontar pagos (solo si hace falta)
+if (takeFromPaid > 0) {
+  const updated = await prisma.wallet.updateMany({
+    where: { id: wallet.id, balance: { gte: takeFromPaid } },
+    data: { balance: { decrement: takeFromPaid } },
+  });
+
+  if (updated.count === 0) {
+    return res.status(402).json({ error: "Sin créditos suficientes" });
+  }
+
+  consumeEntry = await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromPaid,
+      idempotencyKey: String(idem),
+      refType: "GENERATION",
+      metadata: mode === "model" ? selectedViews : undefined,
+    },
+  });
+}
+
+// 2) descontar bonus (si hace falta)
+if (takeFromBonus > 0) {
+  await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromBonus,
+      idempotencyKey: `${idem}:welcome`,
+      refType: "WELCOME_BONUS_CONSUME",
+      metadata: {
+        mode,
+        views: selectedViews,
+      },
+    },
+  });
+}
 
       // =====================
       // PRODUCT MODE (1 crédito fijo)
@@ -780,28 +827,42 @@ IMPORTANTE:
     } catch (err) {
       console.error("GENERATE ERROR:", err);
 
-      // REFUND del COST real
-      try {
-        if (wallet) {
-          await prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: COST } },
-          });
+      // REFUND (devolver pagos y bonus)
+try {
+  if (wallet) {
+    if (takeFromPaid > 0) {
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: takeFromPaid } },
+      });
 
-          await prisma.creditEntry.create({
-            data: {
-              walletId: wallet.id,
-              type: "REFUND",
-              amount: COST,
-              idempotencyKey: `refund:${idem}`,
-              refType: "GENERATION",
-              refId: consumeEntry?.id || null,
-            },
-          });
-        }
-      } catch (refundError) {
-        console.error("REFUND FAILED:", refundError);
-      }
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "REFUND",
+          amount: takeFromPaid,
+          idempotencyKey: `refund:${idem}`,
+          refType: "GENERATION",
+          refId: consumeEntry?.id || null,
+        },
+      });
+    }
+
+    if (takeFromBonus > 0) {
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "GRANT",
+          amount: takeFromBonus,
+          idempotencyKey: `restore:${idem}`,
+          refType: "WELCOME_BONUS_RESTORE",
+        },
+      });
+    }
+  }
+} catch (refundError) {
+  console.error("REFUND FAILED:", refundError);
+}
 
       return res.status(500).json({
         error: "Error en generate",

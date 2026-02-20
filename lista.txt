@@ -1,28 +1,20 @@
 
 
-Mejoras anti-duplicados (si Gemini repite ángulos)
-
-
-usuario nuevo 3 créditos grátis
-
 
 4. Suscripción mensual (ilimitado): $900.000
 
 
-🧠 Mejorar prompt para evitar errores de Gemini
 
 🌎 Traducir TODO el frontend real (no solo header)
 
-🚀 Optimizar performance
+
+🧠 Mejorar prompt para evitar errores de Gemini
+
+
+
+
 
 opcional:
 
-
+🚀 Optimizar performance
 💎 Mejorar todavía más el diseño (nivel SaaS top tipo Stripe / Revolut)
-
-
-Mejorar prompt para generar imagenes. para que sean más fieles a los productos.
-
-
-poner base de datos para que los clientes tengan una carpeta guardada en la nube
-

@@ -41,31 +41,34 @@ router.post("/google", async (req, res) => {
   });
 
   // ✅ Usuario NUEVO → 3 créditos gratis + historial
-  if (!existing) {
-    const created = await tx.user.create({
-      data: {
-        email,
-        name: name ?? null,
-        image: picture ?? null,
-        wallet: {
-          create: {
-            balance: 3,
-            entries: {
-              create: {
-                type: "GRANT",
-                amount: 3,
-                idempotencyKey: `welcome-${email}`,
-                refType: "WELCOME_BONUS",
-              },
+ if (!existing) {
+  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
+
+  const created = await tx.user.create({
+    data: {
+      email,
+      name: name ?? null,
+      image: picture ?? null,
+      wallet: {
+        create: {
+          balance: 0, // 👈 el bonus NO va en balance (se calcula aparte)
+          entries: {
+            create: {
+              type: "GRANT",
+              amount: 3,
+              idempotencyKey: `welcome-${email}`,
+              refType: "WELCOME_BONUS",
+              metadata: { expiresAt: expiresAt.toISOString() }, // 👈 vencimiento
             },
           },
         },
       },
-      include: { wallet: true },
-    });
+    },
+    include: { wallet: { include: { entries: true } } },
+  });
 
-    return created;
-  }
+  return created;
+}
 
   // ✅ Usuario EXISTENTE → solo actualizar datos
   const updated = await tx.user.update({
@@ -97,6 +100,19 @@ router.post("/google", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    const now = Date.now();
+
+const welcomeGrant = user.wallet?.entries?.find(
+  (e) => e.type === "GRANT" && e.refType === "WELCOME_BONUS"
+);
+
+const welcomeExpiresAt = welcomeGrant?.metadata?.expiresAt
+  ? new Date(welcomeGrant.metadata.expiresAt).getTime()
+  : null;
+
+const welcomeBonusActive =
+  welcomeExpiresAt && welcomeExpiresAt > now ? 3 : 0;
+
     return res.json({
       accessToken,
       user: {
@@ -106,8 +122,11 @@ router.post("/google", async (req, res) => {
         image: user.image,
       },
       wallet: {
-        balance: user.wallet?.balance ?? 0,
-      },
+  balance: (user.wallet?.balance ?? 0) + welcomeBonusActive, // total disponible
+  paidBalance: user.wallet?.balance ?? 0,
+  welcomeBonus: welcomeBonusActive, // 3 o 0
+  welcomeExpiresAt: welcomeExpiresAt ? new Date(welcomeExpiresAt).toISOString() : null,
+},
     });
   } catch (error) {
     console.error("AUTH /google error:", error);
