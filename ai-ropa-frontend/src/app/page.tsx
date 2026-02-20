@@ -2070,22 +2070,23 @@ if (welcomeBonus <= 0) return null;
                   <tbody>
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
-                      const label =
-  e.refType === "WELCOME_BONUS_EXPIRED"
-    ? "Caducado"
-    : e.refType === "WELCOME_BONUS"
-    ? "Bonificación"
-    : e.type === "CONSUME" && e.amount < 0 && e.refType?.includes("WELCOME")
-    ? "Caducado"
-    : e.type === "PURCHASE"
-    ? "Compra"
-    : e.type === "CONSUME"
-    ? "Consumo"
-    : e.type === "REFUND"
-    ? "Reintegro"
-    : e.type === "GRANT"
-    ? "Bonificación"
-    : e.type;
+                      const isWelcomeExpired =
+  e.refType === "WELCOME_BONUS_EXPIRED" ||
+  (e.type === "CONSUME" && e.amount < 0 && String(e.refType || "").startsWith("WELCOME_BONUS"));
+
+const label = isWelcomeExpired
+  ? "Expirado"
+  : e.refType === "WELCOME_BONUS"
+  ? "Bonificación"
+  : e.type === "PURCHASE"
+  ? "Compra"
+  : e.type === "CONSUME"
+  ? "Consumo"
+  : e.type === "REFUND"
+  ? "Reintegro"
+  : e.type === "GRANT"
+  ? "Bonificación"
+  : e.type;
                           
 
                       return (
