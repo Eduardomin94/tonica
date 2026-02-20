@@ -781,23 +781,21 @@ void fetchEntries();
     setError(String(e?.message || e));
   } finally {
     // ✅ esperar 2 frames para que el <img> pinte antes de sacar el overlay
-await new Promise<void>((resolve) => {
-  requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-});
+    setTimeout(() => {
+  setRegenLoading((m) => {
+    const copy = { ...m };
+    delete copy[lockKey];
+    return copy;
+  });
 
-setRegenLoading((m) => {
-  const copy = { ...m };
-  delete copy[lockKey];
-  return copy;
-});
+  setRegenStartedAt((m) => {
+    const copy = { ...m };
+    delete copy[lockKey];
+    return copy;
+  });
 
-setRegenStartedAt((m) => {
-  const copy = { ...m };
-  delete copy[lockKey];
-  return copy;
-});
-
-delete regenLockRef.current[lockKey];
+  delete regenLockRef.current[lockKey];
+}, 80);
   }
 }
 
