@@ -329,6 +329,7 @@ if (takeFromBonus > 0) {
       if (mode === "product") {
         const files = req.files?.product_images || [];
         const scene = String(req.body?.scene || "").trim();
+        const regenVar = String(req.body?.regen_variation || "").trim();
 
         if (!files.length) return res.status(400).json({ error: "Faltan fotos del producto" });
         if (!scene) return res.status(400).json({ error: "Falta escena" });
@@ -346,6 +347,20 @@ Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
 Escena: ${scene}.
 Mantener exactamente el mismo producto, color y textura.
 `.trim();
+
+        const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER PRODUCTO):
+- Mantener EXACTAMENTE el mismo producto (NO cambiar color, textura, forma, detalles).
+- Mantener misma escena general: ${scene}.
+- Cambiar NOTABLEMENTE al menos 2 cosas (sin salir de estudio e-commerce):
+  1) iluminación (más suave ↔ un poco más contrastada)
+  2) fondo estudio (blanco ↔ gris claro ↔ beige suave)
+  3) micro-ángulo (ligero cambio de cámara, sin deformar producto)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
 
         const views = [
   { key: "front", label: "toma principal" },
@@ -381,6 +396,7 @@ POSE:
 
 const viewPrompt = `
 ${basePrompt}
+${variationHint}
 
 Cámara: ${v.label}.
 
@@ -391,7 +407,6 @@ IMPORTANTE:
 - Un solo producto, centrado.
 - Fondo continuo de estudio.
 `.trim();
-
 
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
