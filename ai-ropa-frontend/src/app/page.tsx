@@ -2072,17 +2072,19 @@ if (welcomeBonus <= 0) return null;
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
                       const label =
-                        e.refType === "WELCOME_BONUS_EXPIRED"
-                          ? "Bonus caducado"
-                          : e.type === "PURCHASE"
-                          ? "Compra"
-                          : e.type === "CONSUME"
-                          ? "Consumo"
-                          : e.type === "REFUND"
-                          ? "Reintegro"
-                          : e.type === "GRANT"
-                          ? "Bonificación"
-                          : e.type;
+  e.refType === "WELCOME_BONUS_EXPIRED"
+    ? "Bonus caducado"
+    : e.refType === "WELCOME_BONUS"
+    ? "Bonificación (bienvenida)"
+    : e.type === "PURCHASE"
+    ? "Compra"
+    : e.type === "CONSUME"
+    ? "Consumo"
+    : e.type === "REFUND"
+    ? "Reintegro"
+    : e.type === "GRANT"
+    ? "Bonificación"
+    : e.type;
                           
 
                       return (
