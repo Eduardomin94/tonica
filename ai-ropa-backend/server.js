@@ -219,16 +219,19 @@ app.post(
       selectedViews = {};
     }
 
-   const requestedKeys = [
-  "front",
-  "back",
-  "side",
-  "frontDetail",
-  "backDetail",
-  "pantFrontDetail",
-  "pantBackDetail",
-  "pantSideDetail",
-].filter((k) => !!selectedViews?.[k]);
+   const requestedKeys =
+  mode === "product"
+    ? ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k])
+    : [
+        "front",
+        "back",
+        "side",
+        "frontDetail",
+        "backDetail",
+        "pantFrontDetail",
+        "pantBackDetail",
+        "pantSideDetail",
+      ].filter((k) => !!selectedViews?.[k]);
 
 
 
@@ -365,6 +368,8 @@ VARIACIÓN (REHACER PRODUCTO):
         const views = [
   { key: "front", label: "toma principal" },
   { key: "back", label: "ángulo alternativo" },
+  { key: "left", label: "detalle cercano" },
+  { key: "right", label: "otro ángulo" },
 ].filter((v) => selectedViews?.[v.key]);
 
 
