@@ -2072,8 +2072,8 @@ if (welcomeBonus <= 0) return null;
                     {entries.map((e) => {
                       const isPlus = e.amount > 0;
                       const label =
-  e.refType === "WELCOME_BONUS_EXPIRED"
-    ? "Caducado"
+  (typeof e.refType === "string" && e.refType.startsWith("WELCOME_BONUS") && e.amount < 0)
+  ? "Caducado"
     : e.refType === "WELCOME_BONUS"
     ? "Bonificación"
     : e.type === "PURCHASE"
