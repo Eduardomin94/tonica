@@ -1,6 +1,6 @@
 
 
-agregar en historial el tipo de consumo 📸/⚛️/🤳
+agregar en historial el tipo de consumo 📸/⚛️
 
 vistas en foto producto
 
@@ -12,16 +12,4 @@ vistas en foto producto
 🌎 Traducir TODO el frontend real (no solo header)
 
 
-1. En lo posible fondo blanco y brazos separados
-Foto cuerpo completo de frente (obligatoria)
-foto cuerpo completo de espalda (opcional)
-foto cuerpo completo de costados (opcional)
 
-2. En lo posible fondo blanco y estirada OBLIGATORIA
-Foto delantera y espalda
-
-3. escribir categoría, si es campera, remera, pantalón, etc (máximo 4 palabras) OBLIGATORIA
-
-4. Tipo de tela OPCIONAL
-
-5. tu altura OPCIONAL

@@ -2177,13 +2177,22 @@ const ss = String(seconds).padStart(2, "0");
     .slice((entriesPage - 1) * ENTRIES_PAGE_SIZE, entriesPage * ENTRIES_PAGE_SIZE)
     .map((e) => {
                       const isPlus = e.amount > 0;
-                      const label =
+
+const consumeMode = (e as any)?.metadata?.mode; // "model" | "product" | undefined
+const consumeLabel =
+  consumeMode === "model"
+    ? "📸 Consumo"
+    : consumeMode === "product"
+    ? "⚛️ Consumo"
+    : "Consumo";
+console.log("ENTRY:", e);
+const label =
   e.refType === "WELCOME_BONUS_EXPIRE"
     ? "Expirado"
     : e.type === "PURCHASE"
     ? "Compra"
     : e.type === "CONSUME"
-    ? "Consumo"
+    ? consumeLabel
     : e.type === "REFUND"
     ? "Reintegro"
     : e.type === "GRANT"

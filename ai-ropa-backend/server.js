@@ -143,6 +143,7 @@ console.log("BONUS ENTRIES DEBUG:", allEntries);
         refType: true,
         refId: true,
         createdAt: true,
+        metadata: true,
       },
     });
 
@@ -278,11 +279,11 @@ app.post(
 
     // views para ambos modos (model y product)
     let selectedViews = {};
-    try {
-      selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
-    } catch {
-      selectedViews = {};
-    }
+try {
+  selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
+} catch (err) {
+  selectedViews = {};
+}
 
    const requestedKeys =
   mode === "product"
@@ -362,17 +363,19 @@ if (takeFromPaid > 0) {
     return res.status(402).json({ error: "Sin créditos suficientes" });
   }
 
-  consumeEntry = await prisma.creditEntry.create({
-    data: {
-      walletId: wallet.id,
-      type: "CONSUME",
-      amount: -takeFromPaid,
-      idempotencyKey: String(idem),
-      refType: "GENERATION",
-      metadata: mode === "model" ? selectedViews : undefined,
+ consumeEntry = await prisma.creditEntry.create({
+  data: {
+    walletId: wallet.id,
+    type: "CONSUME",
+    amount: -takeFromPaid,
+    idempotencyKey: String(idem),
+    refType: "GENERATION",
+    metadata: {
+      mode, // "model" | "product"
+      views: selectedViews,
     },
-  });
-}
+  },
+});
 
 // 2) descontar bonus (si hace falta)
 if (takeFromBonus > 0) {
@@ -381,7 +384,7 @@ if (takeFromBonus > 0) {
       walletId: wallet.id,
       type: "CONSUME",
       amount: -takeFromBonus,
-      idempotencyKey: `${idem}:welcome`,
+      idempotencyKey: String(idem) + ":welcome",
       refType: "WELCOME_BONUS_CONSUME",
       metadata: {
         mode,
@@ -906,7 +909,8 @@ IMPORTANTE:
       }
 
       return res.status(400).json({ error: "Modo inválido" });
-    } catch (err) {
+    }
+  } catch (err) {
       console.error("GENERATE ERROR:", err);
 
       // REFUND (devolver pagos y bonus)
