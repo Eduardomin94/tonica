@@ -395,8 +395,7 @@ age_35_44: "35 a 44 años",
     sceneLabel: "Escena",
     prevPage: "← Anterior",
     nextPage: "Siguiente →",
-    missingApiBase: "Falta NEXT_PUBLIC_API_BASE en .env.local",
-    missingApiUrl: "Falta NEXT_PUBLIC_API_URL en .env.local",
+    
 
     // misc
     bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 Bonus de 3 créditos — expira en ${hh}:${mm}:${ss}`,
