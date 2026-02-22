@@ -218,34 +218,145 @@ function extractImageBase64(data) {
   }
 }
 
+async function retry(fn, { attempts = 2, delayMs = 800 } = {}) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn(i);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+
+function fallbackOptions(lang) {
+  switch (lang) {
+    case "en":
+      return [
+        "Industrial loft with concrete walls",
+        "Outdoor rooftop at sunset",
+        "Minimal white cyclorama studio",
+        "Luxury marble interior setting",
+        "Urban street background, soft daylight",
+      ];
+    case "pt":
+      return [
+        "Loft industrial com paredes de concreto",
+        "Terraço ao pôr do sol",
+        "Estúdio branco ciclorama minimalista",
+        "Interior sofisticado com mármore",
+        "Rua urbana com luz natural suave",
+      ];
+    case "ko":
+      return [
+        "콘크리트 벽의 인더스트리얼 로프트",
+        "노을 지는 옥상 야외 공간",
+        "미니멀 화이트 사이클로라마 스튜디오",
+        "고급스러운 대리석 인테리어",
+        "자연광이 부드러운 도시 거리",
+      ];
+    case "zh":
+      return [
+        "工业风混凝土墙背景",
+        "日落屋顶户外场景",
+        "极简白色无缝影棚",
+        "大理石奢华室内空间",
+        "自然光柔和的城市街景",
+      ];
+    case "es":
+    default:
+      return [
+        "loft industrial con paredes de hormigón",
+        "terraza urbana al atardecer",
+        "estudio ciclorama blanco minimalista",
+        "interior elegante con mármol",
+        "calle urbana con luz natural suave",
+      ];
+  }
+}
 // =====================
 // SUGGEST BACKGROUND
 // =====================
-app.post("/suggest-background", async (req, res) => {
+app.post("/suggest-background", upload.any(), async (req, res) => {
   try {
     const { category, model_type, vibe } = req.body;
+    const language = String(req.body?.language || "es").toLowerCase();
+
+    const langLine =
+      language === "en"
+        ? "Write everything in English."
+        : language === "pt"
+        ? "Escreva tudo em português (Brasil)."
+        : language === "ko"
+        ? "모든 설명은 한국어로 작성하세요."
+        : language === "zh"
+        ? "所有描述请使用简体中文。"
+        : "Escribí todo en español.";
+
+    const front = Array.isArray(req.files)
+  ? req.files.find((f) => f.fieldname === "front")
+  : null;
+
+  console.log("SUGGEST-BG FILE:", front ? {
+  fieldname: front.fieldname,
+  mimetype: front.mimetype,
+  size: front.size,
+  path: front.path,
+} : null);
 
     const prompt = `
+${langLine}
+
 Devolvé SOLO JSON válido:
 {"option":"..."}
 
-Sugerí 1 solo fondo para fotos e-commerce.
-Solo describí el lugar.
-Máximo 10 palabras.
+Tarea:
+- Mirá la FOTO del producto y deducí su uso probable (ej: playa/pileta, noche/evento, gym/deporte, oficina/formal, invierno/frío, urbano casual).
+- Sugerí 1 fondo/escena MUY específico para e-commerce premium.
+- Debe incluir 1 detalle distintivo (ej: "arena húmeda", "luces cálidas bokeh", "ventana grande", "pared ladrillo visto").
+- Máximo 10 palabras.
+- Solo describí el lugar/escena, sin marcas, sin texto.
+- Evitá respuestas genéricas tipo "estudio minimalista".
 
-Categoría: ${category}
+Contexto:
+Categoría (si ayuda): ${category}
 Modelo: ${model_type}
 Vibe: ${vibe}
 `.trim();
 
+    // Si hay foto, la mandamos como inlineData
+    const parts = front
+      ? [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: front.mimetype,
+              data: fs.readFileSync(front.path, { encoding: "base64" }),
+            },
+          },
+        ]
+      : [{ text: prompt }];
+
     const { status, data } = await geminiGenerate({
       model: MODEL_TEXT,
-      body: { contents: [{ role: "user", parts: [{ text: prompt }] }] },
+      body: { contents: [{ role: "user", parts }] },
       timeoutMs: 15000,
     });
 
+    // limpiar archivo temporal si vino
+    if (front) {
+      try { fs.unlinkSync(front.path); } catch {}
+    }
+
     if (status >= 400) {
-      return res.json({ options: ["estudio blanco seamless con luz suave"] });
+      const opts = fallbackOptions(language);
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      return res.json({ options: [pick] });
     }
 
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -258,15 +369,22 @@ Vibe: ${vibe}
     const finalOption =
       option && option.split(/\s+/).length <= 10
         ? option
-        : "estudio blanco seamless con luz suave";
+        : fallbackOptions(language)[0];
 
     return res.json({ options: [finalOption] });
   } catch (err) {
     console.error(err);
-    return res.json({ options: ["estudio blanco seamless con luz suave"] });
+    try {
+      const language = String(req.body?.language || "es").toLowerCase();
+      const opts = fallbackOptions(language);
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      return res.json({ options: [pick] });
+    } catch {
+      return res.json({ options: ["estudio minimalista con luz suave"] });
+    }
   }
 });
-
+  
 // =====================
 // GENERATE FACE (ROSTRO)
 // =====================
@@ -303,6 +421,56 @@ Tipo de cuerpo: ${bodyType || "Estandar"}
       return res.status(500).json({ error: "Gemini face error" });
     }
 
+    const fallbackOptions = (lang) => {
+  switch (lang) {
+    case "en":
+      return [
+        "Industrial loft with concrete walls",
+        "Outdoor rooftop at sunset",
+        "Minimal white cyclorama studio",
+        "Luxury marble interior setting",
+        "Urban street background, soft daylight",
+      ];
+
+    case "pt":
+      return [
+        "Loft industrial com paredes de concreto",
+        "Terraço ao pôr do sol",
+        "Estúdio branco ciclorama minimalista",
+        "Interior sofisticado com mármore",
+        "Rua urbana com luz natural suave",
+      ];
+
+    case "ko":
+      return [
+        "콘크리트 벽의 인더스트리얼 로프트",
+        "노을 지는 옥상 야외 공간",
+        "미니멀 화이트 사이클로라마 스튜디오",
+        "고급스러운 대리석 인테리어",
+        "자연광이 부드러운 도시 거리",
+      ];
+
+    case "zh":
+      return [
+        "工业风混凝土墙背景",
+        "日落屋顶户外场景",
+        "极简白色无缝影棚",
+        "大理石奢华室内空间",
+        "自然光柔和的城市街景",
+      ];
+
+    case "es":
+    default:
+      return [
+        "loft industrial con paredes de hormigón",
+        "terraza urbana al atardecer",
+        "estudio ciclorama blanco minimalista",
+        "interior elegante con mármol",
+        "calle urbana con luz natural suave",
+      ];
+  }
+};
+
     const imgB64 = extractImageBase64(data);
     if (!imgB64) return res.status(500).json({ error: "No face image returned" });
 
@@ -330,7 +498,17 @@ app.post(
   ]),
   async (req, res) => {
     const mode = String(req.body?.mode || "model").toLowerCase();
-
+    const language = String(req.body?.language || "es").toLowerCase();
+    const langLine =
+  language === "en"
+    ? "Write everything in English."
+    : language === "pt"
+    ? "Escreva tudo em português (Brasil)."
+    : language === "ko"
+    ? "모든 설명은 한국어로 작성하세요."
+    : language === "zh"
+    ? "所有描述请使用简体中文。"
+    : "Escribí todo en español.";
     // views para ambos modos (model y product)
     let selectedViews = {};
 try {
@@ -466,7 +644,20 @@ if (takeFromBonus > 0) {
           },
         }));
 
+        const langLine =
+  language === "en"
+    ? "Write the entire description in English."
+    : language === "pt"
+    ? "Escreva toda a descrição em português (Brasil)."
+    : language === "ko"
+    ? "모든 설명은 한국어로 작성하세요."
+    : language === "zh"
+    ? "所有描述请使用简体中文。"
+    : "Escribí toda la descripción en español.";
+
         const basePrompt = `
+${langLine}
+
 Foto de producto e-commerce premium, fotorealista, iluminación de estudio suave.
 Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
 Escena: ${scene}.
@@ -496,7 +687,10 @@ VARIACIÓN (REHACER PRODUCTO):
 
 
         const settled = await Promise.allSettled(
-          views.map(async (v) => {
+          views.map((v) =>
+  retry(
+    async (attempt) => {
+      console.log(`MODEL view=${v.key} attempt=${attempt}`);
               const sideHint =
   v.key === "side"
     ? `
@@ -554,8 +748,11 @@ IMPORTANTE:
             const filePath = path.join("uploads", fileName);
             fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
             return `/uploads/${fileName}`;
-          })
-        );
+              },
+    { attempts: 2, delayMs: 900 }
+  )
+)
+);
         
 
         for (const f of files) {
@@ -564,27 +761,73 @@ IMPORTANTE:
           } catch {}
         }
 
-        const imageUrls = settled
-  .filter((r) => r.status === "fulfilled")
-  .map((r) => r.value);
+        const fulfilled = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "fulfilled")
+  .map((x) => ({ key: views[x.i].key, url: x.r.value }));
 
-// Debug
 const failed = settled
   .map((r, i) => ({ r, i }))
   .filter((x) => x.r.status === "rejected")
   .map((x) => views[x.i]?.key);
 
-console.log("VIEWS REQUESTED:", views.map((v) => v.key));
-console.log("VIEWS FAILED:", failed);
+const requestedCost = views.length;
+const successCost = fulfilled.length;
+const refundCount = Math.max(0, requestedCost - successCost);
 
-// ✅ Si no salen todas las vistas, forzamos error → entra al catch → hace REFUND
-if (imageUrls.length !== views.length) {
-  throw new Error(
-    `Faltaron vistas: ${imageUrls.length}/${views.length}. Fallaron: ${failed.join(", ")}`
-  );
+console.log("MODEL requested:", views.map(v => v.key));
+console.log("MODEL failed:", failed);
+
+// Si no salió ninguna, ahí sí devolvemos error (y tu catch hace refund total)
+if (successCost === 0) {
+  throw new Error("No se pudo generar ninguna imagen con modelo");
 }
 
-return res.json({ imageUrls, promptUsed: basePrompt });
+// ✅ Refund parcial (bonus primero, luego paid)
+if (refundCount > 0 && wallet) {
+  const refundFromBonus = Math.min(takeFromBonus, refundCount);
+  const refundFromPaid = refundCount - refundFromBonus;
+
+  if (refundFromPaid > 0) {
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: refundFromPaid } },
+    });
+
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "REFUND",
+        amount: refundFromPaid,
+        idempotencyKey: `refund-partial:${idem}`,
+        refType: "GENERATION_PARTIAL",
+        refId: consumeEntry?.id || null,
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+
+  if (refundFromBonus > 0) {
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "GRANT",
+        amount: refundFromBonus,
+        idempotencyKey: `restore-partial:${idem}`,
+        refType: "WELCOME_BONUS_RESTORE",
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+}
+
+// ✅ Devolvemos SOLO lo que salió, con keys
+return res.json({
+  imageUrls: fulfilled.map(x => x.url),
+  imageKeys: fulfilled.map(x => x.key),
+  failedViews: failed,
+  promptUsed: basePrompt,
+});
       }
 
       // =====================
@@ -599,7 +842,8 @@ return res.json({ imageUrls, promptUsed: basePrompt });
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
         const category = String(req.body?.category || "");
-        const isPantsCategory = category === "Pantalón/Short/Pollera/Falda";
+        console.log("DEBUG category:", category);
+        const isPantsCategory = category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
 if (!isPantsCategory) {
   selectedViews.pantFrontDetail = false;
   selectedViews.pantBackDetail = false;
@@ -642,18 +886,13 @@ if (back) {
   });
 }
 
-        if (back) {
-          refParts.push({
-            inlineData: {
-              mimeType: back.mimetype,
-              data: fs.readFileSync(back.path, { encoding: "base64" }),
-            },
-          });
-        }
+
 
         const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
         const basePrompt = `
+${langLine}
+
 FOTO DE MODA E-COMMERCE ULTRA FIEL A REFERENCIA.
 
 PRIORIDAD ABSOLUTA: LA PRENDA.
@@ -974,12 +1213,21 @@ ${pantFrontDetailHint}
 ${pantBackDetailHint}
 ${pantSideDetailHint}
 
+SALIDA:
+- Devolvé una IMAGEN (no texto).
+- No describas. No expliques. No devuelvas JSON.
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
 - NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
 - Un solo cuerpo completo, centrado.
 - Fondo continuo (sin cortes).
+
+SALIDA OBLIGATORIA:
+- Generar únicamente una imagen.
+- No escribir texto.
+- No describir la imagen.
+- No devolver explicación.
 `.trim();
 
             const parts = [{ text: viewPrompt }, ...refParts];
@@ -989,7 +1237,15 @@ IMPORTANTE:
               body: { contents: [{ role: "user", parts }] },
               timeoutMs: 60000,
             });
-
+if (v.key === "front" || v.key === "frontDetail") {
+  const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  console.log("DEBUG VIEW", v.key, {
+    status,
+    hasB64: !!extractImageBase64(data),
+    hasText: typeof txt === "string" && txt.length > 0,
+    textSample: typeof txt === "string" ? txt.slice(0, 120) : null,
+  });
+}
             if (status >= 400) throw new Error("Gemini model error");
 
             const imgB64 = extractImageBase64(data);
@@ -1004,6 +1260,7 @@ IMPORTANTE:
           })
         );
 
+
         try {
           fs.unlinkSync(front.path);
         } catch {}
@@ -1017,13 +1274,73 @@ IMPORTANTE:
   try { fs.unlinkSync(face.path); } catch {}
 } 
 
-        const imageUrls = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+        const fulfilled = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "fulfilled")
+  .map((x) => ({ key: views[x.i].key, url: x.r.value }));
 
-        if (!imageUrls.length) {
-          return res.status(500).json({ error: "No se pudo generar ninguna imagen con modelo" });
-        }
+const failed = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "rejected")
+  .map((x) => views[x.i]?.key);
 
-        return res.json({ imageUrls, promptUsed: basePrompt });
+const requestedCost = views.length;
+const successCost = fulfilled.length;
+const refundCount = Math.max(0, requestedCost - successCost);
+
+console.log("MODEL requested:", views.map((v) => v.key));
+console.log("MODEL failed:", failed);
+
+// Si no salió ninguna, ahí sí devolvemos error (y tu catch hace refund total)
+if (successCost === 0) {
+  throw new Error("No se pudo generar ninguna imagen con modelo");
+}
+
+// ✅ Refund parcial (bonus primero, luego paid)
+if (refundCount > 0 && wallet) {
+  const refundFromBonus = Math.min(takeFromBonus, refundCount);
+  const refundFromPaid = refundCount - refundFromBonus;
+
+  if (refundFromPaid > 0) {
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: refundFromPaid } },
+    });
+
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "REFUND",
+        amount: refundFromPaid,
+        idempotencyKey: `refund-partial:${idem}`,
+        refType: "GENERATION_PARTIAL",
+        refId: consumeEntry?.id || null,
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+
+  if (refundFromBonus > 0) {
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "GRANT",
+        amount: refundFromBonus,
+        idempotencyKey: `restore-partial:${idem}`,
+        refType: "WELCOME_BONUS_RESTORE",
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+}
+
+// ✅ Devolvemos SOLO lo que salió, con keys
+return res.json({
+  imageUrls: fulfilled.map((x) => x.url),
+  imageKeys: fulfilled.map((x) => x.key),
+  failedViews: failed,
+  promptUsed: basePrompt,
+});
       }
 
       return res.status(400).json({ error: "Modo inválido" });

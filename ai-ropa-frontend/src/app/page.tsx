@@ -10,23 +10,42 @@ const inter = Inter({
 /* ================== CONSTANTES ================== */
 
 const CATEGORIES = [
-  "Remera/Top",
-  "Abrigo/Campera/Buzo",
-  "Pantalón/Short/Pollera/Falda",
-  "Vestido/Enterito",
-  "Conjunto",
-  "Traje de baño",
-  "Body",
-  "otro",
+  { value: "top", labelKey: "catTop" },
+  { value: "outerwear", labelKey: "catOuterwear" },
+  { value: "bottom", labelKey: "catBottom" },
+  { value: "dress", labelKey: "catDress" },
+  { value: "set", labelKey: "catSet" },
+  { value: "swim", labelKey: "catSwim" },
+  { value: "body", labelKey: "catBody" },
+  { value: "other", labelKey: "catOther" },
 ] as const;
 
-const MODEL_TYPES = ["Bebé recién nacido", "Niño", "Niña", "Hombre", "Mujer"] as const;
+const MODEL_TYPES = [
+  { value: "newborn", labelKey: "modelNewborn" },
+  { value: "boy", labelKey: "modelBoy" },
+  { value: "girl", labelKey: "modelGirl" },
+  { value: "man", labelKey: "modelMan" },
+  { value: "woman", labelKey: "modelWoman" },
+] as const;
 
-const ETHNICITIES = ["Caucásico/a", "Latino/a", "Asiatico/a", "Negro/a", "Mediterraneo/a"] as const;
+const ETHNICITIES = [
+  { value: "caucasian", labelKey: "ethCaucasian" },
+  { value: "latino", labelKey: "ethLatino" },
+  { value: "asian", labelKey: "ethAsian" },
+  { value: "black", labelKey: "ethBlack" },
+  { value: "mediterranean", labelKey: "ethMediterranean" },
+] as const;
 
-const POSES = ["Sentado/a", "Parado/a", "Caminando"] as const;
+const POSES = [
+  { value: "sitting", labelKey: "poseSitting" },
+  { value: "standing", labelKey: "poseStanding" },
+  { value: "walking", labelKey: "poseWalking" },
+] as const;
 
-const BODY_TYPES = ["Estandar", "Plus Size"] as const;
+const BODY_TYPES = [
+  { value: "standard", labelKey: "bodyStandard" },
+  { value: "plus", labelKey: "bodyPlus" },
+] as const;
 
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
@@ -49,14 +68,49 @@ if (typeof document !== "undefined") {
 export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
   const t = (key: any, ...args: any[]) => {
-  const raw = (translations as any)[language];
-  const dict = raw && Object.keys(raw).length ? raw : (translations as any).en;
-  const fallback = (translations as any).es;
+  const dict = (translations as any)[language] || {};
+  const en = (translations as any).en || {};
+  const es = (translations as any).es || {};
 
-  const val = dict?.[key] ?? fallback?.[key];
+  const val = dict?.[key] ?? en?.[key] ?? es?.[key];
   if (typeof val === "function") return val(...args);
   return String(val ?? key);
 };
+
+function appendProductFormData(fd: FormData) {
+  productFiles.forEach((f) => fd.append("product_images", f));
+  fd.append("scene", scene.trim());
+}
+
+function appendModelFormData(fd: FormData) {
+  // ✅ NOMBRES DE ARCHIVOS (multer suele esperar estos)
+  if (frontFile) fd.append("front", frontFile);
+  if (backFile) fd.append("back", backFile);
+  if (faceFile) fd.append("face", faceFile);
+
+  // Campos (texto)
+  fd.append("category", category || "");
+  fd.append("other_category", otherCategory.trim());
+  fd.append("pockets", pockets || "");
+
+  fd.append("model_type", modelType || "");
+  fd.append("ethnicity", ethnicity || "");
+  fd.append("age_range", ageRange || "");
+  fd.append("background", background.trim());
+  fd.append("pose", pose || "");
+  fd.append("body_type", bodyType || "");
+
+  fd.append("measures", JSON.stringify(measures));
+}
+
+function labelFromList<T extends { value: string; labelKey: string }>(
+  list: readonly T[],
+  value: string | ""
+) {
+  if (!value) return "";
+  const item = list.find((x) => x.value === value);
+  return item ? t(item.labelKey) : "";
+}
 
   const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
   console.log("API URL:", API);
@@ -66,7 +120,8 @@ export default function Home() {
   const regenLockRef = React.useRef<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
   
-
+const [genProgress, setGenProgress] = useState<{ total: number; done: number; current?: string } | null>(null);
+const [genStatuses, setGenStatuses] = useState<Record<string, "pending" | "ok" | "fail">>({});
   console.log("PAGE LOADED ✅", { isMobile });
 
   const [resultKeys, setResultKeys] = useState<Array<"front" | "back">>([]);
@@ -136,19 +191,54 @@ type Lang = "es" | "en" | "pt" | "ko" | "zh";
 const translations = {
   es: {
     // header / auth
-    title: "Generador IA",
+    title: "Fotonine | Generador IA",
     subtitle: "Elegí el tipo de imagen que querés generar",
     signIn: "Iniciar sesión",
     signInHint: "Accedé con tu cuenta de Google para usar el generador",
     logout: "Cerrar sesión",
+    scenePlaceholder: 'Ej: "colgado en percha de madera", "sobre arena húmeda"',
+    otherExample: "Ej: Camisa, Blusa, Collar, Gorra, etc",
+    bgPlaceholder: 'Ej: "estudio gris con luz suave"',
     credits: "Créditos",
     buyCredits: "Comprar créditos",
     loading: "Cargando...",
+    ethCaucasian: "Caucásico/a",
+    ethLatino: "Latino/a",
+    ethAsian: "Asiático/a",
+    ethBlack: "Negro/a",
+    ethMediterranean: "Mediterráneo/a",
+    poseSitting: "Sentado/a",
+    poseStanding: "Parado/a",
+    poseWalking: "Caminando",
+    bodyStandard: "Estándar",
+    bodyPlus: "Plus Size",
+    m_hombros: "Hombros",
+m_pecho: "Pecho",
+m_manga: "Manga",
+m_cintura: "Cintura",
+m_cadera: "Cadera",
+m_largo: "Largo",
+exampleCm: "Ej: 52cm",
     // modes
     modeModel: "📸Foto con modelo",
     modeProduct: "⚛️Foto producto",
     // steps titles
     stepUpload: "Subir fotos",
+    catTop: "Remera / Top",
+    catOuterwear: "Abrigo / Campera / Buzo",
+    catBottom: "Pantalón / Short / Pollera / Falda",
+    catDress: "Vestido / Enterito",
+    catSet: "Conjunto",
+    catSwim: "Traje de baño",
+    catBody: "Body",
+    catOther: "Otro",
+    age_0_2: "0 a 2 años",
+age_3_6: "3 a 6 años",
+age_6_10: "6 a 10 años",
+age_10_16: "10 a 16 años",
+age_18_24: "18 a 24 años",
+age_25_34: "25 a 34 años",
+age_35_44: "35 a 44 años",
     stepCategory: "Categoría",
     stepPockets: "Bolsillos",
     stepMeasures: "Medidas (opcional)",
@@ -161,6 +251,11 @@ const translations = {
     stepBodyType: "Tipo de cuerpo",
     stepScene: "Escena",
     stepGenerate: "Generar",
+    modelNewborn: "Bebé recién nacido",
+    modelBoy: "Niño",
+    modelGirl: "Niña",
+    modelMan: "Hombre",
+    modelWoman: "Mujer",
     // nav
     next: "Siguiente",
     back: "Atrás",
@@ -212,7 +307,7 @@ const translations = {
 
     // background / scene
     backgroundTitle: "8) Fondo (máx 10 palabras)",
-    helpChoosePlace: "Ayudame a elegir el lugar",
+    helpChoosePlace: "Ayudame a elegir",
     searching: "Buscando...",
     sceneTitle: "Escena del producto (máx 10 palabras)",
     helpChoose: "Ayudame a elegir",
@@ -310,13 +405,48 @@ const translations = {
   },
 
   en: {
-    title: "AI Generator",
+    title: "Fotonine | AI Generator",
     subtitle: "Choose the type of image you want to generate",
     signIn: "Sign in",
     signInHint: "Sign in with Google to use the generator",
     logout: "Log out",
+    bgPlaceholder: 'e.g. "gray studio with soft light"',
     credits: "Credits",
+    scenePlaceholder: 'e.g. "hung on a wooden hanger", "on wet sand"',
+    otherExample: "e.g. Shirt, Blouse, Necklace, Cap, etc",
+    catTop: "Top / T-shirt",
+    catOuterwear: "Jacket / Coat / Hoodie",
+    catBottom: "Pants / Shorts / Skirt",
+    catDress: "Dress / Jumpsuit",
+    catSet: "Set",
+    catSwim: "Swimwear",
+    catBody: "Bodysuit",
+    catOther: "Other",
+    ethCaucasian: "Caucasian",
+    ethLatino: "Latino",
+    ethAsian: "Asian",
+    ethBlack: "Black",
+    ethMediterranean: "Mediterranean",
+    age_0_2: "0 to 2 years",
+age_3_6: "3 to 6 years",
+age_6_10: "6 to 10 years",
+age_10_16: "10 to 16 years",
+age_18_24: "18 to 24 years",
+age_25_34: "25 to 34 years",
+age_35_44: "35 to 44 years",
+m_hombros: "Shoulders",
+m_pecho: "Chest",
+m_manga: "Sleeve",
+m_cintura: "Waist",
+m_cadera: "Hips",
+m_largo: "Length",
+exampleCm: "e.g. 52cm",
+    poseSitting: "Sitting",
+    poseStanding: "Standing",
+    poseWalking: "Walking",
     buyCredits: "Buy credits",
+    bodyStandard: "Standard",
+    bodyPlus: "Plus Size",
     loading: "Loading...",
     modeModel: "📸Model photo",
     modeProduct: "⚛️Product photo",
@@ -335,6 +465,11 @@ const translations = {
     stepBodyType: "Body type",
     stepScene: "Scene",
     stepGenerate: "Generate",
+    modelNewborn: "Newborn baby",
+    modelBoy: "Boy",
+    modelGirl: "Girl",
+    modelMan: "Man",
+    modelWoman: "Woman",
     next: "Next",
     back: "Back",
     stepOf: (cur: number, total: number) => `Step ${cur} of ${total}`,
@@ -457,20 +592,45 @@ const translations = {
 
  pt: {
   // header / auth
-  title: "Gerador de IA",
+  title: "Fotonine | Gerador IA",
   subtitle: "Escolha o tipo de imagem que você quer gerar",
   signIn: "Entrar",
   signInHint: "Entre com sua conta Google para usar o gerador",
   logout: "Sair",
   credits: "Créditos",
+  scenePlaceholder: 'Ex: "pendurado em cabide de madeira", "na areia úmida"',
+  otherExample: "Ex: Camisa, Blusa, Colar, Boné, etc",
+  bgPlaceholder: 'Ex: "estúdio cinza com luz suave"',
   buyCredits: "Comprar créditos",
   loading: "Carregando...",
   processing: "Processando...",
-
+  poseSitting: "Sentado/a",
+  poseStanding: "Em pé",
+  poseWalking: "Caminhando",
   // modes
   modeModel: "📸 Foto com modelo",
-  modeProduct: "⚛️ Foto do produto",
-
+  modeProduct: "⚛️ Foto do produto",  
+  ethCaucasian: "Caucasiano/a", 
+  ethLatino: "Latino/a",  
+  ethAsian: "Asiático/a", 
+  ethBlack: "Negro/a",
+  ethMediterranean: "Mediterrâneo/a",
+  bodyStandard: "Padrão",
+  bodyPlus: "Plus Size",
+  age_0_2: "0 a 2 anos",
+age_3_6: "3 a 6 anos",
+age_6_10: "6 a 10 anos",
+age_10_16: "10 a 16 anos",
+age_18_24: "18 a 24 anos",
+age_25_34: "25 a 34 anos",
+age_35_44: "35 a 44 anos",
+m_hombros: "Ombros",
+m_pecho: "Peito",
+m_manga: "Manga",
+m_cintura: "Cintura",
+m_cadera: "Quadril",
+m_largo: "Comprimento",
+exampleCm: "Ex: 52cm",
   // steps titles
   stepUpload: "Enviar fotos",
   stepCategory: "Categoria",
@@ -527,7 +687,11 @@ const translations = {
   chooseModelFirst: "Escolha o modelo primeiro",
   poseTitle: "9) Pose",
   bodyTypeTitle: "Tipo de corpo",
-
+  modelNewborn: "Bebê recém-nascido",
+  modelBoy: "Menino",
+  modelGirl: "Menina",
+  modelMan: "Homem",
+  modelWoman: "Mulher",
   // face
   faceTitle: "Rosto (opcional)",
   faceHint1: "✅ Se você enviar o rosto, tentaremos manter o mesmo rosto em todas as fotos.",
@@ -603,6 +767,14 @@ const translations = {
   consumeGeneric: "Uso",
 
   // validations
+  catTop: "Camiseta / Top",
+  catOuterwear: "Jaqueta / Casaco / Moletom",
+  catBottom: "Calça / Short / Saia",
+  catDress: "Vestido / Macacão",
+  catSet: "Conjunto",
+  catSwim: "Moda praia",
+  catBody: "Body",
+  catOther: "Outro",
   errUploadFront: "Envie a foto da Frente (obrigatório).",
   errUploadProduct: "Envie pelo menos 1 foto do produto.",
   errChooseCategory: "Escolha uma categoria.",
@@ -628,19 +800,52 @@ const translations = {
 } as any,
 
 ko: {
-  title: "AI 생성기",
+  title: "Fotonine | AI 생성기",
   subtitle: "생성할 이미지 유형을 선택하세요",
   signIn: "로그인",
   signInHint: "Google 계정으로 로그인해 생성기를 사용하세요",
   logout: "로그아웃",
   credits: "크레딧",
+  scenePlaceholder: '예: "나무 옷걸이에 걸린", "젖은 모래 위"',
+  otherExample: "예: 셔츠, 블라우스, 목걸이, 모자 등",
+  bgPlaceholder: '예: "부드러운 조명이 있는 회색 스튜디오"',
   buyCredits: "크레딧 구매",
   loading: "로딩 중...",
   processing: "처리 중...",
-
+  ethCaucasian: "백인",
+  ethLatino: "라틴계",
+  ethAsian: "아시아계",
+  ethBlack: "흑인",
+  ethMediterranean: "지중해계",
   modeModel: "📸 모델 사진",
   modeProduct: "⚛️ 제품 사진",
-
+  catTop: "상의",
+  catOuterwear: "아우터",
+  catBottom: "하의",
+  catDress: "원피스/점프수트",
+  catSet: "세트",
+  catSwim: "수영복",
+  catBody: "바디수트",
+  catOther: "기타",
+  poseSitting: "앉아 있음",
+  poseStanding: "서 있음",
+  poseWalking: "걷는 중",
+  bodyStandard: "표준 체형",
+  bodyPlus: "플러스 사이즈",
+  age_0_2: "0~2세",
+age_3_6: "3~6세",
+age_6_10: "6~10세",
+age_10_16: "10~16세",
+age_18_24: "18~24세",
+age_25_34: "25~34세",
+age_35_44: "35~44세",
+m_hombros: "어깨",
+m_pecho: "가슴",
+m_manga: "소매",
+m_cintura: "허리",
+m_cadera: "엉덩이",
+m_largo: "길이",
+exampleCm: "예: 52cm",
   stepUpload: "사진 업로드",
   stepCategory: "카테고리",
   stepPockets: "주머니",
@@ -690,6 +895,11 @@ ko: {
   chooseModelFirst: "먼저 모델을 선택하세요",
   poseTitle: "9) 포즈",
   bodyTypeTitle: "체형",
+  modelNewborn: "신생아",
+  modelBoy: "남자아이",
+  modelGirl: "여자아이",
+  modelMan: "남성",
+  modelWoman: "여성",
 
   faceTitle: "얼굴(선택)",
   faceHint1: "✅ 얼굴을 업로드하면 모든 이미지에서 같은 얼굴을 유지하려고 합니다.",
@@ -781,19 +991,52 @@ ko: {
 } as any,
 
 zh: {
-  title: "AI 生成器",
+  title: "Fotonine | AI 生成器",
   subtitle: "选择你想生成的图片类型",
   signIn: "登录",
   signInHint: "使用 Google 登录以使用生成器",
   logout: "退出登录",
   credits: "积分",
+  scenePlaceholder: '例如：“挂在木衣架上”，“在湿沙上”',
+  otherExample: "例如：衬衫、女式上衣、项链、帽子等",
+  bgPlaceholder: '例如："柔和灯光的灰色影棚"',
   buyCredits: "购买积分",
   loading: "加载中...",
   processing: "处理中...",
-
+  ethCaucasian: "高加索",
+  ethLatino: "拉丁裔",
+  ethAsian: "亚裔",
+  ethBlack: "黑人",
+  ethMediterranean: "地中海裔",
   modeModel: "📸 模特照片",
   modeProduct: "⚛️ 产品照片",
-
+  catTop: "上衣",
+  catOuterwear: "外套",
+  catBottom: "下装",
+  catDress: "连衣裙/连体裤",
+  catSet: "套装",
+  catSwim: "泳装",
+  catBody: "连体衣",
+  catOther: "其他",
+  poseSitting: "坐着",
+  poseStanding: "站立",
+  poseWalking: "行走",
+  bodyStandard: "标准体型",
+  bodyPlus: "加大码",
+  age_0_2: "0-2 岁",
+age_3_6: "3-6 岁",
+age_6_10: "6-10 岁",
+age_10_16: "10-16 岁",
+age_18_24: "18-24 岁",
+age_25_34: "25-34 岁",
+age_35_44: "35-44 岁",
+m_hombros: "肩宽",
+m_pecho: "胸围",
+m_manga: "袖长",
+m_cintura: "腰围",
+m_cadera: "臀围",
+m_largo: "衣长",
+exampleCm: "例如：52cm",
   stepUpload: "上传照片",
   stepCategory: "类别",
   stepPockets: "口袋",
@@ -858,7 +1101,11 @@ zh: {
   searching: "搜索中...",
   sceneTitle: "产品场景（最多 10 个词）",
   helpChoose: "帮我推荐",
-
+  modelNewborn: "新生儿",
+  modelBoy: "男孩",
+  modelGirl: "女孩",
+  modelMan: "男",
+  modelWoman: "女",
   generateTitle: "11) 生成图片",
   summary: "摘要",
   uploadedPhotos: "已上传的照片",
@@ -1014,9 +1261,10 @@ React.useEffect(() => {
 }, [productPreviews]);
 
   // form
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number] | "">("");
+  type CategoryValue = (typeof CATEGORIES)[number]["value"];
+const [category, setCategory] = useState<CategoryValue | "">("");
   React.useEffect(() => {
-  if (category !== "Pantalón/Short/Pollera/Falda") {
+  if (category !== "bottom") {
     setViews((prev) => ({
       ...prev,
       pantFrontDetail: false,
@@ -1098,13 +1346,17 @@ React.useEffect(() => {
     w.google.accounts.id.renderButton(el, { theme: "outline", size: "large" });
   }, [user, accessToken]);
 
-  const [modelType, setModelType] = useState<(typeof MODEL_TYPES)[number] | "">("");
-  const [ethnicity, setEthnicity] = useState<(typeof ETHNICITIES)[number] | "">("");
+  type ModelTypeValue = (typeof MODEL_TYPES)[number]["value"];
+const [modelType, setModelType] = useState<ModelTypeValue | "">("");
+  type EthnicityValue = (typeof ETHNICITIES)[number]["value"];
+const [ethnicity, setEthnicity] = useState<EthnicityValue | "">("");
   const [ageRange, setAgeRange] = useState("");
   const [background, setBackground] = useState("");
   const [scene, setScene] = useState("");
-  const [pose, setPose] = useState<(typeof POSES)[number] | "">("");
-  const [bodyType, setBodyType] = useState<(typeof BODY_TYPES)[number] | "">("");
+  type PoseValue = (typeof POSES)[number]["value"];
+const [pose, setPose] = useState<PoseValue | "">("");
+  type BodyTypeValue = (typeof BODY_TYPES)[number]["value"];
+const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
 
   // ui
   const [step, setStep] = useState(0);
@@ -1150,12 +1402,12 @@ React.useEffect(() => {
   const creditsNeeded = selectedCount;
   const hasSelection = creditsNeeded > 0;
 
-  const ageOptions = useMemo(() => {
-    if (modelType === "Bebé recién nacido") return ["0 a 2 años"];
-    if (modelType === "Niño" || modelType === "Niña") return ["3 a 6 años", "6 a 10 años", "10 a 16 años"];
-    if (modelType === "Hombre" || modelType === "Mujer") return ["18 a 24 años", "25 a 34 años", "35 a 44 años"];
-    return [];
-  }, [modelType]);
+ const ageOptions = useMemo(() => {
+  if (modelType === "newborn") return ["age_0_2"];
+  if (modelType === "boy" || modelType === "girl") return ["age_3_6", "age_6_10", "age_10_16"];
+  if (modelType === "man" || modelType === "woman") return ["age_18_24", "age_25_34", "age_35_44"];
+  return [];
+}, [modelType]);
 
  const steps = useMemo(() => {
   if (mode === "product") {
@@ -1273,10 +1525,10 @@ return !frontFile ? t("errUploadFront") : null;
     if (key === "category") {
   if (!category) return t("errChooseCategory");
 
-  if (category === "otro") {
-    if (!otherCategory.trim()) return t("errOtherMissing");
-    if (wordCount(otherCategory) > 4) return t("errOtherTooLong");
-  }
+  if (category === "other") {
+  if (!otherCategory.trim()) return t("errOtherMissing");
+  if (wordCount(otherCategory) > 5) return t("errOtherTooLong");
+}
 
   return null;
 }
@@ -1545,36 +1797,26 @@ if (!bodyType) {
     const fd = new FormData();
     fd.append("mode", mode);
     fd.append("views", JSON.stringify(oneView));
+    fd.append("language", language);
+    fd.append("regen_variation", String(Date.now()));
     fd.append("regen_variation", String(Date.now()));
 
     if (mode === "product") {
-      productFiles.forEach((f) => fd.append("product_images", f));
-      fd.append("scene", scene.trim());
+      appendProductFormData(fd);
     } else {
-      fd.append("front", frontFile as File);
-      if (backFile) fd.append("back", backFile);
-      if (faceFile) fd.append("face", faceFile);
-
-      fd.append("category", category);
-      if (category === "otro") fd.append("other_category", otherCategory.trim());
-
-      fd.append("pockets", pockets);
-      fd.append("hombros", measures.hombros);
-      fd.append("pecho", measures.pecho);
-      fd.append("manga", measures.manga);
-      fd.append("cintura", measures.cintura);
-      fd.append("cadera", measures.cadera);
-      fd.append("largo", measures.largo);
-
-      fd.append("model_type", modelType);
-      fd.append("ethnicity", ethnicity);
-      fd.append("age_range", ageRange);
-      fd.append("background", background.trim());
-      fd.append("pose", pose);
-      fd.append("body_type", bodyType);
+      appendModelFormData(fd);
     }
 
     const token = localStorage.getItem("accessToken");
+    console.log("=== FORM DATA DEBUG ===");
+for (const [k, v] of fd.entries()) {
+  if (v instanceof File) {
+    console.log(k, `File(name=${v.name}, size=${v.size}, type=${v.type})`);
+  } else {
+    console.log(k, v);
+  }
+}
+console.log("=== END FORM DATA DEBUG ===");
     const res = await fetch(`${API}/generate`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1631,15 +1873,18 @@ void fetchEntries();
     setBgSuggestions([]);
 
     try {
-      const res = await fetch(`${API}/suggest-background`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category: category || "",
-          model_type: modelType || "",
-          vibe: "catálogo e-commerce premium",
-        }),
-      });
+      const fd = new FormData();
+fd.append("category", category || "");
+fd.append("model_type", modelType || "");
+fd.append("vibe", "catálogo e-commerce premium");
+fd.append("language", language);
+
+if (frontFile) fd.append("front", frontFile); // 👈 clave
+
+const res = await fetch(`${API}/suggest-background`, {
+  method: "POST",
+  body: fd,
+});
 
       const data = await res.json();
       const options: string[] = Array.isArray(data?.options) ? data.options : [];
@@ -1652,137 +1897,118 @@ void fetchEntries();
   }
 
   async function handleGenerate() {
-    setError(null);
-    setResult(null);
+  setError(null);
+  setResult(null);
 
-    if (!API) return setError(t("missingApiBase"));
+  if (!API) return setError(t("missingApiBase"));
 
-    // Validaciones
-    if (mode === "product") {
-      if (productFiles.length === 0) {
-  setStep(0);
-  return setError(t("errUploadProduct"));
-}
-if (!scene.trim()) {
-  setStep(1);
-  return setError(t("errSceneMissing"));
-}
-if (wordCount(scene) > 10) {
-  setStep(1);
-  return setError(t("errSceneTooLong"));
-}
-if (selectedCount === 0) {
-  setStep(2);
-  return setError(t("chooseAtLeastOneView"));
-}
-    } else {
-      if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
-      if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
-      if (category === "otro") {
-      if (!otherCategory.trim())
-        return (goToFirstErrorStep(), setError(t("errOtherMissing")));
-      if (wordCount(otherCategory) > 4)
-        return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
-}
-if (!pockets) return (goToFirstErrorStep(), setError(t("errPockets")));
-if (!modelType) return (goToFirstErrorStep(), setError(t("errModel")));
-if (!ethnicity) return (goToFirstErrorStep(), setError(t("errEthnicity")));
-if (!ageRange) return (goToFirstErrorStep(), setError(t("errAge")));
-if (!background.trim())
-  return (goToFirstErrorStep(), setError(t("errBgMissing")));
-if (wordCount(background) > 10)
-  return (goToFirstErrorStep(), setError(t("errBgTooLong")));
-if (!pose) return (goToFirstErrorStep(), setError(t("errPose")));
-if (!bodyType) return (goToFirstErrorStep(), setError(t("errBodyType")));
+  // Validaciones
+  if (mode === "product") {
+    if (productFiles.length === 0) {
+      setStep(0);
+      return setError(t("errUploadProduct"));
     }
-
- const keysInOrder =
-  mode === "product"
-    ? (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k])
-    : ([
-        "front",
-        "back",
-        "side",
-        "frontDetail",
-        "backDetail",
-        "pantFrontDetail",
-        "pantBackDetail",
-        "pantSideDetail",
-      ] as const).filter((k) => (views as any)[k]);
-
-setResultKeys(keysInOrder as any);
-
-
-
-
-    setLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("mode", mode);
-      fd.append("views", JSON.stringify(views));
-
-      if (mode === "product") {
-        productFiles.forEach((f) => fd.append("product_images", f));
-        fd.append("scene", scene.trim());
-      } else {
-        fd.append("front", frontFile as File);
-        if (backFile) fd.append("back", backFile);
-        if (faceFile) fd.append("face", faceFile);
-        fd.append("category", category);
-        if (category === "otro") fd.append("other_category", otherCategory.trim());
-        fd.append("pockets", pockets);
-        fd.append("hombros", measures.hombros);
-        fd.append("pecho", measures.pecho);
-        fd.append("manga", measures.manga);
-        fd.append("cintura", measures.cintura);
-        fd.append("cadera", measures.cadera);
-        fd.append("largo", measures.largo);
-        fd.append("model_type", modelType);
-        fd.append("ethnicity", ethnicity);
-        fd.append("age_range", ageRange);
-        fd.append("background", background.trim());
-        fd.append("pose", pose);
-        fd.append("body_type", bodyType);
-      }
-
-      const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${API}/generate`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: fd,
-      });
-
-      const text = await res.text();
-      let data: any = null;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
-
-      if (!res.ok) {
-        setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
-        return;
-      }
-
-      let urls: string[] = [];
-      if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
-      else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
-
-      if (!urls.length) return setError("El servidor no devolvió imágenes.");
-
-      const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
-      setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
-
-      await fetchMe();
-      await fetchEntries();
-    } catch (e: any) {
-      setError(String(e?.message || e));
-    } finally {
-      setLoading(false);
+    if (!scene.trim()) {
+      setStep(1);
+      return setError(t("errSceneMissing"));
     }
+    if (wordCount(scene) > 10) {
+      setStep(1);
+      return setError(t("errSceneTooLong"));
+    }
+    if (selectedCount === 0) {
+      setStep(2);
+      return setError(t("chooseAtLeastOneView"));
+    }
+  } else {
+    if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
+    if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
+    if (category === "otro") {
+      if (!otherCategory.trim()) return (goToFirstErrorStep(), setError(t("errOtherMissing")));
+      if (wordCount(otherCategory) > 4) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
+    }
+    if (!pockets) return (goToFirstErrorStep(), setError(t("errPockets")));
+    if (!modelType) return (goToFirstErrorStep(), setError(t("errModel")));
+    if (!ethnicity) return (goToFirstErrorStep(), setError(t("errEthnicity")));
+    if (!ageRange) return (goToFirstErrorStep(), setError(t("errAge")));
+    if (!background.trim()) return (goToFirstErrorStep(), setError(t("errBgMissing")));
+    if (wordCount(background) > 10) return (goToFirstErrorStep(), setError(t("errBgTooLong")));
+    if (!pose) return (goToFirstErrorStep(), setError(t("errPose")));
+    if (!bodyType) return (goToFirstErrorStep(), setError(t("errBodyType")));
   }
 
+  const keysInOrder =
+    mode === "product"
+      ? (["front", "back", "left", "right"] as const).filter((k) => (views as any)[k])
+      : ([
+          "front",
+          "back",
+          "side",
+          "frontDetail",
+          "backDetail",
+          "pantFrontDetail",
+          "pantBackDetail",
+          "pantSideDetail",
+        ] as const).filter((k) => (views as any)[k]);
+
+  setResultKeys(keysInOrder as any);
+
+  setLoading(true);
+  try {
+    const fd = new FormData();
+    fd.append("mode", mode);
+    console.log("DEBUG FRONTEND views:", views);
+    fd.append("views", JSON.stringify(views));
+    fd.append("language", language);
+
+    if (mode === "product") appendProductFormData(fd);
+    else appendModelFormData(fd);
+
+    const token = localStorage.getItem("accessToken");
+    const res = await fetch(`${API}/generate`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: fd,
+    });
+
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+
+    if (!res.ok) {
+      setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
+      return;
+    }
+
+    let urls: string[] = [];
+    if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
+    else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
+
+    if (!urls.length) {
+      setError("El servidor no devolvió imágenes.");
+      return;
+    }
+
+    const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
+    if (Array.isArray(data?.imageKeys)) {
+  setResultKeys(data.imageKeys);
+}
+    setResult({ imageUrls: absolute, promptUsed: data?.promptUsed });
+
+    await fetchMe();
+    await fetchEntries();
+
+    
+  } catch (e: any) {
+    setError(String(e?.message || e));
+  } finally {
+    setLoading(false);
+  }
+}
   // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {
     switch (steps[step].key) {
@@ -1832,7 +2058,7 @@ setResultKeys(keysInOrder as any);
                       background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
                     }}
                   >
-                    📷 Sacar foto
+                    {t("takePhoto")}
                   </button>
 
                   <button
@@ -1845,7 +2071,7 @@ setResultKeys(keysInOrder as any);
                       border: "1px solid #e2e8f0",
                     }}
                   >
-                    🖼️ Elegir de galería
+                    {t("pickFromGallery")}
                   </button>
                 </div>
 
@@ -2086,27 +2312,31 @@ setResultKeys(keysInOrder as any);
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCategory(c as any)}
-                  style={{
-                    ...styles.pill,
-                    ...(isMobile ? styles.pillMobile : {}),
-                    ...(category === c ? styles.pillActive : {}),
-                  }}
-                >
-                  {c === "otro" ? "Otro" : c}
-                </button>
-              ))}
+  <button
+    key={c.value}
+    type="button"
+    onClick={() => setCategory(c.value as any)}
+    style={{
+      ...styles.pill,
+      ...(isMobile ? styles.pillMobile : {}),
+      ...(category === c.value ? styles.pillActive : {}),
+    }}
+  >
+    {t(c.labelKey)}
+  </button>
+))}
             </div>
 
-            {category === "otro" && (
+            {category === "other" && (
               <div style={{ marginTop: 12 }}>
                 <Label>{t("otherSpecify")}</Label>
-                <TextInput value={otherCategory} onChange={setOtherCategory} placeholder="Ej: Chaleco sastrero corto" />
+                <TextInput
+  value={otherCategory}
+  onChange={setOtherCategory}
+  placeholder={t("otherExample")}
+/>
                 <SmallMuted>
-  {t("words", wordCount(otherCategory), 4)}
+  {t("words", wordCount(otherCategory), 5)}
 </SmallMuted>
               </div>
             )}
@@ -2137,12 +2367,12 @@ setResultKeys(keysInOrder as any);
             <Grid3>
               {Object.entries(measures).map(([k, v]) => (
                 <div key={k}>
-                  <Label style={{ textTransform: "capitalize" }}>{k}</Label>
-                  <TextInput
-                    value={v}
-                    onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))}
-                    placeholder="Ej: 52cm"
-                  />
+                  <Label>{t(`m_${k}`)}</Label>
+<TextInput
+  value={v}
+  onChange={(nv) => setMeasures((m) => ({ ...m, [k]: nv }))}
+  placeholder={t("exampleCm")}
+/>
                 </div>
               ))}
             </Grid3>
@@ -2154,13 +2384,16 @@ setResultKeys(keysInOrder as any);
     <>
       <FieldTitle>{t("modelTitle")}</FieldTitle>
       <RadioPills
-        value={modelType}
-        onChange={(v) => {
-          setModelType(v as any);
-          setAgeRange("");
-        }}
-        options={MODEL_TYPES.map((m) => ({ value: m, label: m }))}
-      />
+  value={modelType}
+  onChange={(v) => {
+    setModelType(v as any);
+    setAgeRange("");
+  }}
+  options={MODEL_TYPES.map((m) => ({
+    value: m.value,
+    label: t(m.labelKey),
+  }))}
+/>
     </>
   );
 
@@ -2206,19 +2439,19 @@ setResultKeys(keysInOrder as any);
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {ETHNICITIES.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEthnicity(e as any)}
-                  style={{
-                    ...styles.pill,
-                    ...(isMobile ? styles.pillMobile : {}),
-                    ...(ethnicity === e ? styles.pillActive : {}),
-                  }}
-                >
-                  {e}
-                </button>
-              ))}
+  <button
+    key={e.value}
+    type="button"
+    onClick={() => setEthnicity(e.value as any)}
+    style={{
+      ...styles.pill,
+      ...(isMobile ? styles.pillMobile : {}),
+      ...(ethnicity === e.value ? styles.pillActive : {}),
+    }}
+  >
+    {t(e.labelKey)}
+  </button>
+))}
             </div>
           </>
         );
@@ -2234,7 +2467,7 @@ setResultKeys(keysInOrder as any);
         <RadioPills
           value={ageRange}
           onChange={(v) => setAgeRange(v)}
-          options={ageOptions.map((a) => ({ value: a, label: a }))}
+          options={ageOptions.map((k) => ({ value: k, label: t(k) }))}
         />
       )}
     </>
@@ -2390,7 +2623,7 @@ setResultKeys(keysInOrder as any);
         return (
           <>
             <FieldTitle>{t("backgroundTitle")}</FieldTitle>
-            <TextInput value={background} onChange={setBackground} placeholder='Ej: "estudio gris con luz suave"' />
+            <TextInput value={background} onChange={setBackground} placeholder={t("bgPlaceholder")} />
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>
@@ -2417,7 +2650,14 @@ setResultKeys(keysInOrder as any);
         return (
           <>
             <FieldTitle>{t("poseTitle")}</FieldTitle>
-            <RadioPills value={pose} onChange={(v) => setPose(v as any)} options={POSES.map((p) => ({ value: p, label: p }))} />
+            <RadioPills
+  value={pose}
+  onChange={(v) => setPose(v as any)}
+  options={POSES.map((p) => ({
+    value: p.value,
+    label: t(p.labelKey),
+  }))}
+/>
           </>
         );
 
@@ -2425,7 +2665,14 @@ setResultKeys(keysInOrder as any);
         return (
           <>
             <FieldTitle>{t("bodyTypeTitle")}</FieldTitle>
-            <RadioPills value={bodyType} onChange={(v) => setBodyType(v as any)} options={BODY_TYPES.map((b) => ({ value: b, label: b }))} />
+            <RadioPills
+  value={bodyType}
+  onChange={(v) => setBodyType(v as any)}
+  options={BODY_TYPES.map((b) => ({
+    value: b.value,
+    label: t(b.labelKey),
+  }))}
+/>
           </>
         );
 
@@ -2433,7 +2680,11 @@ setResultKeys(keysInOrder as any);
         return (
           <>
             <FieldTitle>{t("sceneTitle")}</FieldTitle>
-            <TextInput value={scene} onChange={setScene} placeholder='Ej: "colgado en percha de madera", "sobre arena húmeda"' />
+            <TextInput
+  value={scene}
+  onChange={setScene}
+  placeholder={t("scenePlaceholder")}
+/>
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>{t("words", wordCount(scene), 10)}</SmallMuted>
@@ -2444,15 +2695,22 @@ setResultKeys(keysInOrder as any);
                   if (!API) return setError("Falta NEXT_PUBLIC_API_BASE");
                   setHelpLoading(true);
                   try {
-                    const res = await fetch(`${API}/suggest-background`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        category: "producto",
-                        model_type: "sin modelo",
-                        vibe: "foto producto e-commerce premium",
-                      }),
-                    });
+                    const fd = new FormData();
+fd.append("category", category || "");
+fd.append("model_type", modelType || "");
+fd.append("vibe", "catálogo e-commerce premium");
+fd.append("language", language);
+
+if (mode === "product" && productFiles.length > 0) {
+  fd.append("front", productFiles[0]); // usa la primera foto del producto
+} else if (frontFile) {
+  fd.append("front", frontFile); // modo model
+}
+
+const res = await fetch(`${API}/suggest-background`, {
+  method: "POST",
+  body: fd,
+});
                     const data = await res.json();
                     if (Array.isArray(data?.options) && data.options.length > 0) setScene(data.options[0]);
                   } catch (err: any) {
@@ -2513,16 +2771,25 @@ setResultKeys(keysInOrder as any);
                   <SummaryItem label={t("sceneLabel")} value={scene} />
                 </div>
               ) : (
-                <div style={styles.summaryGrid}>
-                  <SummaryItem label="Categoría" value={category === "otro" ? `Otro: ${otherCategory}` : (category as any)} />
-                  <SummaryItem label="Bolsillos" value={pockets} />
-                  <SummaryItem label="Modelo" value={modelType} />
-                  <SummaryItem label="Etnia" value={ethnicity} />
-                  <SummaryItem label="Edad" value={ageRange} />
-                  <SummaryItem label="Fondo" value={background} />
-                  <SummaryItem label="Pose" value={pose} />
-                  <SummaryItem label="Tipo de cuerpo" value={bodyType} />
-                </div>
+                <ModelSummary
+  t={t}
+  category={category}
+  otherCategory={otherCategory}
+  pockets={pockets}
+  modelType={modelType}
+  ethnicity={ethnicity}
+  ageRange={ageRange}
+  background={background}
+  pose={pose}
+  bodyType={bodyType}
+  labelFromList={labelFromList}
+  CATEGORIES={CATEGORIES}
+  MODEL_TYPES={MODEL_TYPES}
+  ETHNICITIES={ETHNICITIES}
+  POSES={POSES}
+  BODY_TYPES={BODY_TYPES}
+  styles={styles}
+/>
               )}
             </div>
 
@@ -2578,13 +2845,13 @@ setResultKeys(keysInOrder as any);
   { key: "side", label: t("vSide") },
   { key: "frontDetail", label: t("vFrontDetail") },
   { key: "backDetail", label: t("vBackDetail") },
-  ...(category === "Pantalón/Short/Pollera/Falda"
-    ? [
-        { key: "pantFrontDetail", label: t("vPantFrontDetail") },
-        { key: "pantBackDetail", label: t("vPantBackDetail") },
-        { key: "pantSideDetail", label: t("vPantSideDetail") },
-      ]
-    : []),
+  ...(category === "bottom"
+  ? [
+      { key: "pantFrontDetail", label: t("vPantFrontDetail") },
+      { key: "pantBackDetail", label: t("vPantBackDetail") },
+      { key: "pantSideDetail", label: t("vPantSideDetail") },
+    ]
+  : []),
 ].map((v) => (
                   <label
                     key={v.key}
@@ -2911,7 +3178,20 @@ onMouseLeave={(e) => {
   </a>
 </div>
           <div>
-            <div style={{ ...styles.h1, color: "#9495B5" }}>{t("title")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+  <img
+    src="/logo.png"
+    alt="Logo"
+    style={{
+      height: 36,
+      width: "auto",
+      display: "block",
+    }}
+  />
+  <div style={{ ...styles.h1, color: "#9495B5" }}>
+    {t("title")}
+  </div>
+</div>
 
             <div
               style={{
@@ -2961,7 +3241,7 @@ onMouseLeave={(e) => {
                   whiteSpace: "nowrap",
                 }}
               >
-                📸Foto con modelo
+                {t("modeModel")}
               </button>
 
               <button
@@ -2983,7 +3263,7 @@ onMouseLeave={(e) => {
                   whiteSpace: "nowrap",
                 }}
               >
-                ⚛️Foto producto
+                {t("modeProduct")}
               </button>
             </div>
 
@@ -3059,7 +3339,9 @@ const ss = String(seconds).padStart(2, "0");
   );
 })()}
           <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-            <div style={styles.badgeClamp}>{loadingMe ? "Cargando..." : `Créditos: ${balance}`}</div>
+            <div style={styles.badgeClamp}>
+  {loadingMe ? t("loading") : `${t("credits")}: ${balance}`}
+</div>
           </div>
 
           <div style={styles.packCard}>
@@ -3171,10 +3453,10 @@ const ss = String(seconds).padStart(2, "0");
 const consumeMode = (e as any)?.metadata?.mode; // "model" | "product" | undefined
 const consumeLabel =
   consumeMode === "model"
-    ? "📸 Consumo"
+    ? t("consumeModel")
     : consumeMode === "product"
-    ? "⚛️ Consumo"
-    : "Consumo";
+    ? t("consumeProduct")
+    : t("consumeGeneric");
 console.log("ENTRY:", e);
 const label =
   e.refType === "WELCOME_BONUS_EXPIRE"
@@ -3513,9 +3795,13 @@ function RadioPills({
       {options.map((o) => {
         const active = value === o.value;
         return (
-          <button key={o.value} onClick={() => onChange(o.value)} style={{ ...styles.pill, ...(active ? styles.pillActive : {}) }}>
-            {o.label}
-          </button>
+          <button
+  key={typeof o.value === "string" ? o.value : JSON.stringify(o.value)}
+  onClick={() => onChange(String(o.value))}
+  style={{ ...styles.pill, ...(active ? styles.pillActive : {}) }}
+>
+  {o.label}
+</button>
         );
       })}
     </div>
@@ -3549,6 +3835,56 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     <div style={styles.summaryItem}>
       <div style={styles.summaryLabel}>{label}</div>
       <div style={styles.summaryValue}>{value || "—"}</div>
+    </div>
+  );
+}
+
+function ModelSummary({
+  t,
+  category,
+  otherCategory,
+  pockets,
+  modelType,
+  ethnicity,
+  ageRange,
+  background,
+  pose,
+  bodyType,
+  labelFromList,
+  CATEGORIES,
+  MODEL_TYPES,
+  ETHNICITIES,
+  POSES,
+  BODY_TYPES,
+  styles,
+}: any) {
+  return (
+    <div style={styles.summaryGrid}>
+      <SummaryItem
+        label={t("stepCategory")}
+        value={
+          category === "other"
+            ? `${t("catOther")}: ${otherCategory}`
+            : labelFromList(CATEGORIES, category)
+        }
+      />
+
+      <SummaryItem
+        label={t("stepPockets")}
+        value={pockets ? (pockets === "si" ? t("yes") : t("no")) : ""}
+      />
+
+      <SummaryItem label={t("stepModel")} value={labelFromList(MODEL_TYPES, modelType)} />
+
+      <SummaryItem label={t("stepEthnicity")} value={labelFromList(ETHNICITIES, ethnicity)} />
+
+      <SummaryItem label={t("stepAge")} value={ageRange ? t(ageRange) : ""} />
+
+      <SummaryItem label={t("stepBackground")} value={background} />
+
+      <SummaryItem label={t("stepPose")} value={labelFromList(POSES, pose)} />
+
+      <SummaryItem label={t("stepBodyType")} value={labelFromList(BODY_TYPES, bodyType)} />
     </div>
   );
 }
