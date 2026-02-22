@@ -2423,7 +2423,7 @@ const res = await fetch(`${API}/suggest-background`, {
         </button>
       </div>
 
-      <SmallMuted style={{ marginTop: 8 }}>{faceFile.name}</SmallMuted>
+      <SmallMuted style={{ marginTop: 8 }}>{faceFile?.name}</SmallMuted>
     </div>
   )}
 
