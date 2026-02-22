@@ -47,7 +47,16 @@ if (typeof document !== "undefined") {
 
 /* ================== APP ================== */
 export default function Home() {
-  //const API = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+  const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
+  const t = (key: any, ...args: any[]) => {
+  const raw = (translations as any)[language];
+  const dict = raw && Object.keys(raw).length ? raw : (translations as any).en;
+  const fallback = (translations as any).es;
+
+  const val = dict?.[key] ?? fallback?.[key];
+  if (typeof val === "function") return val(...args);
+  return String(val ?? key);
+};
 
   const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
   console.log("API URL:", API);
@@ -56,6 +65,7 @@ export default function Home() {
   const [regenStartedAt, setRegenStartedAt] = useState<Record<string, number>>({});
   const regenLockRef = React.useRef<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
+  
 
   console.log("PAGE LOADED ✅", { isMobile });
 
@@ -92,7 +102,7 @@ export default function Home() {
   right: false,
 });
 
-
+  
 
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -121,72 +131,809 @@ export default function Home() {
     setProductFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
+type Lang = "es" | "en" | "pt" | "ko" | "zh";
 
-  const translations = {
-    es: {
-      title: "Generador IA",
-      subtitle: "Elegí el tipo de imagen que querés generar",
-      buyCredits: "Comprar créditos",
-      logout: "Cerrar sesión",
-      credits: "Créditos",
-      history: "Historial de movimientos",
-      next: "Siguiente",
-      back: "Atrás",
-      signIn: "Iniciar sesión",
-      signInHint: "Accedé con tu cuenta de Google para usar el generador",
-    },
-    en: {
-      title: "AI Generator",
-      subtitle: "Choose the type of image you want to generate",
-      buyCredits: "Buy credits",
-      logout: "Log out",
-      credits: "Credits",
-      history: "Transaction history",
-      next: "Next",
-      back: "Back",
-      signIn: "Sign in",
-      signInHint: "Sign in with Google to use the generator",
-    },
-    pt: {
-      title: "Gerador AI",
-      subtitle: "Escolha o tipo de imagem que deseja gerar",
-      buyCredits: "Comprar créditos",
-      logout: "Sair",
-      credits: "Créditos",
-      history: "Histórico de movimentos",
-      next: "Próximo",
-      back: "Voltar",
-      signIn: "Entrar",
-      signInHint: "Entre com Google para usar o gerador",
-    },
-    ko: {
-      title: "AI 생성기",
-      subtitle: "생성할 이미지 유형을 선택하세요",
-      buyCredits: "크레딧 구매",
-      logout: "로그아웃",
-      credits: "크레딧",
-      history: "거래 내역",
-      next: "다음",
-      back: "뒤로",
-      signIn: "로그인",
-      signInHint: "Google로 로그인하여 사용하세요",
-    },
-    zh: {
-      title: "AI 生成器",
-      subtitle: "选择要生成的图片类型",
-      buyCredits: "购买积分",
-      logout: "退出登录",
-      credits: "积分",
-      history: "交易记录",
-      next: "下一步",
-      back: "返回",
-      signIn: "登录",
-      signInHint: "使用 Google 登录以使用生成器",
-    },
-  } as const;
+const translations = {
+  es: {
+    // header / auth
+    title: "Generador IA",
+    subtitle: "Elegí el tipo de imagen que querés generar",
+    signIn: "Iniciar sesión",
+    signInHint: "Accedé con tu cuenta de Google para usar el generador",
+    logout: "Cerrar sesión",
+    credits: "Créditos",
+    buyCredits: "Comprar créditos",
+    loading: "Cargando...",
+    // modes
+    modeModel: "📸Foto con modelo",
+    modeProduct: "⚛️Foto producto",
+    // steps titles
+    stepUpload: "Subir fotos",
+    stepCategory: "Categoría",
+    stepPockets: "Bolsillos",
+    stepMeasures: "Medidas (opcional)",
+    stepModel: "Modelo",
+    stepEthnicity: "Etnia",
+    stepAge: "Edad",
+    stepFace: "Rostro (opcional)",
+    stepBackground: "Fondo",
+    stepPose: "Pose",
+    stepBodyType: "Tipo de cuerpo",
+    stepScene: "Escena",
+    stepGenerate: "Generar",
+    // nav
+    next: "Siguiente",
+    back: "Atrás",
+    stepOf: (cur: number, total: number) => `Paso ${cur} de ${total}`,
+    previous: "← Anterior",
+    following: "Siguiente →",
+    pageXofY: (p: number, total: number) => `Página ${p} / ${total}`,
+    // upload
+    uploadTitle: "1) Subí fotos",
+    productPhotosLabel: "Fotos del producto (cuantas más, mejor)",
+    frontRequired: "Delantera (obligatorio)",
+    backOptional: "Espalda (opcional)",
+    takePhoto: "📷 Sacar foto",
+    pickFromGallery: "🖼️ Elegir de galería",
+    missingApiBase: "Falta configuración del servidor.",
+    missingApiUrl: "Falta configuración del servidor.",
+    preview: "Preview",
+    remove: "Quitar",
+    photosLoaded: (n: number) => `${n} foto(s) cargada(s)`,
+    // category
+    categoryTitle: "2) Elegí la categoría",
+    other: "Otro",
+    otherSpecify: "Especificá “Otro” (máx 4 palabras)",
+    words: (n: number, max: number) => `Palabras: ${n} / ${max}`,
+    // pockets
+    pocketsTitle: "3) ¿Tiene bolsillos?",
+    yes: "Sí",
+    no: "No",
+    // measures
+    measuresTitle: "4) Medidas (opcional)",
+    measuresHint: "Podés poner cm. Ej: 52cm",
+    // model/ethnicity/age/pose/bodyType
+    modelTitle: "5) Tipo de modelo",
+    ethnicityTitle: "6) Etnia",
+    ageTitle: "7) Edad",
+    chooseModelFirst: "Elegí primero el modelo",
+    poseTitle: "9) Pose",
+    bodyTypeTitle: "Tipo de cuerpo",
 
-  const t = (key: keyof typeof translations.es) => translations[language][key];
+    // face
+    faceTitle: "Rostro (opcional)",
+    faceHint1: "✅ Si subís el rostro, se intentará mantener el mismo rostro en todas las fotos.",
+    faceHint2: "⚠️ Si NO lo subís, se pueden generar rostros diferentes en cada imagen.",
+    takeFacePhoto: "📷 Sacar foto (rostro)",
+    pickFaceGallery: "🖼️ Elegir de galería (rostro)",
+    genFace: "✨ Generar rostro",
+    genFaceLoading: "Generando rostro...",
+    missingDataForFace: "Elegí tipo de modelo, etnia y edad antes de generar el rostro.",
+
+    // background / scene
+    backgroundTitle: "8) Fondo (máx 10 palabras)",
+    helpChoosePlace: "Ayudame a elegir el lugar",
+    searching: "Buscando...",
+    sceneTitle: "Escena del producto (máx 10 palabras)",
+    helpChoose: "Ayudame a elegir",
+
+    // generate
+    generateTitle: "11) Generar imágenes",
+    summary: "Resumen",
+    uploadedPhotos: "Fotos cargadas",
+    viewsToGenerate: "¿Qué vistas querés generar?",
+    creditsToConsume: (n: number) => `Créditos a consumir: ${n}`,
+    generate: (n: number) => `Generar (${n} crédito${n > 1 ? "s" : ""})`,
+    chooseAtLeastOneView: "Elegí al menos 1 vista",
+    insufficientCredits: (n: number) => `Créditos insuficientes (${n})`,
+    generating: "Generando...",
+    result: "Resultado",
+    download: "⬇️ Descargar",
+    redo: "🔁 Rehacer (1 crédito)",
+    noCreditsRedo: "Sin créditos (1)",
+    redoing: (sec: number) => `Rehaciendo... (${sec}s)`,
+
+    // views model
+    vFront: "Frente Completo",
+    vBack: "Espalda Completo",
+    vSide: "Costado Completo",
+    vFrontDetail: "Detalle Frente",
+    vBackDetail: "Detalle Espalda",
+    vPantFrontDetail: "Detalle Pantalón Frente",
+    vPantBackDetail: "Detalle Pantalón Espalda",
+    vPantSideDetail: "Detalle Pantalón Costado",
+
+    // views product
+    pFront: "Toma principal",
+    pBack: "Ángulo alternativo",
+    pLeft: "Detalle cercano",
+    pRight: "Otro ángulo",
+
+    // overlay
+    regenOverlayTitle: "🔁 Rehaciendo imagen…",
+    regenOverlayHint: "No cierres ni recargues la página.",
+
+    // topup
+    topupOk: "✅ Créditos agregados correctamente",
+    topupFail: "❌ El pago fue rechazado",
+
+    // history
+    history: "Historial de movimientos",
+    packEntrepreneur: "🚀 Paquete Emprendedor — 50 créditos / $75.000",
+    packPyme: "🏢 Paquete PyME — 100 créditos / $150.000",
+    packEnterprise: "📈 Paquete Empresa — 200 créditos / $300.000",
+    noMovements: "Sin movimientos",
+    date: "Fecha",
+    movement: "Movimiento",
+    amount: "Cantidad",
+    expired: "Expirado",
+    purchase: "Compra",
+    refund: "Reintegro",
+    grant: "Bonificación",
+    consumeModel: "📸 Consumo",
+    consumeProduct: "⚛️ Consumo",
+    consumeGeneric: "Consumo",
+
+    // validations
+    errUploadFront: "Subí la foto Delantera (obligatorio).",
+    errUploadProduct: "Subí al menos 1 foto del producto.",
+    errChooseCategory: "Elegí una categoría.",
+    errOtherMissing: "Completá 'Otro' (máx 4 palabras).",
+    errOtherTooLong: "'Otro' debe tener máximo 4 palabras.",
+    errPockets: "Indicá si tiene bolsillos (si/no).",
+    errSceneMissing: "Escribí la escena (máx 10 palabras).",
+    errSceneTooLong: "La escena debe tener máximo 10 palabras.",
+    errModel: "Elegí el tipo de modelo.",
+    errEthnicity: "Elegí la etnia.",
+    errAge: "Elegí la edad.",
+    errPose: "Elegí la pose.",
+    errBodyType: "Elegí el tipo de cuerpo.",
+    errBgMissing: "Escribí el fondo (máx 10 palabras).",
+    errBgTooLong: "El fondo debe tener máximo 10 palabras.",
+    topupOkMsg: "✅ Créditos agregados correctamente",
+    topupFailMsg: "❌ El pago fue rechazado",
+    processing: "Procesando...",
+    buyCreditsBtn: "💳 Comprar créditos",
+    logoutBtn: "🚪 Cerrar sesión",
+    loadingInline: "Cargando...",
+    viewsToGenerateModel: "¿Qué vistas querés generar?",
+    sceneLabel: "Escena",
+    prevPage: "← Anterior",
+    nextPage: "Siguiente →",
+    missingApiBase: "Falta NEXT_PUBLIC_API_BASE en .env.local",
+    missingApiUrl: "Falta NEXT_PUBLIC_API_URL en .env.local",
+
+    // misc
+    bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 Bonus de 3 créditos — expira en ${hh}:${mm}:${ss}`,
+    whatsapp: "WhatsApp",
+    whatsappPrefill: "Hola, quiero ayuda con el generador",
+  },
+
+  en: {
+    title: "AI Generator",
+    subtitle: "Choose the type of image you want to generate",
+    signIn: "Sign in",
+    signInHint: "Sign in with Google to use the generator",
+    logout: "Log out",
+    credits: "Credits",
+    buyCredits: "Buy credits",
+    loading: "Loading...",
+    modeModel: "📸Model photo",
+    modeProduct: "⚛️Product photo",
+    stepUpload: "Upload photos",
+    stepCategory: "Category",
+    stepPockets: "Pockets",
+    stepMeasures: "Measurements (optional)",
+    stepModel: "Model",
+    stepEthnicity: "Ethnicity",
+    missingApiBase: "Server configuration missing.",
+    missingApiUrl: "Server configuration missing.",
+    stepAge: "Age",
+    stepFace: "Face (optional)",
+    stepBackground: "Background",
+    stepPose: "Pose",
+    stepBodyType: "Body type",
+    stepScene: "Scene",
+    stepGenerate: "Generate",
+    next: "Next",
+    back: "Back",
+    stepOf: (cur: number, total: number) => `Step ${cur} of ${total}`,
+    previous: "← Previous",
+    following: "Next →",
+    pageXofY: (p: number, total: number) => `Page ${p} / ${total}`,
+    uploadTitle: "1) Upload photos",
+    productPhotosLabel: "Product photos (the more, the better)",
+    frontRequired: "Front (required)",
+    backOptional: "Back (optional)",
+    takePhoto: "📷 Take photo",
+    pickFromGallery: "🖼️ Choose from gallery",
+    preview: "Preview",
+    remove: "Remove",
+    photosLoaded: (n: number) => `${n} photo(s) uploaded`,
+    categoryTitle: "2) Choose the category",
+    other: "Other",
+    otherSpecify: "Specify “Other” (max 4 words)",
+    words: (n: number, max: number) => `Words: ${n} / ${max}`,
+    pocketsTitle: "3) Does it have pockets?",
+    yes: "Yes",
+    no: "No",
+    measuresTitle: "4) Measurements (optional)",
+    measuresHint: "You can use cm. Example: 52cm",
+    modelTitle: "5) Model type",
+    ethnicityTitle: "6) Ethnicity",
+    ageTitle: "7) Age",
+    chooseModelFirst: "Choose the model first",
+    poseTitle: "9) Pose",
+    bodyTypeTitle: "Body type",
+    faceTitle: "Face (optional)",
+    faceHint1: "✅ If you upload a face, we’ll try to keep the same face across all images.",
+    faceHint2: "⚠️ If you don’t, faces may differ between images.",
+    takeFacePhoto: "📷 Take face photo",
+    pickFaceGallery: "🖼️ Choose face photo",
+    genFace: "✨ Generate face",
+    genFaceLoading: "Generating face...",
+    missingDataForFace: "Pick model type, ethnicity and age before generating the face.",
+    backgroundTitle: "8) Background (max 10 words)",
+    helpChoosePlace: "Help me pick",
+    searching: "Searching...",
+    sceneTitle: "Product scene (max 10 words)",
+    helpChoose: "Help me pick",
+    generateTitle: "11) Generate images",
+    summary: "Summary",
+    uploadedPhotos: "Uploaded photos",
+    viewsToGenerate: "Which views do you want to generate?",
+    creditsToConsume: (n: number) => `Credits to spend: ${n}`,
+    generate: (n: number) => `Generate (${n} credit${n > 1 ? "s" : ""})`,
+    chooseAtLeastOneView: "Pick at least 1 view",
+    insufficientCredits: (n: number) => `Not enough credits (${n})`,
+    generating: "Generating...",
+    result: "Result",
+    download: "⬇️ Download",
+    redo: "🔁 Redo (1 credit)",
+    noCreditsRedo: "No credits (1)",
+    redoing: (sec: number) => `Redoing... (${sec}s)`,
+    vFront: "Full Front",
+    vBack: "Full Back",
+    vSide: "Full Side",
+    vFrontDetail: "Front Detail",
+    vBackDetail: "Back Detail",
+    vPantFrontDetail: "Pants Front Detail",
+    vPantBackDetail: "Pants Back Detail",
+    vPantSideDetail: "Pants Side Detail",
+    pFront: "Main shot",
+    pBack: "Alternate angle",
+    pLeft: "Close-up detail",
+    pRight: "Another angle",
+    regenOverlayTitle: "🔁 Redoing image…",
+    regenOverlayHint: "Don’t close or refresh the page.",
+    topupOk: "✅ Credits added successfully",
+    topupFail: "❌ Payment was rejected",
+    history: "Transaction history",
+    noMovements: "No transactions",
+    date: "Date",
+    movement: "Type",
+    amount: "Amount",
+    expired: "Expired",
+    purchase: "Purchase",
+    refund: "Refund",
+    grant: "Bonus",
+    consumeModel: "📸 Usage",
+    consumeProduct: "⚛️ Usage",
+    consumeGeneric: "Usage",
+    topupOkMsg: "✅ Credits added successfully",
+    topupFailMsg: "❌ Payment was rejected",
+    processing: "Processing...",
+    buyCreditsBtn: "💳 Buy credits",
+    logoutBtn: "🚪 Log out",
+    loadingInline: "Loading...",
+    viewsToGenerateModel: "Which views do you want to generate?",
+    sceneLabel: "Scene",
+    prevPage: "← Previous",
+    nextPage: "Next →",
+    missingApiBase: "Missing NEXT_PUBLIC_API_BASE in .env.local",
+    missingApiUrl: "Missing NEXT_PUBLIC_API_URL in .env.local",
+    errUploadFront: "Upload the Front photo (required).",
+    packEntrepreneur: "🚀 Entrepreneur Pack — 50 credits / $75,000",
+    packPyme: "🏢 SME Pack — 100 credits / $150,000",
+    packEnterprise: "📈 Enterprise Pack — 200 credits / $300,000",
+    errUploadProduct: "Upload at least 1 product photo.",
+    errChooseCategory: "Choose a category.",
+    errOtherMissing: "Fill in 'Other' (max 4 words).",
+    errOtherTooLong: "'Other' must be max 4 words.",
+    errPockets: "Select pockets (yes/no).",
+    errSceneMissing: "Write the scene (max 10 words).",
+    errSceneTooLong: "Scene must be max 10 words.",
+    errModel: "Choose the model type.",
+    errEthnicity: "Choose the ethnicity.",
+    errAge: "Choose the age.",
+    errPose: "Choose the pose.",
+    errBodyType: "Choose the body type.",
+    errBgMissing: "Write the background (max 10 words).",
+    errBgTooLong: "Background must be max 10 words.",
+    bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3-credit bonus — expires in ${hh}:${mm}:${ss}`,
+    whatsapp: "WhatsApp",
+    whatsappPrefill: "Hi, I need help with the generator",
+  },
+
+ pt: {
+  // header / auth
+  title: "Gerador de IA",
+  subtitle: "Escolha o tipo de imagem que você quer gerar",
+  signIn: "Entrar",
+  signInHint: "Entre com sua conta Google para usar o gerador",
+  logout: "Sair",
+  credits: "Créditos",
+  buyCredits: "Comprar créditos",
+  loading: "Carregando...",
+  processing: "Processando...",
+
+  // modes
+  modeModel: "📸 Foto com modelo",
+  modeProduct: "⚛️ Foto do produto",
+
+  // steps titles
+  stepUpload: "Enviar fotos",
+  stepCategory: "Categoria",
+  stepPockets: "Bolsos",
+  stepMeasures: "Medidas (opcional)",
+  stepModel: "Modelo",
+  stepEthnicity: "Etnia",
+  stepAge: "Idade",
+  stepFace: "Rosto (opcional)",
+  stepBackground: "Fundo",
+  stepPose: "Pose",
+  stepBodyType: "Tipo de corpo",
+  stepScene: "Cena",
+  stepGenerate: "Gerar",
+
+  // nav
+  next: "Próximo",
+  back: "Voltar",
+  stepOf: (cur: number, total: number) => `Passo ${cur} de ${total}`,
+  previous: "← Anterior",
+  following: "Próximo →",
+  pageXofY: (p: number, total: number) => `Página ${p} / ${total}`,
+
+  // upload
+  uploadTitle: "1) Envie fotos",
+  productPhotosLabel: "Fotos do produto (quanto mais, melhor)",
+  frontRequired: "Frente (obrigatório)",
+  backOptional: "Costas (opcional)",
+  takePhoto: "📷 Tirar foto",
+  pickFromGallery: "🖼️ Escolher da galeria",
+  preview: "Prévia",
+  remove: "Remover",
+  photosLoaded: (n: number) => `${n} foto(s) enviada(s)`,
+
+  // category
+  categoryTitle: "2) Escolha a categoria",
+  other: "Outro",
+  otherSpecify: "Especifique “Outro” (máx. 4 palavras)",
+  words: (n: number, max: number) => `Palavras: ${n} / ${max}`,
+
+  // pockets
+  pocketsTitle: "3) Tem bolsos?",
+  yes: "Sim",
+  no: "Não",
+
+  // measures
+  measuresTitle: "4) Medidas (opcional)",
+  measuresHint: "Você pode usar cm. Ex: 52cm",
+
+  // model/ethnicity/age/pose/bodyType
+  modelTitle: "5) Tipo de modelo",
+  ethnicityTitle: "6) Etnia",
+  ageTitle: "7) Idade",
+  chooseModelFirst: "Escolha o modelo primeiro",
+  poseTitle: "9) Pose",
+  bodyTypeTitle: "Tipo de corpo",
+
+  // face
+  faceTitle: "Rosto (opcional)",
+  faceHint1: "✅ Se você enviar o rosto, tentaremos manter o mesmo rosto em todas as fotos.",
+  faceHint2: "⚠️ Se você NÃO enviar, os rostos podem variar entre as imagens.",
+  takeFacePhoto: "📷 Tirar foto (rosto)",
+  pickFaceGallery: "🖼️ Escolher da galeria (rosto)",
+  genFace: "✨ Gerar rosto",
+  genFaceLoading: "Gerando rosto...",
+  missingDataForFace: "Escolha tipo de modelo, etnia e idade antes de gerar o rosto.",
+
+  // background / scene
+  backgroundTitle: "8) Fundo (máx. 10 palavras)",
+  helpChoosePlace: "Me ajude a escolher",
+  searching: "Buscando...",
+  sceneTitle: "Cena do produto (máx. 10 palavras)",
+  helpChoose: "Me ajude a escolher",
+
+  // generate
+  generateTitle: "11) Gerar imagens",
+  summary: "Resumo",
+  uploadedPhotos: "Fotos enviadas",
+  viewsToGenerate: "Quais vistas você quer gerar?",
+  creditsToConsume: (n: number) => `Créditos a consumir: ${n}`,
+  generate: (n: number) => `Gerar (${n} crédito${n > 1 ? "s" : ""})`,
+  chooseAtLeastOneView: "Escolha pelo menos 1 vista",
+  insufficientCredits: (n: number) => `Créditos insuficientes (${n})`,
+  generating: "Gerando...",
+  result: "Resultado",
+  download: "⬇️ Baixar",
+  redo: "🔁 Refazer (1 crédito)",
+  noCreditsRedo: "Sem créditos (1)",
+  redoing: (sec: number) => `Refazendo... (${sec}s)`,
+
+  // views model
+  vFront: "Frente (corpo inteiro)",
+  vBack: "Costas (corpo inteiro)",
+  vSide: "Lado (corpo inteiro)",
+  vFrontDetail: "Detalhe frontal",
+  vBackDetail: "Detalhe traseiro",
+  vPantFrontDetail: "Detalhe calça (frente)",
+  vPantBackDetail: "Detalhe calça (costas)",
+  vPantSideDetail: "Detalhe calça (lado)",
+
+  // views product
+  pFront: "Foto principal",
+  pBack: "Ângulo alternativo",
+  pLeft: "Detalhe de perto",
+  pRight: "Outro ângulo",
+
+  // overlay
+  regenOverlayTitle: "🔁 Refazendo imagem…",
+  regenOverlayHint: "Não feche nem recarregue a página.",
+
+  // topup
+  topupOk: "✅ Créditos adicionados com sucesso",
+  topupFail: "❌ Pagamento rejeitado",
+
+  // history
+  history: "Histórico de movimentos",
+  packEntrepreneur: "🚀 Pacote Empreendedor — 50 créditos / $75.000",
+  packPyme: "🏢 Pacote PyME — 100 créditos / $150.000",
+  packEnterprise: "📈 Pacote Empresa — 200 créditos / $300.000",
+  noMovements: "Sem movimentos",
+  date: "Data",
+  movement: "Movimento",
+  amount: "Quantidade",
+  expired: "Expirado",
+  purchase: "Compra",
+  refund: "Reembolso",
+  grant: "Bônus",
+  consumeModel: "📸 Uso",
+  consumeProduct: "⚛️ Uso",
+  consumeGeneric: "Uso",
+
+  // validations
+  errUploadFront: "Envie a foto da Frente (obrigatório).",
+  errUploadProduct: "Envie pelo menos 1 foto do produto.",
+  errChooseCategory: "Escolha uma categoria.",
+  errOtherMissing: "Preencha 'Outro' (máx. 4 palavras).",
+  errOtherTooLong: "'Outro' deve ter no máximo 4 palavras.",
+  errPockets: "Indique se tem bolsos (sim/não).",
+  errSceneMissing: "Escreva a cena (máx. 10 palavras).",
+  errSceneTooLong: "A cena deve ter no máximo 10 palavras.",
+  errModel: "Escolha o tipo de modelo.",
+  errEthnicity: "Escolha a etnia.",
+  errAge: "Escolha a idade.",
+  errPose: "Escolha a pose.",
+  errBodyType: "Escolha o tipo de corpo.",
+  errBgMissing: "Escreva o fundo (máx. 10 palavras).",
+  errBgTooLong: "O fundo deve ter no máximo 10 palavras.",
+
+  // misc
+  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 Bônus de 3 créditos — expira em ${hh}:${mm}:${ss}`,
+  whatsapp: "WhatsApp",
+  whatsappPrefill: "Olá, preciso de ajuda com o gerador",
+  missingApiBase: "Configuração do servidor ausente.",
+  missingApiUrl: "Configuração do servidor ausente."
+} as any,
+
+ko: {
+  title: "AI 생성기",
+  subtitle: "생성할 이미지 유형을 선택하세요",
+  signIn: "로그인",
+  signInHint: "Google 계정으로 로그인해 생성기를 사용하세요",
+  logout: "로그아웃",
+  credits: "크레딧",
+  buyCredits: "크레딧 구매",
+  loading: "로딩 중...",
+  processing: "처리 중...",
+
+  modeModel: "📸 모델 사진",
+  modeProduct: "⚛️ 제품 사진",
+
+  stepUpload: "사진 업로드",
+  stepCategory: "카테고리",
+  stepPockets: "주머니",
+  stepMeasures: "치수(선택)",
+  stepModel: "모델",
+  stepEthnicity: "인종/피부톤",
+  stepAge: "나이",
+  stepFace: "얼굴(선택)",
+  stepBackground: "배경",
+  stepPose: "포즈",
+  stepBodyType: "체형",
+  stepScene: "장면",
+  stepGenerate: "생성",
+
+  next: "다음",
+  back: "뒤로",
+  stepOf: (cur: number, total: number) => `단계 ${cur} / ${total}`,
+  previous: "← 이전",
+  following: "다음 →",
+  pageXofY: (p: number, total: number) => `페이지 ${p} / ${total}`,
+
+  uploadTitle: "1) 사진 업로드",
+  productPhotosLabel: "제품 사진(많을수록 좋아요)",
+  frontRequired: "정면(필수)",
+  backOptional: "후면(선택)",
+  takePhoto: "📷 사진 찍기",
+  pickFromGallery: "🖼️ 갤러리에서 선택",
+  preview: "미리보기",
+  remove: "삭제",
+  photosLoaded: (n: number) => `${n}장 업로드됨`,
+
+  categoryTitle: "2) 카테고리 선택",
+  other: "기타",
+  otherSpecify: "“기타”를 입력하세요(최대 4단어)",
+  words: (n: number, max: number) => `단어: ${n} / ${max}`,
+
+  pocketsTitle: "3) 주머니가 있나요?",
+  yes: "예",
+  no: "아니오",
+
+  measuresTitle: "4) 치수(선택)",
+  measuresHint: "cm 사용 가능. 예: 52cm",
+
+  modelTitle: "5) 모델 유형",
+  ethnicityTitle: "6) 인종/피부톤",
+  ageTitle: "7) 나이",
+  chooseModelFirst: "먼저 모델을 선택하세요",
+  poseTitle: "9) 포즈",
+  bodyTypeTitle: "체형",
+
+  faceTitle: "얼굴(선택)",
+  faceHint1: "✅ 얼굴을 업로드하면 모든 이미지에서 같은 얼굴을 유지하려고 합니다.",
+  faceHint2: "⚠️ 업로드하지 않으면 이미지마다 얼굴이 달라질 수 있습니다.",
+  takeFacePhoto: "📷 얼굴 사진 찍기",
+  pickFaceGallery: "🖼️ 얼굴 사진 선택",
+  genFace: "✨ 얼굴 생성",
+  genFaceLoading: "얼굴 생성 중...",
+  missingDataForFace: "얼굴 생성 전에 모델/인종/나이를 선택하세요.",
+
+  backgroundTitle: "8) 배경(최대 10단어)",
+  helpChoosePlace: "추천 받기",
+  searching: "검색 중...",
+  sceneTitle: "제품 장면(최대 10단어)",
+  helpChoose: "추천 받기",
+
+  generateTitle: "11) 이미지 생성",
+  summary: "요약",
+  uploadedPhotos: "업로드한 사진",
+  viewsToGenerate: "어떤 뷰를 생성할까요?",
+  creditsToConsume: (n: number) => `사용 크레딧: ${n}`,
+  generate: (n: number) => `생성 (${n} 크레딧)`,
+  chooseAtLeastOneView: "최소 1개 뷰를 선택하세요",
+  insufficientCredits: (n: number) => `크레딧이 부족합니다 (${n})`,
+  generating: "생성 중...",
+  result: "결과",
+  download: "⬇️ 다운로드",
+  redo: "🔁 다시 생성 (1 크레딧)",
+  noCreditsRedo: "크레딧 없음 (1)",
+  redoing: (sec: number) => `다시 생성 중... (${sec}s)`,
+
+  vFront: "정면 전체",
+  vBack: "후면 전체",
+  vSide: "측면 전체",
+  vFrontDetail: "정면 디테일",
+  vBackDetail: "후면 디테일",
+  vPantFrontDetail: "바지 디테일(정면)",
+  vPantBackDetail: "바지 디테일(후면)",
+  vPantSideDetail: "바지 디테일(측면)",
+
+  pFront: "메인 샷",
+  pBack: "대체 각도",
+  pLeft: "근접 디테일",
+  pRight: "다른 각도",
+
+  regenOverlayTitle: "🔁 이미지 다시 생성 중…",
+  regenOverlayHint: "페이지를 닫거나 새로고침하지 마세요.",
+
+  topupOk: "✅ 크레딧이 추가되었습니다",
+  topupFail: "❌ 결제가 거절되었습니다",
+
+  history: "거래 내역",
+  packEntrepreneur: "🚀 창업자 패키지 — 50 크레딧 / $75,000",
+  packPyme: "🏢 SME 패키지 — 100 크레딧 / $150,000",
+  packEnterprise: "📈 기업 패키지 — 200 크레딧 / $300,000",
+  noMovements: "내역 없음",
+  date: "날짜",
+  movement: "유형",
+  amount: "수량",
+  expired: "만료됨",
+  purchase: "구매",
+  refund: "환불",
+  grant: "보너스",
+  consumeModel: "📸 사용",
+  consumeProduct: "⚛️ 사용",
+  consumeGeneric: "사용",
+
+  errUploadFront: "정면 사진을 업로드하세요(필수).",
+  errUploadProduct: "제품 사진을 최소 1장 업로드하세요.",
+  errChooseCategory: "카테고리를 선택하세요.",
+  errOtherMissing: "‘기타’를 입력하세요(최대 4단어).",
+  errOtherTooLong: "‘기타’는 최대 4단어입니다.",
+  errPockets: "주머니 여부를 선택하세요(예/아니오).",
+  errSceneMissing: "장면을 입력하세요(최대 10단어).",
+  errSceneTooLong: "장면은 최대 10단어입니다.",
+  errModel: "모델 유형을 선택하세요.",
+  errEthnicity: "인종/피부톤을 선택하세요.",
+  errAge: "나이를 선택하세요.",
+  errPose: "포즈를 선택하세요.",
+  errBodyType: "체형을 선택하세요.",
+  errBgMissing: "배경을 입력하세요(최대 10단어).",
+  errBgTooLong: "배경은 최대 10단어입니다.",
+
+  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3크레딧 보너스 — ${hh}:${mm}:${ss} 후 만료`,
+  whatsapp: "WhatsApp",
+  whatsappPrefill: "안녕하세요, 생성기 도움을 받고 싶어요",
+  missingApiBase: "서버 설정이 누락되었습니다.",
+  missingApiUrl: "서버 설정이 누락되었습니다."
+} as any,
+
+zh: {
+  title: "AI 生成器",
+  subtitle: "选择你想生成的图片类型",
+  signIn: "登录",
+  signInHint: "使用 Google 登录以使用生成器",
+  logout: "退出登录",
+  credits: "积分",
+  buyCredits: "购买积分",
+  loading: "加载中...",
+  processing: "处理中...",
+
+  modeModel: "📸 模特照片",
+  modeProduct: "⚛️ 产品照片",
+
+  stepUpload: "上传照片",
+  stepCategory: "类别",
+  stepPockets: "口袋",
+  stepMeasures: "尺寸（可选）",
+  stepModel: "模特",
+  stepEthnicity: "人种/肤色",
+  stepAge: "年龄",
+  stepFace: "面部（可选）",
+  stepBackground: "背景",
+  stepPose: "姿势",
+  stepBodyType: "体型",
+  stepScene: "场景",
+  stepGenerate: "生成",
+
+  next: "下一步",
+  back: "返回",
+  stepOf: (cur: number, total: number) => `第 ${cur} 步 / 共 ${total} 步`,
+  previous: "← 上一页",
+  following: "下一页 →",
+  pageXofY: (p: number, total: number) => `第 ${p} 页 / 共 ${total} 页`,
+
+  uploadTitle: "1) 上传照片",
+  productPhotosLabel: "产品照片（越多越好）",
+  frontRequired: "正面（必填）",
+  backOptional: "背面（可选）",
+  takePhoto: "📷 拍照",
+  pickFromGallery: "🖼️ 从相册选择",
+  preview: "预览",
+  remove: "移除",
+  photosLoaded: (n: number) => `已上传 ${n} 张照片`,
+
+  categoryTitle: "2) 选择类别",
+  other: "其他",
+  otherSpecify: "请填写“其他”（最多 4 个词）",
+  words: (n: number, max: number) => `词数：${n} / ${max}`,
+
+  pocketsTitle: "3) 有口袋吗？",
+  yes: "有",
+  no: "没有",
+
+  measuresTitle: "4) 尺寸（可选）",
+  measuresHint: "可使用 cm，例如：52cm",
+
+  modelTitle: "5) 模特类型",
+  ethnicityTitle: "6) 人种/肤色",
+  ageTitle: "7) 年龄",
+  chooseModelFirst: "请先选择模特类型",
+  poseTitle: "9) 姿势",
+  bodyTypeTitle: "体型",
+
+  faceTitle: "面部（可选）",
+  faceHint1: "✅ 上传面部后，我们会尽量在所有图片中保持同一张脸。",
+  faceHint2: "⚠️ 若不上传，生成的图片可能会出现不同的脸。",
+  takeFacePhoto: "📷 拍摄面部照片",
+  pickFaceGallery: "🖼️ 选择面部照片",
+  genFace: "✨ 生成面部",
+  genFaceLoading: "正在生成面部...",
+  missingDataForFace: "生成面部前请先选择模特类型、人种/肤色和年龄。",
+
+  backgroundTitle: "8) 背景（最多 10 个词）",
+  helpChoosePlace: "帮我推荐",
+  searching: "搜索中...",
+  sceneTitle: "产品场景（最多 10 个词）",
+  helpChoose: "帮我推荐",
+
+  generateTitle: "11) 生成图片",
+  summary: "摘要",
+  uploadedPhotos: "已上传的照片",
+  viewsToGenerate: "你想生成哪些视角？",
+  creditsToConsume: (n: number) => `将消耗积分：${n}`,
+  generate: (n: number) => `生成（${n} 积分）`,
+  chooseAtLeastOneView: "请至少选择 1 个视角",
+  insufficientCredits: (n: number) => `积分不足（${n}）`,
+  generating: "生成中...",
+  result: "结果",
+  download: "⬇️ 下载",
+  redo: "🔁 重新生成（1 积分）",
+  noCreditsRedo: "积分不足（1）",
+  redoing: (sec: number) => `重新生成中...（${sec}s）`,
+
+  vFront: "正面全身",
+  vBack: "背面全身",
+  vSide: "侧面全身",
+  vFrontDetail: "正面细节",
+  vBackDetail: "背面细节",
+  vPantFrontDetail: "裤子细节（正面）",
+  vPantBackDetail: "裤子细节（背面）",
+  vPantSideDetail: "裤子细节（侧面）",
+
+  pFront: "主图",
+  pBack: "替代角度",
+  pLeft: "近景细节",
+  pRight: "其他角度",
+
+  regenOverlayTitle: "🔁 正在重新生成…",
+  regenOverlayHint: "请不要关闭或刷新页面。",
+
+  topupOk: "✅ 积分已成功添加",
+  topupFail: "❌ 支付被拒绝",
+
+  history: "交易记录",
+  packEntrepreneur: "🚀 创业者套餐 — 50 积分 / $75,000",
+  packPyme: "🏢 中小企业套餐 — 100 积分 / $150,000",
+  packEnterprise: "📈 企业套餐 — 200 积分 / $300,000",
+  noMovements: "暂无记录",
+  date: "日期",
+  movement: "类型",
+  amount: "数量",
+  expired: "已过期",
+  purchase: "购买",
+  refund: "退款",
+  grant: "赠送",
+  consumeModel: "📸 使用",
+  consumeProduct: "⚛️ 使用",
+  consumeGeneric: "使用",
+
+  errUploadFront: "请上传正面照片（必填）。",
+  errUploadProduct: "请至少上传 1 张产品照片。",
+  errChooseCategory: "请选择一个类别。",
+  errOtherMissing: "请填写“其他”（最多 4 个词）。",
+  errOtherTooLong: "“其他”最多 4 个词。",
+  errPockets: "请选择是否有口袋（有/没有）。",
+  errSceneMissing: "请输入场景（最多 10 个词）。",
+  errSceneTooLong: "场景最多 10 个词。",
+  errModel: "请选择模特类型。",
+  errEthnicity: "请选择人种/肤色。",
+  errAge: "请选择年龄。",
+  errPose: "请选择姿势。",
+  errBodyType: "请选择体型。",
+  errBgMissing: "请输入背景（最多 10 个词）。",
+  errBgTooLong: "背景最多 10 个词。",
+
+  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3 积分奖励 — 将在 ${hh}:${mm}:${ss} 后过期`,
+  whatsapp: "WhatsApp",
+  whatsappPrefill: "你好，我需要生成器的帮助",
+  missingApiBase: "服务器配置缺失。",
+  missingApiUrl: "服务器配置缺失。"
+} as any,
+} as const;
+
 
   function handleLogout() {
     localStorage.removeItem("accessToken");
@@ -219,10 +966,20 @@ export default function Home() {
 
   const [mode, setMode] = useState<"model" | "product">("model");
 
+  
+
   // files
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
+  const [faceFile, setFaceFile] = useState<File | null>(null); // 👈 NUEVO (rostro opcional)
   const [productFiles, setProductFiles] = useState<File[]>([]);
+
+  // refs rostro
+  const faceCameraRef = React.useRef<HTMLInputElement | null>(null);
+  const faceGalleryRef = React.useRef<HTMLInputElement | null>(null);
+
+  const [faceGenLoading, setFaceGenLoading] = useState(false);
+  
   // ===== PREVIEWS (con cleanup para no filtrar memoria) =====
 const frontPreview = useMemo(() => (frontFile ? URL.createObjectURL(frontFile) : null), [frontFile]);
 React.useEffect(() => {
@@ -237,6 +994,14 @@ React.useEffect(() => {
     if (backPreview) URL.revokeObjectURL(backPreview);
   };
 }, [backPreview]);
+
+const facePreview = useMemo(() => (faceFile ? URL.createObjectURL(faceFile) : null), [faceFile]);
+React.useEffect(() => {
+  return () => {
+    if (facePreview) URL.revokeObjectURL(facePreview);
+  };
+}, [facePreview]);
+
 
 const productPreviews = useMemo(
   () => productFiles.map((f) => ({ file: f, url: URL.createObjectURL(f) })),
@@ -392,28 +1157,30 @@ React.useEffect(() => {
     return [];
   }, [modelType]);
 
-  const steps = useMemo(() => {
-    if (mode === "product") {
-      return [
-        { title: "Fotos", key: "upload" },
-        { title: "Escena", key: "scene" },
-        { title: "Generar", key: "generate" },
-      ];
-    }
+ const steps = useMemo(() => {
+  if (mode === "product") {
     return [
-      { title: "Subir fotos", key: "upload" },
-      { title: "Categoría", key: "category" },
-      { title: "Bolsillos", key: "pockets" },
-      { title: "Medidas (opcional)", key: "measures" },
-      { title: "Modelo", key: "model" },
-      { title: "Etnia", key: "ethnicity" },
-      { title: "Edad", key: "age" },
-      { title: "Fondo", key: "background" },
-      { title: "Pose", key: "pose" },
-      { title: "Tipo de cuerpo", key: "bodyType" },
-      { title: "Generar", key: "generate" },
+      { title: t("stepUpload"), key: "upload" },
+      { title: t("stepScene"), key: "scene" },
+      { title: t("stepGenerate"), key: "generate" },
     ];
-  }, [mode]);
+  }
+
+  return [
+    { title: t("stepUpload"), key: "upload" },
+    { title: t("stepCategory"), key: "category" },
+    { title: t("stepPockets"), key: "pockets" },
+    { title: t("stepMeasures"), key: "measures" },
+    { title: t("stepModel"), key: "model" },
+    { title: t("stepEthnicity"), key: "ethnicity" },
+    { title: t("stepAge"), key: "age" },
+    { title: t("stepFace"), key: "face" },
+    { title: t("stepBackground"), key: "background" },
+    { title: t("stepPose"), key: "pose" },
+    { title: t("stepBodyType"), key: "bodyType" },
+    { title: t("stepGenerate"), key: "generate" },
+  ];
+}, [mode, language]);
 
   React.useEffect(() => {
     // ✅ si estamos restaurando desde localStorage, NO borres el resultado
@@ -425,6 +1192,7 @@ React.useEffect(() => {
     setResult(null);
     setFrontFile(null);
     setBackFile(null);
+    setFaceFile(null);
     setCategory("");
     setOtherCategory("");
     setPockets("");
@@ -498,39 +1266,41 @@ React.useEffect(() => {
     const key = steps[step]?.key;
 
     if (key === "upload") {
-      if (mode === "product") return productFiles.length === 0 ? "Subí al menos 1 foto del producto." : null;
-      return !frontFile ? "Subí la foto Delantera (obligatorio)." : null;
+      if (mode === "product") return productFiles.length === 0 ? t("errUploadProduct") : null;
+return !frontFile ? t("errUploadFront") : null;
     }
 
     if (key === "category") {
-      if (!category) return "Elegí una categoría.";
-      if (category === "otro") {
-        if (!otherCategory.trim()) return "Completá 'Otro' (máx 4 palabras).";
-        if (wordCount(otherCategory) > 4) return "'Otro' debe tener máximo 4 palabras.";
-      }
-      return null;
-    }
+  if (!category) return t("errChooseCategory");
 
-    if (key === "pockets") return pockets ? null : "Indicá si tiene bolsillos (si/no).";
+  if (category === "otro") {
+    if (!otherCategory.trim()) return t("errOtherMissing");
+    if (wordCount(otherCategory) > 4) return t("errOtherTooLong");
+  }
+
+  return null;
+}
+
+    if (key === "pockets") return pockets ? null : t("errPockets");
     if (key === "measures") return null;
 
     if (key === "scene") {
-      if (!scene.trim()) return "Escribí la escena (máx 10 palabras).";
-      if (wordCount(scene) > 10) return "La escena debe tener máximo 10 palabras.";
-      return null;
-    }
+  if (!scene.trim()) return t("errSceneMissing");
+  if (wordCount(scene) > 10) return t("errSceneTooLong");
+  return null;
+}
 
-    if (key === "model") return modelType ? null : "Elegí el tipo de modelo.";
-    if (key === "ethnicity") return ethnicity ? null : "Elegí la etnia.";
-    if (key === "age") return ageRange ? null : "Elegí la edad.";
-    if (key === "pose") return pose ? null : "Elegí la pose.";
-    if (key === "bodyType") return bodyType ? null : "Elegí el tipo de cuerpo.";
+    if (key === "model") return modelType ? null : t("errModel");
+    if (key === "ethnicity") return ethnicity ? null : t("errEthnicity");
+    if (key === "age") return ageRange ? null : t("errAge");
+    if (key === "pose") return pose ? null : t("errPose");
+    if (key === "bodyType") return bodyType ? null : t("errBodyType");
 
     if (key === "background") {
-      if (!background.trim()) return "Escribí el fondo (máx 10 palabras).";
-      if (wordCount(background) > 10) return "El fondo debe tener máximo 10 palabras.";
-      return null;
-    }
+  if (!background.trim()) return t("errBgMissing");
+  if (wordCount(background) > 10) return t("errBgTooLong");
+  return null;
+}
 
     return null;
   }, [
@@ -699,62 +1469,70 @@ async function handleRegenerateOne(
 
   try {
     if (!API) {
-      bail("Falta NEXT_PUBLIC_API_BASE en .env.local");
+      bail(t("missingApiBase"));
       return;
     }
 
     if (balance < 1) {
-      bail("Créditos insuficientes (rehacer cuesta 1 crédito).");
+      bail(t("noCreditsRedo"));
       return;
     }
 
     // Validaciones mínimas
     if (mode === "product") {
       if (productFiles.length === 0) {
-        bail("Subí al menos 1 foto del producto.");
+        bail(t("errUploadProduct"));
         return;
       }
-      if (!scene.trim() || wordCount(scene) > 10) {
-        bail("Escribí la escena (máx 10 palabras).");
-        return;
-      }
+      if (!scene.trim()) {
+  bail(t("errSceneMissing"));
+  return;
+}
+if (wordCount(scene) > 10) {
+  bail(t("errSceneTooLong"));
+  return;
+}
     } else {
       if (!frontFile) {
-        bail("Falta la foto delantera.");
-        return;
-      }
+  bail(t("errUploadFront"));
+  return;
+}
       if (!category) {
-        bail("Falta categoría.");
-        return;
-      }
-      if (!pockets) {
-        bail("Falta bolsillos.");
-        return;
-      }
-      if (!modelType) {
-        bail("Falta modelo.");
-        return;
-      }
-      if (!ethnicity) {
-        bail("Falta etnia.");
-        return;
-      }
-      if (!ageRange) {
-        bail("Falta edad.");
-        return;
-      }
-      if (!background.trim() || wordCount(background) > 10) {
-        bail("Falta fondo (máx 10 palabras).");
-        return;
-      }
-      if (!pose) {
-        bail("Falta pose.");
-        return;
-      }
-      if (!bodyType) {
-        bail("Falta tipo de cuerpo.");
-        return;
-      }
+  bail(t("errChooseCategory"));
+  return;
+}
+if (!pockets) {
+  bail(t("errPockets"));
+  return;
+}
+if (!modelType) {
+  bail(t("errModel"));
+  return;
+}
+if (!ethnicity) {
+  bail(t("errEthnicity"));
+  return;
+}
+if (!ageRange) {
+  bail(t("errAge"));
+  return;
+}
+if (!background.trim()) {
+  bail(t("errBgMissing"));
+  return;
+}
+if (wordCount(background) > 10) {
+  bail(t("errBgTooLong"));
+  return;
+}
+if (!pose) {
+  bail(t("errPose"));
+  return;
+}
+if (!bodyType) {
+  bail(t("errBodyType"));
+  return;
+}
     }
 
     // Ahora sí: marcamos loading
@@ -775,6 +1553,7 @@ async function handleRegenerateOne(
     } else {
       fd.append("front", frontFile as File);
       if (backFile) fd.append("back", backFile);
+      if (faceFile) fd.append("face", faceFile);
 
       fd.append("category", category);
       if (category === "otro") fd.append("other_category", otherCategory.trim());
@@ -847,7 +1626,7 @@ void fetchEntries();
 
   async function handleSuggestBackground() {
     setError(null);
-    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+    if (!API) return setError(t("missingApiBase"));
     setHelpLoading(true);
     setBgSuggestions([]);
 
@@ -876,35 +1655,45 @@ void fetchEntries();
     setError(null);
     setResult(null);
 
-    if (!API) return setError("Falta NEXT_PUBLIC_API_BASE en .env.local");
+    if (!API) return setError(t("missingApiBase"));
 
     // Validaciones
     if (mode === "product") {
       if (productFiles.length === 0) {
-        setStep(0);
-        return setError("Subí al menos 1 foto del producto.");
-      }
-      if (!scene.trim() || wordCount(scene) > 10) {
-        setStep(1);
-        return setError("Escribí la escena (máx 10 palabras).");
-      }
-      if (selectedCount === 0) {
-        setStep(2);
-        return setError("Elegí al menos 1 vista.");
-      }
+  setStep(0);
+  return setError(t("errUploadProduct"));
+}
+if (!scene.trim()) {
+  setStep(1);
+  return setError(t("errSceneMissing"));
+}
+if (wordCount(scene) > 10) {
+  setStep(1);
+  return setError(t("errSceneTooLong"));
+}
+if (selectedCount === 0) {
+  setStep(2);
+  return setError(t("chooseAtLeastOneView"));
+}
     } else {
-      if (!frontFile) return (goToFirstErrorStep(), setError("Falta foto FRONT."));
-      if (!category) return (goToFirstErrorStep(), setError("Falta categoría."));
-      if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4))
-        return (goToFirstErrorStep(), setError("Revisá 'Otro' (máx 4 palabras)."));
-      if (!pockets) return (goToFirstErrorStep(), setError("Falta bolsillos."));
-      if (!modelType) return (goToFirstErrorStep(), setError("Falta modelo."));
-      if (!ethnicity) return (goToFirstErrorStep(), setError("Falta etnia."));
-      if (!ageRange) return (goToFirstErrorStep(), setError("Falta edad."));
-      if (!background.trim() || wordCount(background) > 10)
-        return (goToFirstErrorStep(), setError("Falta fondo o excede 10 palabras."));
-      if (!pose) return (goToFirstErrorStep(), setError("Falta pose."));
-      if (!bodyType) return (goToFirstErrorStep(), setError("Falta tipo de cuerpo."));
+      if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
+      if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
+      if (category === "otro") {
+      if (!otherCategory.trim())
+        return (goToFirstErrorStep(), setError(t("errOtherMissing")));
+      if (wordCount(otherCategory) > 4)
+        return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
+}
+if (!pockets) return (goToFirstErrorStep(), setError(t("errPockets")));
+if (!modelType) return (goToFirstErrorStep(), setError(t("errModel")));
+if (!ethnicity) return (goToFirstErrorStep(), setError(t("errEthnicity")));
+if (!ageRange) return (goToFirstErrorStep(), setError(t("errAge")));
+if (!background.trim())
+  return (goToFirstErrorStep(), setError(t("errBgMissing")));
+if (wordCount(background) > 10)
+  return (goToFirstErrorStep(), setError(t("errBgTooLong")));
+if (!pose) return (goToFirstErrorStep(), setError(t("errPose")));
+if (!bodyType) return (goToFirstErrorStep(), setError(t("errBodyType")));
     }
 
  const keysInOrder =
@@ -938,6 +1727,7 @@ setResultKeys(keysInOrder as any);
       } else {
         fd.append("front", frontFile as File);
         if (backFile) fd.append("back", backFile);
+        if (faceFile) fd.append("face", faceFile);
         fd.append("category", category);
         if (category === "otro") fd.append("other_category", otherCategory.trim());
         fd.append("pockets", pockets);
@@ -999,11 +1789,11 @@ setResultKeys(keysInOrder as any);
       case "upload":
         return (
           <>
-            <FieldTitle>1) Subí fotos</FieldTitle>
+            <FieldTitle>{t("uploadTitle")}</FieldTitle>
 
             {mode === "product" ? (
               <Box>
-                <Label>Fotos del producto (cuantas más, mejor)</Label>
+                <Label>{t("productPhotosLabel")}</Label>
 
                 {/* Inputs ocultos */}
                 <input
@@ -1060,11 +1850,15 @@ setResultKeys(keysInOrder as any);
                 </div>
 
                 {productFiles.length > 0 && (
-                  <SmallMuted style={{ marginTop: 10 }}>{productFiles.length} foto(s) cargada(s)</SmallMuted>
+                  <SmallMuted style={{ marginTop: 10 }}>
+  {t("photosLoaded", productFiles.length)}
+</SmallMuted>
                 )}
                 {productPreviews.length > 0 && (
   <div style={{ marginTop: 12 }}>
-    <div style={{ fontWeight: 900, marginBottom: 10, color: "#0f172a" }}>Preview</div>
+    <div style={{ fontWeight: 900, marginBottom: 10, color: "#0f172a" }}>
+  {t("preview")}
+</div>
 
     <div style={styles.previewGridCompact}>
       {productPreviews.map((p, i) => (
@@ -1103,7 +1897,7 @@ setResultKeys(keysInOrder as any);
               <TwoCols>
                 {/* DELANTERA */}
                 <Box>
-                  <Label>Delantera (obligatorio)</Label>
+                  <Label>{t("frontRequired")}</Label>
 
                   <input
                     ref={frontCameraRef}
@@ -1138,7 +1932,7 @@ setResultKeys(keysInOrder as any);
                         background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
                       }}
                     >
-                      📷 Sacar foto
+                       {t("takePhoto")}
                     </button>
 
                     <button
@@ -1151,14 +1945,14 @@ setResultKeys(keysInOrder as any);
                         border: "1px solid #e2e8f0",
                       }}
                     >
-                      🖼️ Elegir de galería
+                      {t("pickFromGallery")}
                     </button>
                   </div>
 
                   {frontFile && (
   <div style={{ marginTop: 12 }}>
     <div style={{ ...styles.previewCard, position: "relative" }}>
-      <img src={frontPreview || ""} alt="delantera" style={styles.previewImg} />
+      <img src={frontPreview || ""} alt={t("frontRequired")} style={styles.previewImg} />
       <button
         type="button"
         onClick={() => setFrontFile(null)}
@@ -1193,7 +1987,7 @@ setResultKeys(keysInOrder as any);
 
                 {/* ESPALDA */}
                 <Box>
-                  <Label>Espalda (opcional)</Label>
+                  <Label>{t("backOptional")}</Label>
 
                   <input
                     ref={backCameraRef}
@@ -1228,7 +2022,7 @@ setResultKeys(keysInOrder as any);
                         background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
                       }}
                     >
-                      📷 Sacar foto
+                      {t("takePhoto")}
                     </button>
 
                     <button
@@ -1241,14 +2035,14 @@ setResultKeys(keysInOrder as any);
                         border: "1px solid #e2e8f0",
                       }}
                     >
-                      🖼️ Elegir de galería
+                      {t("pickFromGallery")}
                     </button>
                   </div>
 
                   {backFile && (
   <div style={{ marginTop: 12 }}>
     <div style={{ ...styles.previewCard, position: "relative" }}>
-      <img src={backPreview || ""} alt="espalda" style={styles.previewImg} />
+      <img src={backPreview || ""} alt={t("backOptional")} style={styles.previewImg} />
       <button
         type="button"
         onClick={() => setBackFile(null)}
@@ -1288,7 +2082,7 @@ setResultKeys(keysInOrder as any);
       case "category":
         return (
           <>
-            <FieldTitle>2) Elegí la categoría</FieldTitle>
+            <FieldTitle>{t("categoryTitle")}</FieldTitle>
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {CATEGORIES.map((c) => (
@@ -1309,9 +2103,11 @@ setResultKeys(keysInOrder as any);
 
             {category === "otro" && (
               <div style={{ marginTop: 12 }}>
-                <Label>Especificá “Otro” (máx 4 palabras)</Label>
+                <Label>{t("otherSpecify")}</Label>
                 <TextInput value={otherCategory} onChange={setOtherCategory} placeholder="Ej: Chaleco sastrero corto" />
-                <SmallMuted>Palabras: {wordCount(otherCategory)} / 4</SmallMuted>
+                <SmallMuted>
+  {t("words", wordCount(otherCategory), 4)}
+</SmallMuted>
               </div>
             )}
           </>
@@ -1320,14 +2116,14 @@ setResultKeys(keysInOrder as any);
       case "pockets":
         return (
           <>
-            <FieldTitle>3) ¿Tiene bolsillos?</FieldTitle>
+            <FieldTitle>{t("pocketsTitle")}</FieldTitle>
             <RadioPills
               value={pockets}
               onChange={(v) => setPockets(v as any)}
               options={[
-                { value: "si", label: "Sí" },
-                { value: "no", label: "No" },
-              ]}
+  { value: "si", label: t("yes") },
+  { value: "no", label: t("no") },
+]}
             />
           </>
         );
@@ -1335,8 +2131,8 @@ setResultKeys(keysInOrder as any);
       case "measures":
         return (
           <>
-            <FieldTitle>4) Medidas (opcional)</FieldTitle>
-            <SmallMuted>Podés poner cm. Ej: 52cm</SmallMuted>
+            <FieldTitle>{t("measuresTitle")}</FieldTitle>
+            <SmallMuted>{t("measuresHint")}</SmallMuted>
 
             <Grid3>
               {Object.entries(measures).map(([k, v]) => (
@@ -1354,24 +2150,59 @@ setResultKeys(keysInOrder as any);
         );
 
       case "model":
-        return (
-          <>
-            <FieldTitle>5) Tipo de modelo</FieldTitle>
-            <RadioPills
-              value={modelType}
-              onChange={(v) => {
-                setModelType(v as any);
-                setAgeRange("");
-              }}
-              options={MODEL_TYPES.map((m) => ({ value: m, label: m }))}
-            />
-          </>
-        );
+  return (
+    <>
+      <FieldTitle>{t("modelTitle")}</FieldTitle>
+      <RadioPills
+        value={modelType}
+        onChange={(v) => {
+          setModelType(v as any);
+          setAgeRange("");
+        }}
+        options={MODEL_TYPES.map((m) => ({ value: m, label: m }))}
+      />
+    </>
+  );
+
+  {faceFile && (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ ...styles.previewCard, position: "relative" }}>
+        <img src={facePreview || ""} alt="rostro" style={styles.previewImg} />
+        <button
+          type="button"
+          onClick={() => setFaceFile(null)}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            width: 32,
+            height: 32,
+            borderRadius: 999,
+            border: "1px solid rgba(15,23,42,0.15)",
+            background: "rgba(255,255,255,0.95)",
+            color: "#0f172a",
+            fontWeight: 900,
+            fontSize: 16,
+            display: "grid",
+            placeItems: "center",
+            cursor: "pointer",
+            boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
+          }}
+          aria-label="Quitar rostro"
+          title="Quitar"
+        >
+          ✕
+        </button>
+      </div>
+
+      <SmallMuted style={{ marginTop: 8 }}>{faceFile.name}</SmallMuted>
+    </div>
+  )}
 
       case "ethnicity":
         return (
           <>
-            <FieldTitle>6) Etnia</FieldTitle>
+            <FieldTitle>{t("ethnicityTitle")}</FieldTitle>
 
             <div style={isMobile ? styles.pillsGrid2Mobile : styles.pillsGrid2}>
               {ETHNICITIES.map((e) => (
@@ -1393,28 +2224,180 @@ setResultKeys(keysInOrder as any);
         );
 
       case "age":
-        return (
-          <>
-            <FieldTitle>7) Edad</FieldTitle>
+  return (
+    <>
+      <FieldTitle>{t("ageTitle")}</FieldTitle>
 
-            {!modelType ? (
-              <SmallMuted>Elegí primero el modelo</SmallMuted>
-            ) : (
-              <RadioPills value={ageRange} onChange={(v) => setAgeRange(v)} options={ageOptions.map((a) => ({ value: a, label: a }))} />
-            )}
-          </>
-        );
+      {!modelType ? (
+        <SmallMuted>{t("chooseModelFirst")}</SmallMuted>
+      ) : (
+        <RadioPills
+          value={ageRange}
+          onChange={(v) => setAgeRange(v)}
+          options={ageOptions.map((a) => ({ value: a, label: a }))}
+        />
+      )}
+    </>
+  );
+
+        case "face":
+  return (
+    <>
+      <FieldTitle>{t("faceTitle")}</FieldTitle>
+
+      <SmallMuted>
+  {t("faceHint1")}
+  <br />
+  {t("faceHint2")}
+</SmallMuted>
+
+      {/* Inputs ocultos */}
+      <input
+        ref={faceCameraRef}
+        type="file"
+        accept="image/*"
+        capture="user"
+        onChange={(e) => {
+          setFaceFile(e.target.files?.[0] || null);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+      <input
+        ref={faceGalleryRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          setFaceFile(e.target.files?.[0] || null);
+          e.currentTarget.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+
+      <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+        <button
+          type="button"
+          onClick={() => faceCameraRef.current?.click()}
+          style={{ ...styles.buyBtnFull, height: 44 }}
+        >
+          {t("takeFacePhoto")}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => faceGalleryRef.current?.click()}
+          style={{ ...styles.logoutBtnFull, height: 44, background: "#ffffff", border: "1px solid #e2e8f0" }}
+        >
+          {t("pickFromGallery")}
+        </button>
+
+        <button
+          type="button"
+          disabled={faceGenLoading || !modelType || !ethnicity || !ageRange}
+          onClick={async () => {
+            try {
+              setError(null);
+              if (!API) return setError("Falta NEXT_PUBLIC_API_URL en .env.local");
+
+              if (!modelType || !ethnicity || !ageRange) {
+                return setError("Elegí tipo de modelo, etnia y edad antes de generar el rostro.");
+              }
+
+              setFaceGenLoading(true);
+
+              const token = localStorage.getItem("accessToken");
+              const res = await fetch(`${API}/generate-face`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                  model_type: modelType,
+                  ethnicity,
+                  age_range: ageRange,
+                  body_type: bodyType || "",
+                }),
+              });
+
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) throw new Error(data?.error || "Error generando rostro");
+
+              const url = String(data?.imageUrl || "");
+              if (!url) throw new Error("El servidor no devolvió imageUrl");
+
+              const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
+
+              const imgRes = await fetch(absolute);
+              const blob = await imgRes.blob();
+              const file = new File([blob], `face-${Date.now()}.png`, { type: blob.type || "image/png" });
+
+              setFaceFile(file);
+            } catch (e: any) {
+              setError(String(e?.message || e));
+            } finally {
+              setFaceGenLoading(false);
+            }
+          }}
+          style={{
+            ...styles.buyBtnFull,
+            height: 44,
+            opacity: faceGenLoading || !modelType || !ethnicity || !ageRange ? 0.65 : 1,
+            cursor: faceGenLoading || !modelType || !ethnicity || !ageRange ? "not-allowed" : "pointer",
+            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+          }}
+        >
+          {faceGenLoading ? t("genFaceLoading") : t("genFace")}
+        </button>
+      </div>
+
+      {faceFile && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ ...styles.previewCard, position: "relative" }}>
+            <img src={facePreview || ""} alt="rostro" style={styles.previewImg} />
+            <button
+              type="button"
+              onClick={() => setFaceFile(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                border: "1px solid rgba(15,23,42,0.15)",
+                background: "rgba(255,255,255,0.95)",
+                color: "#0f172a",
+                fontWeight: 900,
+                fontSize: 16,
+                display: "grid",
+                placeItems: "center",
+                cursor: "pointer",
+                boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
+              }}
+              aria-label="Quitar rostro"
+              title="Quitar"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
       case "background":
         return (
           <>
-            <FieldTitle>8) Fondo (máx 10 palabras)</FieldTitle>
+            <FieldTitle>{t("backgroundTitle")}</FieldTitle>
             <TextInput value={background} onChange={setBackground} placeholder='Ej: "estudio gris con luz suave"' />
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
-              <SmallMuted>Palabras: {wordCount(background)} / 10</SmallMuted>
+              <SmallMuted>
+  {t("words", wordCount(background), 10)}
+</SmallMuted>
               <Button variant="secondary" onClick={handleSuggestBackground} disabled={helpLoading || !category || !modelType}>
-                {helpLoading ? "Buscando..." : "Ayudame a elegir el lugar"}
+                {helpLoading ? t("searching") : t("helpChoosePlace")}
               </Button>
             </Row>
 
@@ -1433,7 +2416,7 @@ setResultKeys(keysInOrder as any);
       case "pose":
         return (
           <>
-            <FieldTitle>9) Pose</FieldTitle>
+            <FieldTitle>{t("poseTitle")}</FieldTitle>
             <RadioPills value={pose} onChange={(v) => setPose(v as any)} options={POSES.map((p) => ({ value: p, label: p }))} />
           </>
         );
@@ -1441,7 +2424,7 @@ setResultKeys(keysInOrder as any);
       case "bodyType":
         return (
           <>
-            <FieldTitle>Tipo de cuerpo</FieldTitle>
+            <FieldTitle>{t("bodyTypeTitle")}</FieldTitle>
             <RadioPills value={bodyType} onChange={(v) => setBodyType(v as any)} options={BODY_TYPES.map((b) => ({ value: b, label: b }))} />
           </>
         );
@@ -1449,11 +2432,11 @@ setResultKeys(keysInOrder as any);
       case "scene":
         return (
           <>
-            <FieldTitle>Escena del producto (máx 10 palabras)</FieldTitle>
+            <FieldTitle>{t("sceneTitle")}</FieldTitle>
             <TextInput value={scene} onChange={setScene} placeholder='Ej: "colgado en percha de madera", "sobre arena húmeda"' />
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
-              <SmallMuted>Palabras: {wordCount(scene)} / 10</SmallMuted>
+              <SmallMuted>{t("words", wordCount(scene), 10)}</SmallMuted>
 
               <Button
                 variant="secondary"
@@ -1480,7 +2463,7 @@ setResultKeys(keysInOrder as any);
                 }}
                 disabled={helpLoading}
               >
-                {helpLoading ? "Buscando..." : "Ayudame a elegir"}
+                {helpLoading ? t("searching") : t("helpChoose")}
               </Button>
             </Row>
           </>
@@ -1489,14 +2472,16 @@ setResultKeys(keysInOrder as any);
       case "generate":
         return (
           <>
-            <FieldTitle>11) Generar imágenes</FieldTitle>
+            <FieldTitle>{t("generateTitle")}</FieldTitle>
 
             <div style={styles.summaryCard}>
-              <div style={styles.summaryTitle}>Resumen</div>
+              <div style={styles.summaryTitle}>{t("summary")}</div>
 
               {/* ====== FOTOS PREVIEW ====== */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontWeight: 900, marginBottom: 10 }}>Fotos cargadas</div>
+                <div style={{ fontWeight: 900, marginBottom: 10 }}>
+  {t("uploadedPhotos")}
+</div>
 
                 {mode === "product" ? (
                   <div style={styles.previewGrid}>
@@ -1525,7 +2510,7 @@ setResultKeys(keysInOrder as any);
               {/* ====== DATOS ====== */}
               {mode === "product" ? (
                 <div style={{ ...styles.summaryGrid, gridTemplateColumns: "1fr" }}>
-                  <SummaryItem label="Escena" value={scene} />
+                  <SummaryItem label={t("sceneLabel")} value={scene} />
                 </div>
               ) : (
                 <div style={styles.summaryGrid}>
@@ -1544,15 +2529,15 @@ setResultKeys(keysInOrder as any);
             {mode === "product" ? (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-                  ¿Qué vistas querés generar?
+                  {t("viewsToGenerate")}
                 </div>
 
                 {[
-                  { key: "front", label: "Toma principal" },
-                  { key: "back", label: "Ángulo alternativo" },
-                  { key: "left", label: "Detalle cercano" },
-                  { key: "right", label: "Otro ángulo" },
-                ].map((v) => (
+  { key: "front", label: t("pFront") },
+  { key: "back", label: t("pBack") },
+  { key: "left", label: t("pLeft") },
+  { key: "right", label: t("pRight") },
+].map((v) => (
                   <label
                     key={v.key}
                     style={{
@@ -1578,30 +2563,29 @@ setResultKeys(keysInOrder as any);
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-                  Créditos a consumir: {selectedCount}
+                  {t("creditsToConsume", selectedCount)}
                 </div>
               </div>
             ) : (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
-                  ¿Qué vistas querés generar?
+                  {t("viewsToGenerate")}
                 </div>
 
                 {[
-                { key: "front", label: "Frente Completo" },
-                { key: "back", label: "Espalda Completa" },
-                { key: "side", label: "Costado Completo" },
-                { key: "frontDetail", label: "Detalle Frente" },
-                { key: "backDetail", label: "Detalle Espalda" },
-                ...(category === "Pantalón/Short/Pollera/Falda"
-  ? [
-      { key: "pantFrontDetail", label: "Detalle Pantalón Frente" },
-      { key: "pantBackDetail", label: "Detalle Pantalón Espalda" },
-      { key: "pantSideDetail", label: "Detalle Pantalón Costado" },
-    ]
-  : []),
-
-                ].map((v) => (
+  { key: "front", label: t("vFront") },
+  { key: "back", label: t("vBack") },
+  { key: "side", label: t("vSide") },
+  { key: "frontDetail", label: t("vFrontDetail") },
+  { key: "backDetail", label: t("vBackDetail") },
+  ...(category === "Pantalón/Short/Pollera/Falda"
+    ? [
+        { key: "pantFrontDetail", label: t("vPantFrontDetail") },
+        { key: "pantBackDetail", label: t("vPantBackDetail") },
+        { key: "pantSideDetail", label: t("vPantSideDetail") },
+      ]
+    : []),
+].map((v) => (
                   <label
                     key={v.key}
                     style={{
@@ -1627,7 +2611,7 @@ setResultKeys(keysInOrder as any);
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
-                  Créditos a consumir: {selectedCount}
+                  {t("creditsToConsume", selectedCount)}
                 </div>
               </div>
             )}
@@ -1638,17 +2622,19 @@ setResultKeys(keysInOrder as any);
               style={{ width: "100%", padding: "14px 16px" }}
             >
               {loading
-                ? "Generando..."
-                : selectedCount === 0
-                ? "Elegí al menos 1 vista"
-                : balance < selectedCount
-                ? `Créditos insuficientes (${selectedCount})`
-                : `Generar (${selectedCount} crédito${selectedCount > 1 ? "s" : ""})`}
+  ? t("generating")
+  : selectedCount === 0
+  ? t("chooseAtLeastOneView")
+  : balance < selectedCount
+  ? t("insufficientCredits", selectedCount)
+  : t("generate", selectedCount)}
             </Button>
 
             {result && (
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontWeight: 700, marginBottom: 10 }}>Resultado</div>
+                <div style={{ fontWeight: 700, marginBottom: 10 }}>
+  {t("result")}
+</div>
 
                 <div style={styles.resultGrid}>
                   {result.imageUrls.map((u, idx) => {
@@ -1674,35 +2660,31 @@ setResultKeys(keysInOrder as any);
                     const label =
   mode === "product"
     ? viewKey === "front"
-      ? "Toma principal"
+      ? t("pFront")
       : viewKey === "back"
-      ? "Ángulo alternativo"
+      ? t("pBack")
       : viewKey === "left"
-      ? "Detalle cercano"
+      ? t("pLeft")
       : viewKey === "right"
-      ? "Otro ángulo"
-      : "Toma principal"
+      ? t("pRight")
+      : t("pFront")
     : viewKey === "front"
-? "Frente Completo"
-: viewKey === "back"
-? "Espalda Completo"
-: viewKey === "side"
-? "Costado Completo"
-: viewKey === "frontDetail"
-? "Detalle Frente"
-: viewKey === "backDetail"
-? "Detalle Espalda"
-: viewKey === "pantFrontDetail"
-? "Detalle Pantalón Frente"
-: viewKey === "pantBackDetail"
-? "Detalle Pantalón Espalda"
-: viewKey === "pantSideDetail"
-? "Detalle Pantalón Costado"
-: "Detalle Espalda";
-
-
-
-
+    ? t("vFront")
+    : viewKey === "back"
+    ? t("vBack")
+    : viewKey === "side"
+    ? t("vSide")
+    : viewKey === "frontDetail"
+    ? t("vFrontDetail")
+    : viewKey === "backDetail"
+    ? t("vBackDetail")
+    : viewKey === "pantFrontDetail"
+    ? t("vPantFrontDetail")
+    : viewKey === "pantBackDetail"
+    ? t("vPantBackDetail")
+    : viewKey === "pantSideDetail"
+    ? t("vPantSideDetail")
+    : t("vBackDetail");
 
                     return (
                       <div key={idx} style={{ display: "grid", gap: 10 }}>
@@ -1737,7 +2719,7 @@ setResultKeys(keysInOrder as any);
                                 border: "1px solid #e2e8f0",
                               }}
                             >
-                              ⬇️ Descargar
+                              {t("download")}
                             </button>
 
                             <button
@@ -1752,12 +2734,15 @@ setResultKeys(keysInOrder as any);
                               }}
                             >
                               {regenLoading[loadKey] === true
-                                ? `Rehaciendo... (${Math.floor(
-                                    (Date.now() - (regenStartedAt[loadKey] || Date.now())) / 1000
-                                  )}s)`
-                                : balance < 1
-                                ? "Sin créditos (1)"
-                                : "🔁 Rehacer (1 crédito)"}
+  ? t(
+      "redoing",
+      Math.floor(
+        (Date.now() - (regenStartedAt[loadKey] || Date.now())) / 1000
+      )
+    )
+  : balance < 1
+  ? t("noCreditsRedo")
+  : t("redo")}
                             </button>
                           </div>
                         </div>
@@ -1781,6 +2766,8 @@ setResultKeys(keysInOrder as any);
     // state
     frontFile,
     backFile,
+    faceFile,
+    faceGenLoading,
     productFiles,
     category,
     otherCategory,
@@ -1848,8 +2835,8 @@ setResultKeys(keysInOrder as any);
               fontWeight: 900,
             }}
           >
-            🔁 Rehaciendo imagen…<br />
-            <span style={{ fontWeight: 700, opacity: 0.85, fontSize: 13 }}>No cierres ni recargues la página.</span>
+            {t("regenOverlayTitle")}<br />
+            <span style={{ fontWeight: 700, opacity: 0.85, fontSize: 13 }}>{t("regenOverlayHint")}</span>
           </div>
         </div>
       )}
@@ -1866,7 +2853,7 @@ setResultKeys(keysInOrder as any);
               fontWeight: 600,
             }}
           >
-            ✅ Créditos agregados correctamente
+            {t("topupOk")}
           </div>
         )}
 
@@ -1882,7 +2869,7 @@ setResultKeys(keysInOrder as any);
               fontWeight: 600,
             }}
           >
-            ❌ El pago fue rechazado
+            {t("topupFail")}
           </div>
         )}
 
@@ -1897,7 +2884,7 @@ setResultKeys(keysInOrder as any);
   }}
 >
   <a
-    href="https://wa.me/5491125457111?text=Hola%20quiero%20ayuda%20con%20el%20generador"
+    href={`https://wa.me/5491125457111?text=${encodeURIComponent(t("whatsappPrefill"))}`}
     target="_blank"
     rel="noopener noreferrer"
     style={styles.whatsappInlineBtn}
@@ -1918,7 +2905,9 @@ onMouseLeave={(e) => {
       <path d="M19.11 17.36c-.27-.14-1.59-.78-1.84-.87-.25-.09-.43-.14-.61.14-.18.27-.7.87-.86 1.05-.16.18-.32.2-.59.07-.27-.14-1.13-.42-2.16-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.13-.13.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.48-.84-2.03-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29 0 1.34.98 2.64 1.12 2.82.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.58.66.21 1.26.18 1.73.11.53-.08 1.59-.65 1.82-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"/>
       <path d="M16.02 3C8.83 3 3 8.83 3 16.02c0 2.82.9 5.44 2.43 7.58L3 29l5.53-2.4c2.06 1.12 4.41 1.76 6.97 1.76C23.17 28.36 29 22.53 29 15.34 29 8.83 23.17 3 16.02 3zm0 23.36c-2.36 0-4.54-.7-6.38-1.91l-.46-.3-3.28 1.42 1.43-3.2-.3-.48c-1.32-2.05-2.01-4.43-2.01-6.87 0-6.12 4.98-11.1 11.1-11.1 6.12 0 11.1 4.98 11.1 11.1 0 6.12-4.98 11.1-11.1 11.1z"/>
     </svg>
-    <span style={{ fontWeight: 900, fontSize: 12 }}>WhatsApp</span>
+    <span style={{ fontWeight: 900, fontSize: 12 }}>
+  {t("whatsapp")}
+</span>
   </a>
 </div>
           <div>
@@ -2065,7 +3054,7 @@ const ss = String(seconds).padStart(2, "0");
         display: "inline-block",
       }}
     >
-      🎁 Bonus de 3 créditos — expira en {hh}:{mm}:{ss}
+      {t("bonusExpiresIn", hh, mm, ss)}
     </div>
   );
 })()}
@@ -2074,10 +3063,11 @@ const ss = String(seconds).padStart(2, "0");
           </div>
 
           <div style={styles.packCard}>
-            <select value={selectedPack} onChange={(e) => setSelectedPack(e.target.value as any)} style={styles.packSelect}>
-              <option value="emprendedor">🚀 Paquete Emprendedor — 50 créditos / $75.000</option>
-<option value="pyme">🏢 Paquete PyME — 100 créditos / $150.000</option>
-<option value="empresa">📈 Paquete Empresa — 200 créditos / $300.000</option>
+            <select value={selectedPack} onChange={(e) => setSelectedPack(e.target.value as any)} 
+            style={styles.packSelect}>
+                <option value="emprendedor">{t("packEntrepreneur")}</option>
+                <option value="pyme">{t("packPyme")}</option>
+                <option value="empresa">{t("packEnterprise")}</option>
             </select>
 
             <button
@@ -2111,11 +3101,11 @@ const ss = String(seconds).padStart(2, "0");
               }}
               style={styles.buyBtnFull}
             >
-              {buyLoading ? "Procesando..." : "💳 Comprar créditos"}
+              {buyLoading ? t("processing") : `💳 ${t("buyCredits")}`}
             </button>
 
             <button type="button" onClick={handleLogout} style={styles.logoutBtnFull}>
-              🚪 Cerrar sesión
+              🚪 {t("logout")}
             </button>
           </div>
         </div>
@@ -2147,9 +3137,9 @@ const ss = String(seconds).padStart(2, "0");
 
           <div style={{ padding: "0 16px 16px 16px" }}>
             {loadingEntries ? (
-              <div style={{ color: "#64748b", paddingTop: 8 }}>Cargando...</div>
+              <div style={{ color: "#64748b", paddingTop: 8 }}>{t("loading")}</div>
             ) : entries.length === 0 ? (
-              <div style={{ color: "#64748b", paddingTop: 8 }}>Sin movimientos</div>
+              <div style={{ color: "#64748b", paddingTop: 8 }}>{t("noMovements")}</div>
             ) : (
               <div
                 style={{
@@ -2164,10 +3154,10 @@ const ss = String(seconds).padStart(2, "0");
                 <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ textAlign: "left", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-                      <th style={{ padding: "10px 14px", color: "#475569", width: "40%" }}>Fecha</th>
-                      <th style={{ padding: "10px 14px", color: "#475569", width: "35%" }}>Movimiento</th>
+                      <th style={{ padding: "10px 14px", color: "#475569", width: "40%" }}>{t("date")}</th>
+                      <th style={{ padding: "10px 14px", color: "#475569", width: "35%" }}>{t("movement")}</th>
                       <th style={{ padding: "10px 14px", textAlign: "right", color: "#475569", width: "25%" }}>
-                        Cantidad
+                        {t("amount")}
                       </th>
                     </tr>
                   </thead>
@@ -2188,15 +3178,15 @@ const consumeLabel =
 console.log("ENTRY:", e);
 const label =
   e.refType === "WELCOME_BONUS_EXPIRE"
-    ? "Expirado"
+    ? t("expired")
     : e.type === "PURCHASE"
-    ? "Compra"
+    ? t("purchase")
     : e.type === "CONSUME"
     ? consumeLabel
     : e.type === "REFUND"
-    ? "Reintegro"
+    ? t("refund")
     : e.type === "GRANT"
-    ? "Bonificación"
+    ? t("grant")
     : e.type;
 
                       return (
@@ -2263,11 +3253,11 @@ const label =
   cursor: entriesPage <= 1 ? "not-allowed" : "pointer",
 }}
       >
-        ← Anterior
+        {t("previous")}
       </button>
 
       <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
-        Página {entriesPage} / {totalPages}
+        {t("pageXofY", entriesPage, totalPages)}
       </div>
 
       <button
@@ -2283,7 +3273,7 @@ const label =
   cursor: entriesPage >= totalPages ? "not-allowed" : "pointer",
 }}
       >
-        Siguiente →
+        {t("following")}
       </button>
     </div>
   );
@@ -2317,7 +3307,7 @@ const label =
               }}
             >
               <span>
-                Paso {step + 1} de {steps.length}
+                {t("stepOf", step + 1, steps.length)}
               </span>
               <span style={{ opacity: 0.9 }}>{mobileStepsOpen ? "▲" : "▼"}</span>
             </button>
@@ -2808,7 +3798,7 @@ const styles: Record<string, React.CSSProperties> = {
   pillsGrid2: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 },
   pillMobile: { width: "100%", justifyContent: "center" },
   pillsGrid2Mobile: { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  pillActive: { background: "#2563eb", borderColor: "#2563eb", color: "#ffffff" },
+  pillActive: { background: "#2563eb", border: "1px solid #2563eb", color: "#ffffff" },
 
   btnPrimary: {
     background: "linear-gradient(135deg, #3b82f6 0%, #22c55e 100%)",

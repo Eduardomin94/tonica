@@ -1,15 +1,1 @@
 
-
-agregar en historial el tipo de consumo 📸/⚛️
-
-vistas en foto producto
-
-
-
-
-
-
-🌎 Traducir TODO el frontend real (no solo header)
-
-
-

@@ -44,8 +44,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Permitir requests server-to-server / herramientas sin origin
       if (!origin) return cb(null, true);
+
+      // ✅ DEV: permitir cualquier localhost (cualquier puerto)
+      if (origin.startsWith("http://localhost:")) return cb(null, true);
+      if (origin.startsWith("http://127.0.0.1:")) return cb(null, true);
+
       if (allowedOrigins.includes(origin)) return cb(null, true);
       return cb(new Error(`CORS not allowed: ${origin}`));
     },
@@ -264,6 +268,55 @@ Vibe: ${vibe}
 });
 
 // =====================
+// GENERATE FACE (ROSTRO)
+// =====================
+app.post("/generate-face", requireAuth, async (req, res) => {
+  try {
+    const modelType = String(req.body?.model_type || "").trim();
+    const ethnicity = String(req.body?.ethnicity || "").trim();
+    const ageRange = String(req.body?.age_range || "").trim();
+    const bodyType = String(req.body?.body_type || "").trim();
+
+    if (!modelType || !ethnicity || !ageRange) {
+      return res.status(400).json({ error: "Faltan datos para generar el rostro" });
+    }
+
+    const prompt = `
+Retrato fotorealista tipo e-commerce, iluminación suave de estudio.
+Una sola persona. Encuadre: cabeza y hombros. Fondo neutro.
+Rostro nítido, sin texto, sin marcas de agua, sin logos.
+
+Tipo de modelo: ${modelType}
+Etnia: ${ethnicity}
+Edad: ${ageRange}
+Tipo de cuerpo: ${bodyType || "Estandar"}
+`.trim();
+
+    const { status, data } = await geminiGenerate({
+      model: MODEL_IMAGE,
+      body: { contents: [{ role: "user", parts: [{ text: prompt }] }] },
+      timeoutMs: 60000,
+    });
+
+    if (status >= 400) {
+      console.error("Gemini face error:", status, data);
+      return res.status(500).json({ error: "Gemini face error" });
+    }
+
+    const imgB64 = extractImageBase64(data);
+    if (!imgB64) return res.status(500).json({ error: "No face image returned" });
+
+    const fileName = `generated-face-${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
+    const filePath = path.join("uploads", fileName);
+    fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+
+    return res.json({ imageUrl: `/uploads/${fileName}` });
+  } catch (err) {
+    console.error("GENERATE FACE ERROR:", err);
+    return res.status(500).json({ error: "Error generando rostro" });
+  }
+});
+// =====================
 // GENERATE (COBRO 1 SOLA VEZ)
 // =====================
 app.post(
@@ -272,6 +325,7 @@ app.post(
   upload.fields([
     { name: "front", maxCount: 1 },
     { name: "back", maxCount: 1 },
+    { name: "face", maxCount: 1 },
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
@@ -502,6 +556,7 @@ IMPORTANTE:
             return `/uploads/${fileName}`;
           })
         );
+        
 
         for (const f of files) {
           try {
@@ -509,13 +564,27 @@ IMPORTANTE:
           } catch {}
         }
 
-        const imageUrls = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
+        const imageUrls = settled
+  .filter((r) => r.status === "fulfilled")
+  .map((r) => r.value);
 
-        if (!imageUrls.length) {
-          return res.status(500).json({ error: "No se pudo generar ninguna imagen de producto" });
-        }
+// Debug
+const failed = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "rejected")
+  .map((x) => views[x.i]?.key);
 
-        return res.json({ imageUrls, promptUsed: basePrompt });
+console.log("VIEWS REQUESTED:", views.map((v) => v.key));
+console.log("VIEWS FAILED:", failed);
+
+// ✅ Si no salen todas las vistas, forzamos error → entra al catch → hace REFUND
+if (imageUrls.length !== views.length) {
+  throw new Error(
+    `Faltaron vistas: ${imageUrls.length}/${views.length}. Fallaron: ${failed.join(", ")}`
+  );
+}
+
+return res.json({ imageUrls, promptUsed: basePrompt });
       }
 
       // =====================
@@ -525,6 +594,7 @@ IMPORTANTE:
         const regenVar = String(req.body?.regen_variation || "").trim();
         const front = req.files?.front?.[0];
         const back = req.files?.back?.[0];
+        const face = req.files?.face?.[0];
 
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
@@ -545,14 +615,32 @@ if (!isPantsCategory) {
         const pose = String(req.body?.pose || "");
         const bodyType = String(req.body?.body_type || "");
 
-        const refParts = [
-          {
-            inlineData: {
-              mimeType: front.mimetype,
-              data: fs.readFileSync(front.path, { encoding: "base64" }),
-            },
-          },
-        ];
+        const refParts = [];
+
+if (face) {
+  refParts.push({
+    inlineData: {
+      mimeType: face.mimetype,
+      data: fs.readFileSync(face.path, { encoding: "base64" }),
+    },
+  });
+}
+
+refParts.push({
+  inlineData: {
+    mimeType: front.mimetype,
+    data: fs.readFileSync(front.path, { encoding: "base64" }),
+  },
+});
+
+if (back) {
+  refParts.push({
+    inlineData: {
+      mimeType: back.mimetype,
+      data: fs.readFileSync(back.path, { encoding: "base64" }),
+    },
+  });
+}
 
         if (back) {
           refParts.push({
@@ -566,10 +654,36 @@ if (!isPantsCategory) {
         const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
 
         const basePrompt = `
-Foto de moda e-commerce, fotorealista, iluminación suave tipo estudio.
-Usar EXACTAMENTE la prenda de las fotos referencia (color, textura, estampado, calce).
-Misma modelo y mismo rostro en todas las vistas (consistencia total).
-Sin texto, sin marcas de agua, sin logos, sin manos extra.
+FOTO DE MODA E-COMMERCE ULTRA FIEL A REFERENCIA.
+
+PRIORIDAD ABSOLUTA: LA PRENDA.
+
+REGLAS OBLIGATORIAS:
+- Usar EXACTAMENTE la prenda de las fotos referencia.
+- NO cambiar color.
+- NO cambiar textura.
+- NO cambiar estampado.
+- NO cambiar botones.
+- NO cambiar costuras.
+- NO cambiar calce.
+- NO agregar ni quitar detalles.
+- NO reinterpretar el diseño.
+- NO modificar escote, mangas ni largo.
+- NO inventar bolsillos.
+- NO suavizar encajes ni telas.
+- NO estilizar diferente.
+
+La prenda debe verse 100% idéntica a la foto original.
+
+${face
+  ? "Usar EXACTAMENTE el rostro de la foto de rostro como identidad fija."
+  : "No es obligatorio mantener el mismo rostro entre vistas."}
+
+Iluminación tipo estudio suave.
+Sin texto.
+Sin marcas de agua.
+Sin logos.
+
 Categoría: ${catFinal}
 Bolsillos: ${pockets}
 Tipo de modelo: ${modelType}
@@ -898,6 +1012,10 @@ IMPORTANTE:
             fs.unlinkSync(back.path);
           } catch {}
         }
+
+        if (face) {
+  try { fs.unlinkSync(face.path); } catch {}
+} 
 
         const imageUrls = settled.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
