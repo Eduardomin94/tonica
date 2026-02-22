@@ -1,13 +1,6 @@
 
 
-🧠 Hacer que detecte automáticamente playa vs urbano vs formal
 
-🎨 Hacer que cambie iluminación según tipo de producto
-
-🚀 O subirlo a nivel “Zara premium” de verdad
-
-
-mejorar prompt para las vistas porque me pasa vistas diferentes ej. costado completo me paso como de espaldas masomenos
 
 🎯 O hacerlo todavía más premium estilo Zara / Nike / Shein.
 
