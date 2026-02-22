@@ -1590,7 +1590,7 @@ return !frontFile ? t("errUploadFront") : null;
 
         case 1:
           if (!category) return setStep(1);
-          if (category === "otro" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
+          if (category === "other" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
           break;
 
         case 2:
@@ -1918,7 +1918,7 @@ const res = await fetch(`${API}/suggest-background`, {
   } else {
     if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
     if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
-    if (category === "otro") {
+    if (category === "other") {
       if (!otherCategory.trim()) return (goToFirstErrorStep(), setError(t("errOtherMissing")));
       if (wordCount(otherCategory) > 4) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
     }
