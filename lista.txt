@@ -8,15 +8,7 @@ Te paso mi page.tsx y mi server.js espera mi petición
 
 
 
-
 que las imagenes sean lo más fiel al producto subido. y las vistas lo más fiel a las vistas porque por ejemplo, en frente completo corta las piernas
-
-
-
-
-depurar bugs en page.tsx y server.js
-
-
 
 
 

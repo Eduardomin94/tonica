@@ -96,11 +96,13 @@ async function applyWelcomeBonusExpiry(walletId) {
   });
   if (alreadyExpired) return;
 
-  // 4) bonus restante = suma de todos los WELCOME_BONUS*
-  const remaining = Math.max(
-    0,
-    bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-  );
+  // 4) bonus restante = suma de WELCOME_BONUS* excepto EXPIRE
+const remaining = Math.max(
+  0,
+  bonusEntries
+    .filter((e) => e.refType !== "WELCOME_BONUS_EXPIRE")
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0)
+);
 
   // 5) crear movimiento "expirado" consumiendo lo que quedaba
   await prisma.creditEntry.create({
@@ -348,10 +350,12 @@ Vibe: ${vibe}
       timeoutMs: 15000,
     });
 
-    // limpiar archivo temporal si vino
-    if (front) {
-      try { fs.unlinkSync(front.path); } catch {}
-    }
+    // limpiar archivos temporales si vinieron
+if (Array.isArray(req.files)) {
+  for (const f of req.files) {
+    try { fs.unlinkSync(f.path); } catch {}
+  }
+}
 
     if (status >= 400) {
       const opts = fallbackOptions(language);
@@ -421,55 +425,7 @@ Tipo de cuerpo: ${bodyType || "Estandar"}
       return res.status(500).json({ error: "Gemini face error" });
     }
 
-    const fallbackOptions = (lang) => {
-  switch (lang) {
-    case "en":
-      return [
-        "Industrial loft with concrete walls",
-        "Outdoor rooftop at sunset",
-        "Minimal white cyclorama studio",
-        "Luxury marble interior setting",
-        "Urban street background, soft daylight",
-      ];
-
-    case "pt":
-      return [
-        "Loft industrial com paredes de concreto",
-        "Terraço ao pôr do sol",
-        "Estúdio branco ciclorama minimalista",
-        "Interior sofisticado com mármore",
-        "Rua urbana com luz natural suave",
-      ];
-
-    case "ko":
-      return [
-        "콘크리트 벽의 인더스트리얼 로프트",
-        "노을 지는 옥상 야외 공간",
-        "미니멀 화이트 사이클로라마 스튜디오",
-        "고급스러운 대리석 인테리어",
-        "자연광이 부드러운 도시 거리",
-      ];
-
-    case "zh":
-      return [
-        "工业风混凝土墙背景",
-        "日落屋顶户外场景",
-        "极简白色无缝影棚",
-        "大理石奢华室内空间",
-        "自然光柔和的城市街景",
-      ];
-
-    case "es":
-    default:
-      return [
-        "loft industrial con paredes de hormigón",
-        "terraza urbana al atardecer",
-        "estudio ciclorama blanco minimalista",
-        "interior elegante con mármol",
-        "calle urbana con luz natural suave",
-      ];
-  }
-};
+   
 
     const imgB64 = extractImageBase64(data);
     if (!imgB64) return res.status(500).json({ error: "No face image returned" });
@@ -517,6 +473,18 @@ try {
   selectedViews = {};
 }
 
+// ✅ Ajustar pant views ANTES de calcular COST (solo en modo model)
+if (mode === "model") {
+  const category = String(req.body?.category || "");
+  const isPantsCategory =
+    category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
+
+  if (!isPantsCategory) {
+    selectedViews.pantFrontDetail = false;
+    selectedViews.pantBackDetail = false;
+    selectedViews.pantSideDetail = false;
+  }
+}
    const requestedKeys =
   mode === "product"
     ? ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k])
@@ -535,7 +503,8 @@ try {
 
 
 
-    const COST = requestedKeys.length;
+    let COST = requestedKeys.length;
+    console.log("DEBUG COST", { mode, requestedKeys, COST });
 
     if (COST <= 0) {
       return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
@@ -583,7 +552,7 @@ const bonusBalance = bonusActive
 
 takeFromBonus = Math.min(COST, bonusBalance);
 takeFromPaid = COST - takeFromBonus;
-
+console.log("DEBUG CHARGE SPLIT", { COST, bonusBalance, takeFromBonus, takeFromPaid });
 // 1) descontar pagos (solo si hace falta)
 if (takeFromPaid > 0) {
   const updated = await prisma.wallet.updateMany({
@@ -595,21 +564,19 @@ if (takeFromPaid > 0) {
     return res.status(402).json({ error: "Sin créditos suficientes" });
   }
 
- consumeEntry = await prisma.creditEntry.create({
-  data: {
-    walletId: wallet.id,
-    type: "CONSUME",
-    amount: -takeFromPaid,
-    idempotencyKey: String(idem),
-    refType: "GENERATION",
-    metadata: {
-      mode, // "model" | "product"
-      views: selectedViews,
+  consumeEntry = await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromPaid,
+      idempotencyKey: String(idem),
+      refType: "GENERATION",
+      metadata: { mode, views: selectedViews },
     },
-  },
-});
+  });
+}
 
-// 2) descontar bonus (si hace falta)
+// 2) descontar bonus (si hace falta)  ✅ ahora afuera
 if (takeFromBonus > 0) {
   await prisma.creditEntry.create({
     data: {
@@ -618,10 +585,7 @@ if (takeFromBonus > 0) {
       amount: -takeFromBonus,
       idempotencyKey: String(idem) + ":welcome",
       refType: "WELCOME_BONUS_CONSUME",
-      metadata: {
-        mode,
-        views: selectedViews,
-      },
+      metadata: { mode, views: selectedViews },
     },
   });
 }
@@ -644,7 +608,7 @@ if (takeFromBonus > 0) {
           },
         }));
 
-        const langLine =
+        const langLineProduct =
   language === "en"
     ? "Write the entire description in English."
     : language === "pt"
@@ -655,15 +619,42 @@ if (takeFromBonus > 0) {
     ? "所有描述请使用简体中文。"
     : "Escribí toda la descripción en español.";
 
-        const basePrompt = `
-${langLine}
+const basePrompt = `
+${langLineProduct}
 
-Foto de producto e-commerce premium, fotorealista, iluminación de estudio suave.
-Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
-Escena: ${scene}.
-Mantener exactamente el mismo producto, color y textura.
+FOTO DE PRODUCTO E-COMMERCE PREMIUM (FOTOREALISTA).
+
+OBJETIVO PRINCIPAL:
+Replicar EXACTAMENTE el mismo producto de las fotos de referencia.
+
+FIDELIDAD OBLIGATORIA (NO NEGOCIABLE):
+- MISMO producto (idéntico modelo).
+- MISMO color (sin variaciones).
+- MISMA textura/material (no “mejorar” ni “suavizar”).
+- MISMO patrón/estampado/logos (si existen).
+- MISMA forma/silueta/volumen.
+- MISMOS detalles: costuras, cierres, botones, bordes, etiquetas, herrajes.
+- NO re-diseñar. NO reinterpretar. NO estilizar diferente.
+
+COMPOSICIÓN:
+- Solo el producto (sin personas, sin manos, sin maniquí, sin perchas).
+- Un solo producto (sin duplicados).
+- Fondo continuo tipo estudio.
+- Iluminación suave tipo estudio, sin sombras duras.
+
+ESCENA / FONDO (sin afectar el producto):
+Escena: ${scene}
 `.trim();
 
+const negativeBlock = `
+PROHIBIDO:
+- Cambiar color, tono o saturación del producto.
+- Cambiar el material.
+- Cambiar forma, proporciones o diseño.
+- Quitar/agregar detalles (cierres, botones, bolsillos, costuras, etiquetas).
+- Agregar texto, marca de agua, logos inventados, packaging.
+- Collage, grilla, múltiples paneles, duplicados.
+`.trim();
         const variationHint = regenVar
   ? `
 VARIACIÓN (REHACER PRODUCTO):
@@ -690,7 +681,7 @@ VARIACIÓN (REHACER PRODUCTO):
           views.map((v) =>
   retry(
     async (attempt) => {
-      console.log(`MODEL view=${v.key} attempt=${attempt}`);
+      console.log(`PRODUCT view=${v.key} attempt=${attempt}`);
               const sideHint =
   v.key === "side"
     ? `
@@ -720,6 +711,7 @@ ${basePrompt}
 ${variationHint}
 
 Cámara: ${v.label}.
+${negativeBlock}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
@@ -841,14 +833,7 @@ return res.json({
 
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
-        const category = String(req.body?.category || "");
-        console.log("DEBUG category:", category);
-        const isPantsCategory = category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
-if (!isPantsCategory) {
-  selectedViews.pantFrontDetail = false;
-  selectedViews.pantBackDetail = false;
-  selectedViews.pantSideDetail = false;
-}
+      
 
         const otherCategory = String(req.body?.other_category || "");
         const pockets = String(req.body?.pockets || "");
@@ -888,7 +873,10 @@ if (back) {
 
 
 
-        const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
+        const catFinal =
+  (category === "other" || category === "otro") && otherCategory
+    ? `Otro: ${otherCategory}`
+    : category;
 
         const basePrompt = `
 ${langLine}
@@ -1186,14 +1174,24 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 
 const variationHint = regenVar
   ? `
-VARIACIÓN (REHACER):
-- Mantener misma modelo y misma prenda (NO cambiar color, textura, diseño).
-- Mantener el mismo encuadre obligatorio de la vista.
-- Cambiar NOTABLEMENTE al menos 2 cosas:
-  1) micro-pose (peso en otra pierna, manos/brazos distintos, mirada distinta)
-  2) luz (más suave o un poco más contrastada, siempre estudio)
-  3) fondo (siempre estudio: blanco ↔ gris claro ↔ beige suave)
-- No repetir la imagen anterior.
+VARIACIÓN (REGENERAR MISMA FOTO):
+REGLA #1 (CRÍTICA): el producto DEBE ser idéntico a la referencia.
+PROHIBIDO cambiar: color, material, textura, forma, costuras, cierres, botones, logos, etiquetas, herrajes.
+
+MANTENER:
+- MISMO producto (idéntico modelo).
+- MISMO encuadre general: producto centrado, fondo continuo.
+- MISMA escena base: ${scene}
+
+SOLO PODÉS CAMBIAR (elige 2 o 3):
+1) Luz: suavidad/contraste leve, dirección ligeramente distinta (siempre estudio).
+2) Fondo de estudio: blanco ↔ gris claro ↔ beige suave (sin texturas ni props).
+3) Micro-ángulo: rotación leve o altura de cámara mínima (sin deformación, sin perspectiva extrema).
+
+IMPORTANTE:
+- NO agregar objetos, props ni contexto.
+- NO generar collage ni duplicados.
+- Debe verse como otra toma del MISMO producto, no otro producto.
 - Código variación: ${regenVar}
 `
   : "";
@@ -1344,55 +1342,53 @@ return res.json({
       }
 
       return res.status(400).json({ error: "Modo inválido" });
-    }
-  } catch (err) {
-      console.error("GENERATE ERROR:", err);
+} catch (err) {
+  console.error("GENERATE ERROR:", err);
 
-      // REFUND (devolver pagos y bonus)
-try {
-  if (wallet) {
-    if (takeFromPaid > 0) {
-      await prisma.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: takeFromPaid } },
-      });
+  // REFUND (devolver pagos y bonus)
+  try {
+    if (wallet) {
+      if (takeFromPaid > 0) {
+        await prisma.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: takeFromPaid } },
+        });
 
-      await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "REFUND",
-          amount: takeFromPaid,
-          idempotencyKey: `refund:${idem}`,
-          refType: "GENERATION",
-          refId: consumeEntry?.id || null,
-        },
-      });
-    }
+        await prisma.creditEntry.create({
+          data: {
+            walletId: wallet.id,
+            type: "REFUND",
+            amount: takeFromPaid,
+            idempotencyKey: `refund:${idem}`,
+            refType: "GENERATION",
+            refId: consumeEntry?.id || null,
+          },
+        });
+      }
 
-    if (takeFromBonus > 0) {
-      await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "GRANT",
-          amount: takeFromBonus,
-          idempotencyKey: `restore:${idem}`,
-          refType: "WELCOME_BONUS_RESTORE",
-        },
-      });
+      if (takeFromBonus > 0) {
+        await prisma.creditEntry.create({
+          data: {
+            walletId: wallet.id,
+            type: "GRANT",
+            amount: takeFromBonus,
+            idempotencyKey: `restore:${idem}`,
+            refType: "WELCOME_BONUS_RESTORE",
+          },
+        });
+      }
     }
+  } catch (refundError) {
+    console.error("REFUND FAILED:", refundError);
   }
-} catch (refundError) {
-  console.error("REFUND FAILED:", refundError);
-}
 
-      return res.status(500).json({
-        error: "Error en generate",
-        details: String(err?.message || err),
-      });
-    }
+  return res.status(500).json({
+    error: "Error en generate",
+    details: String(err?.message || err),
+  });
+}
   }
 );
-
 // =====================
 // MERCADO PAGO: CREATE PREFERENCE
 // =====================

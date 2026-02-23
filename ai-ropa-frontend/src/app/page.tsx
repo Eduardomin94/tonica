@@ -439,7 +439,7 @@ React.useEffect(() => {
     { title: t("stepBodyType"), key: "bodyType" },
     { title: t("stepGenerate"), key: "generate" },
   ];
-}, [mode, language]);
+}, [mode, t]);
 
   React.useEffect(() => {
     // ✅ si estamos restaurando desde localStorage, NO borres el resultado
@@ -490,7 +490,6 @@ React.useEffect(() => {
 
   React.useEffect(() => {
     fetchMe();
-    fetchEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API]);
 
@@ -602,7 +601,7 @@ return !frontFile ? t("errUploadFront") : null;
 
         case 1:
           if (!category) return setStep(1);
-          if (category === "other" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
+          if (category === "other" && (!otherCategory.trim() || wordCount(otherCategory) > 5)) return setStep(1);
           break;
 
         case 2:
@@ -621,40 +620,52 @@ return !frontFile ? t("errUploadFront") : null;
           if (!ageRange) return setStep(6);
           break;
 
-        case 7:
-          if (!background.trim() || wordCount(background) > 10) return setStep(7);
-          break;
-
-        case 8:
-          if (!pose) return setStep(8);
+          case 8:
+          if (!background.trim() || wordCount(background) > 10) return setStep(8);
           break;
 
         case 9:
-          if (!bodyType) return setStep(9);
+          if (!pose) return setStep(9);
+          break;
+
+        case 10:
+          if (!bodyType) return setStep(10);
           break;
       }
     }
   }
 
   async function fetchMe() {
-    if (!API) return;
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
+  if (!API) return;
 
-    setAccessToken(token);
-    setLoadingMe(true);
-    try {
-      const res = await fetch(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) return;
-      setUser(data);
-      setBalance(data?.wallet?.balance ?? 0);
-    } finally {
-      setLoadingMe(false);
-    }
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  setAccessToken(token);
+  setLoadingMe(true);
+
+  try {
+    const url = `${API}/auth/me`;
+    console.log("fetchMe API:", API);
+    console.log("fetchMe URL:", url);
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("fetchMe status:", res.status, data);
+
+    if (!res.ok) return;
+
+    setUser(data);
+    setBalance(data?.wallet?.balance ?? 0);
+  } catch (err) {
+    console.error("fetchMe failed:", err);
+  } finally {
+    setLoadingMe(false);
   }
+}
 
   async function fetchEntries() {
     if (!API) return;
@@ -713,7 +724,7 @@ async function handleRegenerateOne(
 
   setError(null);
 
-  const lockKey = `regen:${index}`;
+  const lockKey = `regen:${viewKey}:${index}`;
 
   // Si ya hay uno corriendo para ese índice, no hagas nada
   if (regenLockRef.current[lockKey]) return;
@@ -798,7 +809,20 @@ if (!bodyType) {
     setRegenLoading((m) => ({ ...m, [lockKey]: true }));
     setRegenStartedAt((m) => ({ ...m, [lockKey]: Date.now() }));
 
-   const oneView = { front: false, back: false, [viewKey]: true };
+   const oneView =
+  mode === "product"
+    ? { front: false, back: false, left: false, right: false, [viewKey]: true }
+    : {
+        front: false,
+        back: false,
+        side: false,
+        frontDetail: false,
+        backDetail: false,
+        pantFrontDetail: false,
+        pantBackDetail: false,
+        pantSideDetail: false,
+        [viewKey]: true,
+      };
 
 
     const fd = new FormData();
@@ -806,7 +830,7 @@ if (!bodyType) {
     fd.append("views", JSON.stringify(oneView));
     fd.append("language", language);
     fd.append("regen_variation", String(Date.now()));
-    fd.append("regen_variation", String(Date.now()));
+
 
     if (mode === "product") {
       appendProductFormData(fd);
@@ -931,10 +955,12 @@ const res = await fetch(`${API}/suggest-background`, {
   } else {
     if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
     if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
+    
     if (category === "other") {
       if (!otherCategory.trim()) return (goToFirstErrorStep(), setError(t("errOtherMissing")));
-      if (wordCount(otherCategory) > 4) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
+      if (wordCount(otherCategory) > 5) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
     }
+    
     if (!pockets) return (goToFirstErrorStep(), setError(t("errPockets")));
     if (!modelType) return (goToFirstErrorStep(), setError(t("errModel")));
     if (!ethnicity) return (goToFirstErrorStep(), setError(t("errEthnicity")));
@@ -1407,41 +1433,6 @@ setFailedViews(failed);
     </>
   );
 
-  {faceFile && (
-    <div style={{ marginTop: 12 }}>
-      <div style={{ ...styles.previewCard, position: "relative" }}>
-        <img src={facePreview || ""} alt="rostro" style={styles.previewImg} />
-        <button
-          type="button"
-          onClick={() => setFaceFile(null)}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            border: "1px solid rgba(15,23,42,0.15)",
-            background: "rgba(255,255,255,0.95)",
-            color: "#0f172a",
-            fontWeight: 900,
-            fontSize: 16,
-            display: "grid",
-            placeItems: "center",
-            cursor: "pointer",
-            boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
-          }}
-          aria-label="Quitar rostro"
-          title="Quitar"
-        >
-          ✕
-        </button>
-      </div>
-
-      <SmallMuted style={{ marginTop: 8 }}>{faceFile?.name}</SmallMuted>
-    </div>
-  )}
-
       case "ethnicity":
         return (
           <>
@@ -1740,7 +1731,7 @@ const res = await fetch(`${API}/suggest-background`, {
       case "generate":
         return (
           <>
-            <div
+          <div
   style={{
     display: "flex",
     alignItems: "center",
@@ -1751,21 +1742,6 @@ const res = await fetch(`${API}/suggest-background`, {
   }}
 >
   <FieldTitle>{t("generateTitle")}</FieldTitle>
-
-  <div
-    style={{
-      background: "rgba(251,191,36,0.15)",
-      border: "1px solid rgba(251,191,36,0.4)",
-      color: "#facc15",
-      padding: "6px 10px",
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 800,
-      maxWidth: 360,
-    }}
-  >
-    ⚠ {t("viewsDisclaimer")}
-  </div>
 </div>
 
             <div style={styles.summaryCard}>
@@ -1779,22 +1755,22 @@ const res = await fetch(`${API}/suggest-background`, {
 
                 {mode === "product" ? (
                   <div style={styles.previewGrid}>
-                    {productFiles.map((file, i) => (
-                      <div key={i} style={styles.previewCard}>
-                        <img src={URL.createObjectURL(file)} alt={`producto-${i}`} style={styles.previewImg} />
-                      </div>
-                    ))}
+                    {productPreviews.map((p, i) => (
+  <div key={`${p.file.name}-${p.file.size}-${p.file.lastModified}`} style={styles.previewCard}>
+    <img src={p.url} alt={`producto-${i}`} style={styles.previewImg} />
+  </div>
+))}
                   </div>
                 ) : (
                   <div style={styles.previewGrid}>
                     {frontFile && (
                       <div style={styles.previewCard}>
-                        <img src={URL.createObjectURL(frontFile)} alt="delantera" style={styles.previewImg} />
+                       <img src={frontPreview || ""} alt="delantera" style={styles.previewImg} />
                       </div>
                     )}
                     {backFile && (
                       <div style={styles.previewCard}>
-                        <img src={URL.createObjectURL(backFile)} alt="espalda" style={styles.previewImg} />
+                        <img src={backPreview || ""}  alt="espalda" style={styles.previewImg} />
                       </div>
                     )}
                   </div>
@@ -1834,6 +1810,20 @@ const res = await fetch(`${API}/suggest-background`, {
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   {t("viewsToGenerate")}
                 </div>
+                <div
+  style={{
+    marginBottom: 12,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(251,191,36,0.12)",
+    border: "1px solid rgba(251,191,36,0.35)",
+    color: "#facc15",
+    fontSize: 12,
+    fontWeight: 700,
+  }}
+>
+  ⚠ {t("viewsDisclaimer")}
+</div>
 
                 {[
   { key: "front", label: t("pFront") },
@@ -1874,6 +1864,20 @@ const res = await fetch(`${API}/suggest-background`, {
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   {t("viewsToGenerate")}
                 </div>
+                    <div
+      style={{
+        marginBottom: 12,
+        padding: "10px 12px",
+        borderRadius: 12,
+        background: "rgba(251,191,36,0.12)",
+        border: "1px solid rgba(251,191,36,0.35)",
+        color: "#facc15",
+        fontSize: 12,
+        fontWeight: 700,
+      }}
+    >
+      ⚠ {t("viewsDisclaimer")}
+    </div>
 
                 {[
   { key: "front", label: t("vFront") },
@@ -1995,7 +1999,7 @@ const res = await fetch(`${API}/suggest-background`, {
 
 
 
-                    const loadKey = `regen:${idx}`;
+                    const loadKey = `regen:${viewKey}:${idx}`;
                     void nowTick;
 
                     const label =
