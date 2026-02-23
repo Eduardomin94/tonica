@@ -492,6 +492,15 @@ React.useEffect(() => {
     fetchMe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API]);
+  React.useEffect(() => {
+  if (!API) return;
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  fetchEntries();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [API]);
 
   React.useEffect(() => {
     try {
