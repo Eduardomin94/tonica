@@ -68,7 +68,7 @@ if (typeof document !== "undefined") {
 /* ================== APP ================== */
 export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
-  const t = (key: string, ...args: any[]) => {
+ const t = (key: string, ...args: any[]) => {
   const dict = (translations as any)[language] || {};
   const fallbackEn = (translations as any).en || {};
   const fallbackEs = (translations as any).es || {};
@@ -186,6 +186,7 @@ const [genStatuses, setGenStatuses] = useState<Record<string, "pending" | "ok" |
   function removeProductFile(index: number) {
     setProductFiles((prev) => prev.filter((_, i) => i !== index));
   }
+
 
 
   function handleLogout() {
