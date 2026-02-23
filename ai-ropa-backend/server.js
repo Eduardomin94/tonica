@@ -1297,7 +1297,111 @@ SALIDA OBLIGATORIA:
 - No devolver explicación.
 `.trim();
 
-            const parts = [{ text: viewPrompt }, ...refParts];
+            // ✅ AUTO-CROP PRENDA (TOP) DESDE LA FOTO FRONT usando sharp + bbox de Gemini
+const frontBuf = fs.readFileSync(front.path);
+
+// 1) Pedimos a Gemini (texto) un bounding box normalizado del TOP/prenda principal
+const bboxPrompt = `
+Devolvé SOLO JSON válido:
+{"x":0.0,"y":0.0,"w":1.0,"h":1.0}
+
+Reglas:
+- Es un bounding box alrededor de la PRENDA (top) únicamente.
+- Excluir fondo, maniquí/soporte, cuello de maniquí, etc.
+- Coordenadas normalizadas 0..1 respecto a la imagen.
+- Si hay dudas, incluir toda la prenda (mejor grande que chico).
+`.trim();
+
+const bboxResp = await geminiGenerate({
+  model: MODEL_TEXT,
+  body: {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: bboxPrompt },
+          {
+            inlineData: {
+              mimeType: front.mimetype,
+              data: frontBuf.toString("base64"),
+            },
+          },
+        ],
+      },
+    ],
+  },
+  timeoutMs: 15000,
+});
+
+let box = null;
+try {
+  const txt = bboxResp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parsed = JSON.parse(txt);
+  if (
+    parsed &&
+    Number.isFinite(parsed.x) &&
+    Number.isFinite(parsed.y) &&
+    Number.isFinite(parsed.w) &&
+    Number.isFinite(parsed.h)
+  ) {
+    box = parsed;
+  }
+} catch {
+  box = null;
+}
+
+// 2) Convertimos bbox (0..1) a pixeles y recortamos (con padding)
+const meta = await (await import("sharp")).default(frontBuf).metadata();
+const W = meta.width || 0;
+const H = meta.height || 0;
+
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+let left, top, width, height;
+
+if (box && W > 0 && H > 0) {
+  const pad = 0.06; // 6% padding alrededor
+  const x1 = clamp(box.x - pad, 0, 1);
+  const y1 = clamp(box.y - pad, 0, 1);
+  const x2 = clamp(box.x + box.w + pad, 0, 1);
+  const y2 = clamp(box.y + box.h + pad, 0, 1);
+
+  left = Math.floor(x1 * W);
+  top = Math.floor(y1 * H);
+  width = Math.max(1, Math.floor((x2 - x1) * W));
+  height = Math.max(1, Math.floor((y2 - y1) * H));
+
+  // clamp final para no pasarnos
+  width = Math.min(width, W - left);
+  height = Math.min(height, H - top);
+} else {
+  // fallback: recorte centrado (parte superior)
+  left = Math.floor(W * 0.18);
+  top = Math.floor(H * 0.08);
+  width = Math.floor(W * 0.64);
+  height = Math.floor(H * 0.62);
+}
+
+const sharpMod = (await import("sharp")).default;
+const garmentCropPng = await sharpMod(frontBuf)
+  .extract({ left, top, width, height })
+  .png()
+  .toBuffer();
+
+const garmentPart = {
+  inlineData: {
+    mimeType: "image/png",
+    data: garmentCropPng.toString("base64"),
+  },
+};
+
+// 3) Armamos parts: primero la PRENDA recortada (para que “atienda” eso primero)
+const parts = [
+  { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
+  garmentPart,
+  { text: viewPrompt },
+  ...refParts,
+];
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
