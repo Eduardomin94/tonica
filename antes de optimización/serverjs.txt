@@ -1,0 +1,1521 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+
+import authRoutes from "./routes/auth.js";
+import { requireAuth } from "./middleware/requireAuth.js";
+import { prisma } from "./prismaClient.js";
+
+import { MercadoPagoConfig, Preference } from "mercadopago";
+import fetch from "node-fetch";
+
+dotenv.config();
+console.log("ENV CHECK:", {
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET ? "OK" : "MISSING",
+  FRONTEND_URL: process.env.FRONTEND_URL,
+});
+fs.mkdirSync("uploads", { recursive: true });
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// =====================
+// MERCADO PAGO CLIENT
+// =====================
+const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN,
+});
+const mpPreference = new Preference(mpClient);
+
+// =====================
+// CORS + JSON
+// =====================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://tonica-woad.vercel.app",
+  (process.env.FRONTEND_URL || "").trim(),
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+
+      // ✅ DEV: permitir cualquier localhost (cualquier puerto)
+      if (origin.startsWith("http://localhost:")) return cb(null, true);
+      if (origin.startsWith("http://127.0.0.1:")) return cb(null, true);
+
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS not allowed: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key"],
+  })
+);
+
+// Preflight
+app.options("*", cors());
+
+app.use(express.json({ limit: "10mb" }));
+
+// =====================
+// ROUTES
+// =====================
+app.use("/auth", authRoutes);
+
+async function applyWelcomeBonusExpiry(walletId) {
+  // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
+  const bonusEntries = await prisma.creditEntry.findMany({
+    where: { walletId, refType: { startsWith: "WELCOME_BONUS" } },
+    select: { id: true, amount: true, refType: true, metadata: true },
+  });
+
+  if (!bonusEntries.length) return;
+
+  // 2) encontrar algún movimiento que tenga expiresAt en metadata (no depende de refType exacto)
+  const withExpiry = bonusEntries.find((e) => e?.metadata?.expiresAt);
+  const expiresAtIso = withExpiry?.metadata?.expiresAt;
+  if (!expiresAtIso) return;
+
+  const expiresAtMs = new Date(expiresAtIso).getTime();
+  if (!Number.isFinite(expiresAtMs)) return;
+
+  // si todavía no venció, no hacemos nada
+  if (Date.now() < expiresAtMs) return;
+
+  // 3) si ya registramos expiración, no duplicar
+  const alreadyExpired = await prisma.creditEntry.findFirst({
+    where: { walletId, refType: "WELCOME_BONUS_EXPIRE" },
+    select: { id: true },
+  });
+  if (alreadyExpired) return;
+
+  // 4) bonus restante = suma de todos los WELCOME_BONUS*
+  const remaining = Math.max(
+    0,
+    bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+  );
+
+  // 5) crear movimiento "expirado" consumiendo lo que quedaba
+  await prisma.creditEntry.create({
+    data: {
+      walletId,
+      type: "CONSUME",
+      amount: remaining > 0 ? -remaining : 0,
+      idempotencyKey: `welcome-expire:${walletId}:${expiresAtIso}`,
+      refType: "WELCOME_BONUS_EXPIRE",
+      metadata: {
+        expiresAt: expiresAtIso,
+        expiredAt: new Date().toISOString(),
+      },
+    },
+  });
+}
+// =====================
+// WALLET: CREDIT ENTRIES (HISTORIAL)
+// =====================
+app.get("/wallet/entries", requireAuth, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { wallet: true },
+    });
+
+    if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
+    const allEntries = await prisma.creditEntry.findMany({
+  where: { walletId: user.wallet.id },
+  select: { refType: true, metadata: true, amount: true },
+});
+console.log("BONUS ENTRIES DEBUG:", allEntries);
+    await applyWelcomeBonusExpiry(user.wallet.id);
+    const entries = await prisma.creditEntry.findMany({
+      where: { walletId: user.wallet.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        refType: true,
+        refId: true,
+        createdAt: true,
+        metadata: true,
+      },
+    });
+
+    return res.json({ entries });
+  } catch (err) {
+    console.error("WALLET ENTRIES ERROR:", err);
+    return res.status(500).json({ error: "Error cargando historial" });
+  }
+});
+
+// =====================
+// GEMINI
+// =====================
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const MODEL_TEXT = "gemini-flash-latest";
+const MODEL_IMAGE = "gemini-2.5-flash-image";
+
+const upload = multer({ dest: "uploads/" });
+
+async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
+  if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
+
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data };
+  } catch (err) {
+    const msg =
+      err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
+    return { status: 599, data: { error: msg } };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function extractImageBase64(data) {
+  const cand = data?.candidates?.[0];
+  const parts = cand?.content?.parts || [];
+
+  for (const p of parts) {
+    const b64 =
+      p?.inlineData?.data ||
+      p?.inline_data?.data ||
+      p?.fileData?.data ||
+      p?.file_data?.data;
+
+    if (typeof b64 === "string" && b64.length > 1000) return b64;
+  }
+
+  try {
+    const s = JSON.stringify(data);
+    const m = s.match(/"data"\s*:\s*"([A-Za-z0-9+/=]{1000,})"/);
+    return m?.[1] || null;
+  } catch {
+    return null;
+  }
+}
+
+async function retry(fn, { attempts = 2, delayMs = 800 } = {}) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn(i);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+
+function fallbackOptions(lang) {
+  switch (lang) {
+    case "en":
+      return [
+        "Industrial loft with concrete walls",
+        "Outdoor rooftop at sunset",
+        "Minimal white cyclorama studio",
+        "Luxury marble interior setting",
+        "Urban street background, soft daylight",
+      ];
+    case "pt":
+      return [
+        "Loft industrial com paredes de concreto",
+        "Terraço ao pôr do sol",
+        "Estúdio branco ciclorama minimalista",
+        "Interior sofisticado com mármore",
+        "Rua urbana com luz natural suave",
+      ];
+    case "ko":
+      return [
+        "콘크리트 벽의 인더스트리얼 로프트",
+        "노을 지는 옥상 야외 공간",
+        "미니멀 화이트 사이클로라마 스튜디오",
+        "고급스러운 대리석 인테리어",
+        "자연광이 부드러운 도시 거리",
+      ];
+    case "zh":
+      return [
+        "工业风混凝土墙背景",
+        "日落屋顶户外场景",
+        "极简白色无缝影棚",
+        "大理石奢华室内空间",
+        "自然光柔和的城市街景",
+      ];
+    case "es":
+    default:
+      return [
+        "loft industrial con paredes de hormigón",
+        "terraza urbana al atardecer",
+        "estudio ciclorama blanco minimalista",
+        "interior elegante con mármol",
+        "calle urbana con luz natural suave",
+      ];
+  }
+}
+// =====================
+// SUGGEST BACKGROUND
+// =====================
+app.post("/suggest-background", upload.any(), async (req, res) => {
+  try {
+    const { category, model_type, vibe } = req.body;
+    const language = String(req.body?.language || "es").toLowerCase();
+
+    const langLine =
+      language === "en"
+        ? "Write everything in English."
+        : language === "pt"
+        ? "Escreva tudo em português (Brasil)."
+        : language === "ko"
+        ? "모든 설명은 한국어로 작성하세요."
+        : language === "zh"
+        ? "所有描述请使用简体中文。"
+        : "Escribí todo en español.";
+
+    const front = Array.isArray(req.files)
+  ? req.files.find((f) => f.fieldname === "front")
+  : null;
+
+  console.log("SUGGEST-BG FILE:", front ? {
+  fieldname: front.fieldname,
+  mimetype: front.mimetype,
+  size: front.size,
+  path: front.path,
+} : null);
+
+    const prompt = `
+${langLine}
+
+Devolvé SOLO JSON válido:
+{"option":"..."}
+
+Tarea:
+- Mirá la FOTO del producto y deducí su uso probable (ej: playa/pileta, noche/evento, gym/deporte, oficina/formal, invierno/frío, urbano casual).
+- Sugerí 1 fondo/escena MUY específico para e-commerce premium.
+- Debe incluir 1 detalle distintivo (ej: "arena húmeda", "luces cálidas bokeh", "ventana grande", "pared ladrillo visto").
+- Máximo 10 palabras.
+- Solo describí el lugar/escena, sin marcas, sin texto.
+- Evitá respuestas genéricas tipo "estudio minimalista".
+
+Contexto:
+Categoría (si ayuda): ${category}
+Modelo: ${model_type}
+Vibe: ${vibe}
+`.trim();
+
+    // Si hay foto, la mandamos como inlineData
+    const parts = front
+      ? [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: front.mimetype,
+              data: fs.readFileSync(front.path, { encoding: "base64" }),
+            },
+          },
+        ]
+      : [{ text: prompt }];
+
+    const { status, data } = await geminiGenerate({
+      model: MODEL_TEXT,
+      body: { contents: [{ role: "user", parts }] },
+      timeoutMs: 15000,
+    });
+
+    // limpiar archivo temporal si vino
+    if (front) {
+      try { fs.unlinkSync(front.path); } catch {}
+    }
+
+    if (status >= 400) {
+      const opts = fallbackOptions(language);
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      return res.json({ options: [pick] });
+    }
+
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    let parsed = {};
+    try {
+      parsed = JSON.parse(text);
+    } catch {}
+
+    const option = String(parsed.option || "").trim();
+    const finalOption =
+      option && option.split(/\s+/).length <= 10
+        ? option
+        : fallbackOptions(language)[0];
+
+    return res.json({ options: [finalOption] });
+  } catch (err) {
+    console.error(err);
+    try {
+      const language = String(req.body?.language || "es").toLowerCase();
+      const opts = fallbackOptions(language);
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      return res.json({ options: [pick] });
+    } catch {
+      return res.json({ options: ["estudio minimalista con luz suave"] });
+    }
+  }
+});
+  
+// =====================
+// GENERATE FACE (ROSTRO)
+// =====================
+app.post("/generate-face", requireAuth, async (req, res) => {
+  try {
+    const modelType = String(req.body?.model_type || "").trim();
+    const ethnicity = String(req.body?.ethnicity || "").trim();
+    const ageRange = String(req.body?.age_range || "").trim();
+    const bodyType = String(req.body?.body_type || "").trim();
+
+    if (!modelType || !ethnicity || !ageRange) {
+      return res.status(400).json({ error: "Faltan datos para generar el rostro" });
+    }
+
+    const prompt = `
+Retrato fotorealista tipo e-commerce, iluminación suave de estudio.
+Una sola persona. Encuadre: cabeza y hombros. Fondo neutro.
+Rostro nítido, sin texto, sin marcas de agua, sin logos.
+
+Tipo de modelo: ${modelType}
+Etnia: ${ethnicity}
+Edad: ${ageRange}
+Tipo de cuerpo: ${bodyType || "Estandar"}
+`.trim();
+
+    const { status, data } = await geminiGenerate({
+      model: MODEL_IMAGE,
+      body: { contents: [{ role: "user", parts: [{ text: prompt }] }] },
+      timeoutMs: 60000,
+    });
+
+    if (status >= 400) {
+      console.error("Gemini face error:", status, data);
+      return res.status(500).json({ error: "Gemini face error" });
+    }
+
+    const fallbackOptions = (lang) => {
+  switch (lang) {
+    case "en":
+      return [
+        "Industrial loft with concrete walls",
+        "Outdoor rooftop at sunset",
+        "Minimal white cyclorama studio",
+        "Luxury marble interior setting",
+        "Urban street background, soft daylight",
+      ];
+
+    case "pt":
+      return [
+        "Loft industrial com paredes de concreto",
+        "Terraço ao pôr do sol",
+        "Estúdio branco ciclorama minimalista",
+        "Interior sofisticado com mármore",
+        "Rua urbana com luz natural suave",
+      ];
+
+    case "ko":
+      return [
+        "콘크리트 벽의 인더스트리얼 로프트",
+        "노을 지는 옥상 야외 공간",
+        "미니멀 화이트 사이클로라마 스튜디오",
+        "고급스러운 대리석 인테리어",
+        "자연광이 부드러운 도시 거리",
+      ];
+
+    case "zh":
+      return [
+        "工业风混凝土墙背景",
+        "日落屋顶户外场景",
+        "极简白色无缝影棚",
+        "大理石奢华室内空间",
+        "自然光柔和的城市街景",
+      ];
+
+    case "es":
+    default:
+      return [
+        "loft industrial con paredes de hormigón",
+        "terraza urbana al atardecer",
+        "estudio ciclorama blanco minimalista",
+        "interior elegante con mármol",
+        "calle urbana con luz natural suave",
+      ];
+  }
+};
+
+    const imgB64 = extractImageBase64(data);
+    if (!imgB64) return res.status(500).json({ error: "No face image returned" });
+
+    const fileName = `generated-face-${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
+    const filePath = path.join("uploads", fileName);
+    fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+
+    return res.json({ imageUrl: `/uploads/${fileName}` });
+  } catch (err) {
+    console.error("GENERATE FACE ERROR:", err);
+    return res.status(500).json({ error: "Error generando rostro" });
+  }
+});
+// =====================
+// GENERATE (COBRO 1 SOLA VEZ)
+// =====================
+app.post(
+  "/generate",
+  requireAuth,
+  upload.fields([
+    { name: "front", maxCount: 1 },
+    { name: "back", maxCount: 1 },
+    { name: "face", maxCount: 1 },
+    { name: "product_images", maxCount: 12 },
+  ]),
+  async (req, res) => {
+    const mode = String(req.body?.mode || "model").toLowerCase();
+    const language = String(req.body?.language || "es").toLowerCase();
+    const langLine =
+  language === "en"
+    ? "Write everything in English."
+    : language === "pt"
+    ? "Escreva tudo em português (Brasil)."
+    : language === "ko"
+    ? "모든 설명은 한국어로 작성하세요."
+    : language === "zh"
+    ? "所有描述请使用简体中文。"
+    : "Escribí todo en español.";
+    // views para ambos modos (model y product)
+    let selectedViews = {};
+try {
+  selectedViews = req.body?.views ? JSON.parse(String(req.body.views)) : {};
+} catch (err) {
+  selectedViews = {};
+}
+
+   const requestedKeys =
+  mode === "product"
+    ? ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k])
+    : [
+        "front",
+        "back",
+        "side",
+        "frontDetail",
+        "backDetail",
+        "pantFrontDetail",
+        "pantBackDetail",
+        "pantSideDetail",
+      ].filter((k) => !!selectedViews?.[k]);
+
+
+
+
+
+    const COST = requestedKeys.length;
+
+    if (COST <= 0) {
+      return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
+    }
+let takeFromBonus = 0;
+let takeFromPaid = 0;
+    let wallet = null;
+    let consumeEntry = null;
+
+    const userId = req.userId;
+    const idem = req.headers["x-idempotency-key"] || `${userId}:${Date.now()}:${Math.random()}`;
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { wallet: true },
+      });
+
+      wallet = user?.wallet;
+      if (!wallet) return res.status(400).json({ error: "Wallet not found" });
+
+     // ---------- COBRO (BONUS PRIMERO, LUEGO PAGO) ----------
+const bonusEntries = await prisma.creditEntry.findMany({
+  where: {
+    walletId: wallet.id,
+    refType: { startsWith: "WELCOME_BONUS" },
+  },
+  select: { amount: true, refType: true, metadata: true },
+});
+
+// buscar el GRANT original (tiene expiresAt)
+const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
+const expiresAtIso = grant?.metadata?.expiresAt;
+const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
+
+const bonusActive = expiresAtMs && Date.now() < expiresAtMs;
+
+// saldo de bonus = suma de todos los entries WELCOME_BONUS* (GRANT + CONSUME + RESTORE)
+const bonusBalance = bonusActive
+  ? Math.max(
+      0,
+      bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    )
+  : 0;
+
+takeFromBonus = Math.min(COST, bonusBalance);
+takeFromPaid = COST - takeFromBonus;
+
+// 1) descontar pagos (solo si hace falta)
+if (takeFromPaid > 0) {
+  const updated = await prisma.wallet.updateMany({
+    where: { id: wallet.id, balance: { gte: takeFromPaid } },
+    data: { balance: { decrement: takeFromPaid } },
+  });
+
+  if (updated.count === 0) {
+    return res.status(402).json({ error: "Sin créditos suficientes" });
+  }
+
+ consumeEntry = await prisma.creditEntry.create({
+  data: {
+    walletId: wallet.id,
+    type: "CONSUME",
+    amount: -takeFromPaid,
+    idempotencyKey: String(idem),
+    refType: "GENERATION",
+    metadata: {
+      mode, // "model" | "product"
+      views: selectedViews,
+    },
+  },
+});
+
+// 2) descontar bonus (si hace falta)
+if (takeFromBonus > 0) {
+  await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromBonus,
+      idempotencyKey: String(idem) + ":welcome",
+      refType: "WELCOME_BONUS_CONSUME",
+      metadata: {
+        mode,
+        views: selectedViews,
+      },
+    },
+  });
+}
+
+      // =====================
+      // PRODUCT MODE (1 crédito fijo)
+      // =====================
+      if (mode === "product") {
+        const files = req.files?.product_images || [];
+        const scene = String(req.body?.scene || "").trim();
+        const regenVar = String(req.body?.regen_variation || "").trim();
+
+        if (!files.length) return res.status(400).json({ error: "Faltan fotos del producto" });
+        if (!scene) return res.status(400).json({ error: "Falta escena" });
+
+        const imagesParts = files.slice(0, 8).map((f) => ({
+          inlineData: {
+            mimeType: f.mimetype,
+            data: fs.readFileSync(f.path, { encoding: "base64" }),
+          },
+        }));
+
+        const langLine =
+  language === "en"
+    ? "Write the entire description in English."
+    : language === "pt"
+    ? "Escreva toda a descrição em português (Brasil)."
+    : language === "ko"
+    ? "모든 설명은 한국어로 작성하세요."
+    : language === "zh"
+    ? "所有描述请使用简体中文。"
+    : "Escribí toda la descripción en español.";
+
+        const basePrompt = `
+${langLine}
+
+Foto de producto e-commerce premium, fotorealista, iluminación de estudio suave.
+Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
+Escena: ${scene}.
+Mantener exactamente el mismo producto, color y textura.
+`.trim();
+
+        const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER PRODUCTO):
+- Mantener EXACTAMENTE el mismo producto (NO cambiar color, textura, forma, detalles).
+- Mantener misma escena general: ${scene}.
+- Cambiar NOTABLEMENTE al menos 2 cosas (sin salir de estudio e-commerce):
+  1) iluminación (más suave ↔ un poco más contrastada)
+  2) fondo estudio (blanco ↔ gris claro ↔ beige suave)
+  3) micro-ángulo (ligero cambio de cámara, sin deformar producto)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
+
+        const views = [
+  { key: "front", label: "toma principal" },
+  { key: "back", label: "ángulo alternativo" },
+  { key: "left", label: "detalle cercano" },
+  { key: "right", label: "otro ángulo" },
+].filter((v) => selectedViews?.[v.key]);
+
+
+        const settled = await Promise.allSettled(
+          views.map((v) =>
+  retry(
+    async (attempt) => {
+      console.log(`MODEL view=${v.key} attempt=${attempt}`);
+              const sideHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO:
+
+- Cuerpo completo (head-to-toe).
+- Vista lateral 3/4 (no completamente de perfil).
+- Modelo girada aproximadamente 45 grados.
+- Piernas y pies completamente visibles.
+- No recortar cabeza.
+- No recortar pies.
+- Cámara lo suficientemente lejos para capturar cuerpo entero.
+- Formato vertical 4:5.
+- Modelo centrada.
+
+POSE:
+- Postura natural, elegante.
+- Una mano en bolsillo si existen.
+- Hombros levemente girados hacia cámara.
+`
+    : "";
+
+
+
+const viewPrompt = `
+${basePrompt}
+${variationHint}
+
+Cámara: ${v.label}.
+
+IMPORTANTE:
+- Generar UNA SOLA imagen.
+- NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
+- Solo el producto (sin personas, sin manos).
+- Un solo producto, centrado.
+- Fondo continuo de estudio.
+`.trim();
+
+            const parts = [{ text: viewPrompt }, ...imagesParts];
+
+            const { status, data } = await geminiGenerate({
+              model: MODEL_IMAGE,
+              body: { contents: [{ role: "user", parts }] },
+              timeoutMs: 60000,
+            });
+
+            if (status >= 400) throw new Error("Gemini product error");
+
+            const imgB64 = extractImageBase64(data);
+            if (!imgB64) throw new Error("No product image returned");
+
+            const fileName = `generated-product-${v.key}-${Date.now()}-${Math.random()
+              .toString(16)
+              .slice(2)}.png`;
+            const filePath = path.join("uploads", fileName);
+            fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+            return `/uploads/${fileName}`;
+              },
+    { attempts: 2, delayMs: 900 }
+  )
+)
+);
+        
+
+        for (const f of files) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch {}
+        }
+
+        const fulfilled = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "fulfilled")
+  .map((x) => ({ key: views[x.i].key, url: x.r.value }));
+
+const failed = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "rejected")
+  .map((x) => views[x.i]?.key);
+
+const requestedCost = views.length;
+const successCost = fulfilled.length;
+const refundCount = Math.max(0, requestedCost - successCost);
+
+console.log("MODEL requested:", views.map(v => v.key));
+console.log("MODEL failed:", failed);
+
+// Si no salió ninguna, ahí sí devolvemos error (y tu catch hace refund total)
+if (successCost === 0) {
+  throw new Error("No se pudo generar ninguna imagen con modelo");
+}
+
+// ✅ Refund parcial (bonus primero, luego paid)
+if (refundCount > 0 && wallet) {
+  const refundFromBonus = Math.min(takeFromBonus, refundCount);
+  const refundFromPaid = refundCount - refundFromBonus;
+
+  if (refundFromPaid > 0) {
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: refundFromPaid } },
+    });
+
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "REFUND",
+        amount: refundFromPaid,
+        idempotencyKey: `refund-partial:${idem}`,
+        refType: "GENERATION_PARTIAL",
+        refId: consumeEntry?.id || null,
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+
+  if (refundFromBonus > 0) {
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "GRANT",
+        amount: refundFromBonus,
+        idempotencyKey: `restore-partial:${idem}`,
+        refType: "WELCOME_BONUS_RESTORE",
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+}
+
+// ✅ Devolvemos SOLO lo que salió, con keys
+return res.json({
+  imageUrls: fulfilled.map(x => x.url),
+  imageKeys: fulfilled.map(x => x.key),
+  failedViews: failed,
+  promptUsed: basePrompt,
+});
+      }
+
+      // =====================
+      // MODEL MODE (1 crédito por vista)
+      // =====================
+      if (mode === "model") {
+        const regenVar = String(req.body?.regen_variation || "").trim();
+        const front = req.files?.front?.[0];
+        const back = req.files?.back?.[0];
+        const face = req.files?.face?.[0];
+
+        if (!front) return res.status(400).json({ error: "Falta foto delantera" });
+
+        const category = String(req.body?.category || "");
+        console.log("DEBUG category:", category);
+        const isPantsCategory = category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
+if (!isPantsCategory) {
+  selectedViews.pantFrontDetail = false;
+  selectedViews.pantBackDetail = false;
+  selectedViews.pantSideDetail = false;
+}
+
+        const otherCategory = String(req.body?.other_category || "");
+        const pockets = String(req.body?.pockets || "");
+        const modelType = String(req.body?.model_type || "");
+        const ethnicity = String(req.body?.ethnicity || "");
+        const ageRange = String(req.body?.age_range || "");
+        const background = String(req.body?.background || "");
+        const pose = String(req.body?.pose || "");
+        const bodyType = String(req.body?.body_type || "");
+
+        const refParts = [];
+
+if (face) {
+  refParts.push({
+    inlineData: {
+      mimeType: face.mimetype,
+      data: fs.readFileSync(face.path, { encoding: "base64" }),
+    },
+  });
+}
+
+refParts.push({
+  inlineData: {
+    mimeType: front.mimetype,
+    data: fs.readFileSync(front.path, { encoding: "base64" }),
+  },
+});
+
+if (back) {
+  refParts.push({
+    inlineData: {
+      mimeType: back.mimetype,
+      data: fs.readFileSync(back.path, { encoding: "base64" }),
+    },
+  });
+}
+
+
+
+        const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
+
+        const basePrompt = `
+${langLine}
+
+FOTO DE MODA E-COMMERCE ULTRA FIEL A REFERENCIA.
+
+PRIORIDAD ABSOLUTA: LA PRENDA.
+
+REGLAS OBLIGATORIAS:
+- Usar EXACTAMENTE la prenda de las fotos referencia.
+- NO cambiar color.
+- NO cambiar textura.
+- NO cambiar estampado.
+- NO cambiar botones.
+- NO cambiar costuras.
+- NO cambiar calce.
+- NO agregar ni quitar detalles.
+- NO reinterpretar el diseño.
+- NO modificar escote, mangas ni largo.
+- NO inventar bolsillos.
+- NO suavizar encajes ni telas.
+- NO estilizar diferente.
+
+La prenda debe verse 100% idéntica a la foto original.
+
+${face
+  ? "Usar EXACTAMENTE el rostro de la foto de rostro como identidad fija."
+  : "No es obligatorio mantener el mismo rostro entre vistas."}
+
+Iluminación tipo estudio suave.
+Sin texto.
+Sin marcas de agua.
+Sin logos.
+
+Categoría: ${catFinal}
+Bolsillos: ${pockets}
+Tipo de modelo: ${modelType}
+Etnia: ${ethnicity}
+Edad: ${ageRange}
+Pose: ${pose}
+Tipo de cuerpo: ${bodyType}
+Fondo: ${background}
+`.trim();
+
+        const views = [
+  { key: "front", label: "vista frontal completa" },
+  { key: "back", label: "vista trasera completa" },
+  { key: "side", label: "vista costado completa (3/4, cuerpo entero)" },
+  { key: "frontDetail", label: "detalle frontal plano medio (desde pecho hasta cintura)" },
+  { key: "backDetail", label: "detalle espalda plano medio (desde hombros hasta cintura)" },
+  { key: "pantFrontDetail", label: "detalle pantalón frente (desde cintura hasta pies)" },
+  { key: "pantBackDetail", label: "detalle pantalón espalda (desde cintura hasta pies)" },
+  { key: "pantSideDetail", label: "detalle pantalón costado (desde cintura hasta pies)" },
+
+
+
+
+].filter((v) => selectedViews?.[v.key]);
+
+
+        if (!views.length) {
+          return res.status(400).json({ error: "Debes seleccionar al menos una vista" });
+        }
+
+        const settled = await Promise.allSettled(
+          views.map(async (v) => {
+
+const frontFullHint =
+  v.key === "front"
+    ? `
+TOMA OBLIGATORIA – FRENTE COMPLETO (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente frontal (NO 3/4, NO perfil).
+- Cámara a altura del torso.
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados.
+- Manos en bolsillos si existen, sin tapar la prenda.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme (sin sombras duras).
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
+const sideFullHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO (3/4) – SIEMPRE CABEZA A PIES:
+
+ENCUADRE:
+- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
+- NO recortar cabeza.
+- NO recortar pies.
+- Dejar aire arriba y abajo (margen visible).
+- Formato vertical 4:5.
+- Modelo centrada.
+
+ÁNGULO:
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada aproximadamente 45 grados.
+- Hombros levemente hacia cámara.
+
+POSE:
+- Postura natural.
+- Peso en una pierna.
+- Una mano en bolsillo si existen (sin tapar prenda).
+- Brazos relajados.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si no entra cabeza y pies, ALEJAR cámara hasta que entren.
+`
+    : "";
+
+const backFullHint =
+  v.key === "back"
+    ? `
+TOMA OBLIGATORIA – ESPALDA COMPLETA (SIEMPRE CABEZA A PIES):
+
+ENCUADRE:
+- Dejar aire arriba y abajo (margen visible).
+- NO recortar cabeza.
+- NO recortar pies.
+- Modelo centrada.
+- Formato vertical 4:5.
+
+CÁMARA:
+- Vista completamente trasera (espalda directa).
+- NO 3/4.
+- NO perfil.
+- La cara NO debe verse (o solo mínimamente de lado si es inevitable).
+- Distancia suficiente para incluir cuerpo entero.
+
+POSE:
+- Postura natural.
+- Brazos relajados a los lados (no tapar la espalda de la prenda).
+- Pies apoyados, cuerpo derecho.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave y uniforme.
+
+REGLA CRÍTICA:
+- Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
+`
+    : "";
+
+
+const extraBackHint =
+  v.key === "back" && !back
+    ? "\nLa vista trasera debe ser coherente con la delantera. Inferí la espalda basándote en la imagen frontal sin inventar cambios drásticos."
+    : "";
+
+const sideHint =
+  v.key === "side"
+    ? `
+TOMA OBLIGATORIA – COSTADO COMPLETO:
+- Cuerpo completo (cabeza y pies visibles), sin recortes.
+- Vista lateral 3/4 (NO completamente de perfil).
+- Modelo girada ~45 grados.
+- Formato vertical 4:5.
+- Modelo centrada.
+`
+    : "";
+
+
+const detailHint =
+  v.key === "frontDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE FRENTE (DESDE CINTURA HACIA ARRIBA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+CÁMARA:
+- Vista frontal directa.
+- Cámara a altura del pecho.
+- Distancia suficiente para incluir cabeza completa.
+
+FOCO:
+- Enfatizar textura, caída y costuras.
+- Mostrar claramente el escote y parte superior.
+- Mantener misma modelo y mismo rostro.
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
+`
+    : "";
+
+const backDetailHint =
+  v.key === "backDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE ESPALDA (DESDE CINTURA HASTA CABEZA):
+
+ENCUADRE:
+- Desde la cintura hacia arriba.
+- Cabeza completamente visible.
+- NO cortar cabeza.
+- NO mostrar cuerpo completo.
+- NO mostrar piernas completas.
+- Encuadre vertical 4:5.
+- Modelo centrada.
+
+ÁNGULO:
+- Vista de espaldas (espalda hacia cámara).
+- NO frontal.
+- NO mostrar el frente de la prenda.
+- Puede ser levemente 3/4 pero la ESPALDA debe dominar (como foto de referencia).
+
+FOCO:
+- Mostrar claramente espalda de la prenda: tiras, nudo/cierre, costuras y caída.
+- Mantener misma modelo y mismo rostro (consistencia).
+
+ILUMINACIÓN:
+- Estudio blanco o gris claro.
+- Luz suave uniforme.
+`
+    : "";
+
+
+const pantFrontDetailHint =
+  v.key === "pantFrontDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN FRENTE:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista frontal.
+- NO mostrar cintura para arriba.
+- NO mostrar torso superior.
+- Enfocar caída de la tela y bolsillos.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+`
+    : "";
+
+const pantBackDetailHint =
+  v.key === "pantBackDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN ESPALDA:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista completamente trasera.
+- NO mostrar cintura para arriba.
+- NO mostrar torso superior.
+- Enfocar caída de la tela y parte trasera de la prenda.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
+const pantSideDetailHint =
+  v.key === "pantSideDetail"
+    ? `
+TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
+
+- Encuadre desde la cintura hasta los pies.
+- Vista de costado 3/4 (NO completamente de perfil).
+- NO mostrar cintura para arriba.
+- NO mostrar torso superior.
+- Mostrar bien el lateral: costura, caída, calce y bolsillos laterales si existen.
+- Modelo centrada.
+- Fondo continuo.
+- Formato vertical 4:5.
+- Los pies deben verse completos.
+`
+    : "";
+
+const variationHint = regenVar
+  ? `
+VARIACIÓN (REHACER):
+- Mantener misma modelo y misma prenda (NO cambiar color, textura, diseño).
+- Mantener el mismo encuadre obligatorio de la vista.
+- Cambiar NOTABLEMENTE al menos 2 cosas:
+  1) micro-pose (peso en otra pierna, manos/brazos distintos, mirada distinta)
+  2) luz (más suave o un poco más contrastada, siempre estudio)
+  3) fondo (siempre estudio: blanco ↔ gris claro ↔ beige suave)
+- No repetir la imagen anterior.
+- Código variación: ${regenVar}
+`
+  : "";
+
+const viewPrompt = `
+${basePrompt}
+
+Cámara: ${v.label}.
+${frontFullHint}
+${backFullHint}
+${sideFullHint}
+${extraBackHint}
+${sideHint}
+${detailHint}
+${backDetailHint}
+${pantFrontDetailHint}
+${pantBackDetailHint}
+${pantSideDetailHint}
+
+SALIDA:
+- Devolvé una IMAGEN (no texto).
+- No describas. No expliques. No devuelvas JSON.
+
+IMPORTANTE:
+- Generar UNA SOLA imagen.
+- NO collage, NO cuadrícula, NO múltiples paneles, NO duplicados.
+- Un solo cuerpo completo, centrado.
+- Fondo continuo (sin cortes).
+
+SALIDA OBLIGATORIA:
+- Generar únicamente una imagen.
+- No escribir texto.
+- No describir la imagen.
+- No devolver explicación.
+`.trim();
+
+            const parts = [{ text: viewPrompt }, ...refParts];
+
+            const { status, data } = await geminiGenerate({
+              model: MODEL_IMAGE,
+              body: { contents: [{ role: "user", parts }] },
+              timeoutMs: 60000,
+            });
+if (v.key === "front" || v.key === "frontDetail") {
+  const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  console.log("DEBUG VIEW", v.key, {
+    status,
+    hasB64: !!extractImageBase64(data),
+    hasText: typeof txt === "string" && txt.length > 0,
+    textSample: typeof txt === "string" ? txt.slice(0, 120) : null,
+  });
+}
+            if (status >= 400) throw new Error("Gemini model error");
+
+            const imgB64 = extractImageBase64(data);
+            if (!imgB64) throw new Error("No model image returned");
+
+            const fileName = `generated-model-${v.key}-${Date.now()}-${Math.random()
+              .toString(16)
+              .slice(2)}.png`;
+            const filePath = path.join("uploads", fileName);
+            fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+            return `/uploads/${fileName}`;
+          })
+        );
+
+
+        try {
+          fs.unlinkSync(front.path);
+        } catch {}
+        if (back) {
+          try {
+            fs.unlinkSync(back.path);
+          } catch {}
+        }
+
+        if (face) {
+  try { fs.unlinkSync(face.path); } catch {}
+} 
+
+        const fulfilled = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "fulfilled")
+  .map((x) => ({ key: views[x.i].key, url: x.r.value }));
+
+const failed = settled
+  .map((r, i) => ({ r, i }))
+  .filter((x) => x.r.status === "rejected")
+  .map((x) => views[x.i]?.key);
+
+const requestedCost = views.length;
+const successCost = fulfilled.length;
+const refundCount = Math.max(0, requestedCost - successCost);
+
+console.log("MODEL requested:", views.map((v) => v.key));
+console.log("MODEL failed:", failed);
+
+// Si no salió ninguna, ahí sí devolvemos error (y tu catch hace refund total)
+if (successCost === 0) {
+  throw new Error("No se pudo generar ninguna imagen con modelo");
+}
+
+// ✅ Refund parcial (bonus primero, luego paid)
+if (refundCount > 0 && wallet) {
+  const refundFromBonus = Math.min(takeFromBonus, refundCount);
+  const refundFromPaid = refundCount - refundFromBonus;
+
+  if (refundFromPaid > 0) {
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: { increment: refundFromPaid } },
+    });
+
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "REFUND",
+        amount: refundFromPaid,
+        idempotencyKey: `refund-partial:${idem}`,
+        refType: "GENERATION_PARTIAL",
+        refId: consumeEntry?.id || null,
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+
+  if (refundFromBonus > 0) {
+    await prisma.creditEntry.create({
+      data: {
+        walletId: wallet.id,
+        type: "GRANT",
+        amount: refundFromBonus,
+        idempotencyKey: `restore-partial:${idem}`,
+        refType: "WELCOME_BONUS_RESTORE",
+        metadata: { failedViews: failed },
+      },
+    });
+  }
+}
+
+// ✅ Devolvemos SOLO lo que salió, con keys
+return res.json({
+  imageUrls: fulfilled.map((x) => x.url),
+  imageKeys: fulfilled.map((x) => x.key),
+  failedViews: failed,
+  promptUsed: basePrompt,
+});
+      }
+
+      return res.status(400).json({ error: "Modo inválido" });
+    }
+  } catch (err) {
+      console.error("GENERATE ERROR:", err);
+
+      // REFUND (devolver pagos y bonus)
+try {
+  if (wallet) {
+    if (takeFromPaid > 0) {
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: takeFromPaid } },
+      });
+
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "REFUND",
+          amount: takeFromPaid,
+          idempotencyKey: `refund:${idem}`,
+          refType: "GENERATION",
+          refId: consumeEntry?.id || null,
+        },
+      });
+    }
+
+    if (takeFromBonus > 0) {
+      await prisma.creditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: "GRANT",
+          amount: takeFromBonus,
+          idempotencyKey: `restore:${idem}`,
+          refType: "WELCOME_BONUS_RESTORE",
+        },
+      });
+    }
+  }
+} catch (refundError) {
+  console.error("REFUND FAILED:", refundError);
+}
+
+      return res.status(500).json({
+        error: "Error en generate",
+        details: String(err?.message || err),
+      });
+    }
+  }
+);
+
+// =====================
+// MERCADO PAGO: CREATE PREFERENCE
+// =====================
+app.post("/mp/create-preference", requireAuth, async (req, res) => {
+  try {
+    const credits = Number(req.body?.credits);
+
+    let unitPrice;
+
+    if (credits === 50) {
+  unitPrice = 75000;
+} else if (credits === 100) {
+  unitPrice = 150000;
+} else if (credits === 200) {
+  unitPrice = 300000;
+} else {
+  return res.status(400).json({ error: "Paquete inválido" });
+}
+
+    const be = String(process.env.BACKEND_URL || "").trim().replace(/\/$/, "");
+
+    const preference = await mpPreference.create({
+      body: {
+        items: [
+          {
+            title: `Créditos AI Ropa (${credits})`,
+            quantity: 1,
+            unit_price: unitPrice,
+            currency_id: "ARS",
+          },
+        ],
+        external_reference: String(req.userId),
+        metadata: { user_id: req.userId, credits },
+        notification_url: `${be}/mp/webhook`,
+        back_urls: {
+          success: `${be}/pago-exitoso`,
+          failure: `${be}/pago-fallido`,
+          pending: `${be}/pago-pendiente`,
+        },
+        auto_return: "approved",
+      },
+    });
+
+    return res.json({
+      init_point: preference.init_point,
+      id: preference.id,
+    });
+  } catch (err) {
+    console.error("MP ERROR:", err);
+    return res.status(500).json({ error: "MercadoPago preference error" });
+  }
+});
+
+// =====================
+// MERCADOPAGO WEBHOOK (ACREDITA)
+// =====================
+app.post("/mp/webhook", async (req, res) => {
+  try {
+    const paymentId = req.body?.data?.id || req.query?.id || req.query?.["data.id"];
+    if (!paymentId) return res.sendStatus(200);
+
+    const r = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+    });
+    const payment = await r.json().catch(() => null);
+    if (!r.ok || !payment) return res.sendStatus(200);
+    if (payment.status !== "approved") return res.sendStatus(200);
+
+    const userId = payment?.metadata?.user_id || payment?.external_reference;
+    const credits = Number(payment?.metadata?.credits || 0);
+    if (!userId || !Number.isFinite(credits) || credits <= 0) return res.sendStatus(200);
+
+    const existing = await prisma.creditEntry.findFirst({
+      where: { refType: "MP_PAYMENT", refId: String(paymentId) },
+      select: { id: true },
+    });
+    if (existing) return res.sendStatus(200);
+
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: String(userId) },
+        include: { wallet: true },
+      });
+      if (!user?.wallet) throw new Error("Wallet not found");
+
+      await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { increment: credits } },
+      });
+
+      await tx.creditEntry.create({
+        data: {
+          walletId: user.wallet.id,
+          type: "PURCHASE",
+          amount: credits,
+          idempotencyKey: `mp:${paymentId}`,
+          refType: "MP_PAYMENT",
+          refId: String(paymentId),
+        },
+      });
+    });
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("MP WEBHOOK ERROR:", err);
+    return res.sendStatus(200);
+  }
+});
+
+// =====================
+// STATIC + HEALTH
+// =====================
+app.use("/uploads", express.static("uploads"));
+app.get("/", (req, res) => res.json({ status: "OK" }));
+
+// =====================
+// MP RETURN ROUTES
+// =====================
+const FRONT = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+app.get("/pago-exitoso", (req, res) => res.redirect(`${FRONT}/?topup=ok`));
+app.get("/pago-fallido", (req, res) => res.redirect(`${FRONT}/?topup=fail`));
+app.get("/pago-pendiente", (req, res) => res.redirect(`${FRONT}/?topup=pending`));
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
