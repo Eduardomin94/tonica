@@ -831,6 +831,8 @@ return res.json({
         const back = req.files?.back?.[0];
         const face = req.files?.face?.[0];
 
+        const category = String(req.body?.category || "").trim();
+        
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
       
