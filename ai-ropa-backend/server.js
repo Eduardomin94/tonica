@@ -1011,7 +1011,9 @@ Notas: ${garmentDesc.notes}
         }
 
         const settled = await Promise.allSettled(
-          views.map(async (v) => {
+          views.map((v) =>
+  retry(async (attempt) => {
+    console.log(`MODEL view=${v.key} attempt=${attempt}`);
 
 const frontFullHint =
   v.key === "front"
@@ -1418,7 +1420,7 @@ if (v.key === "front" || v.key === "frontDetail") {
   });
 }
             if (status >= 400) throw new Error("Gemini model error");
-
+            console.log("MODEL RAW RESPONSE:", JSON.stringify(data).slice(0, 1000));
             const imgB64 = extractImageBase64(data);
             if (!imgB64) throw new Error("No model image returned");
 
@@ -1428,8 +1430,11 @@ if (v.key === "front" || v.key === "frontDetail") {
             const filePath = path.join("uploads", fileName);
             fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
             return `/uploads/${fileName}`;
-          })
-        );
+      },
+      { attempts: 2, delayMs: 900 }
+    )
+  )
+);
 
 
         try {

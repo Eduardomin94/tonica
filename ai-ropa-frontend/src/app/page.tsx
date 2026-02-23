@@ -1061,7 +1061,23 @@ setFailedViews(failed);
         return (
           <>
             <FieldTitle>{t("uploadTitle")}</FieldTitle>
-
+<div
+  style={{
+    marginTop: 10,
+    marginBottom: 12,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(251,191,36,0.12)",
+    border: "1px solid rgba(251,191,36,0.35)",
+    color: "#facc15",
+    fontSize: 12,
+    fontWeight: 700,
+    lineHeight: 1.35,
+  }}
+>
+  ⚠️ En lo posible, subí la prenda sola (percha o extendida) sobre fondo liso.
+  Evitá maniquí/personas y accesorios. Buena luz y encuadre recto.
+</div>
             {mode === "product" ? (
               <Box>
                 <Label>{t("productPhotosLabel")}</Label>
@@ -1165,11 +1181,12 @@ setFailedViews(failed);
 )}
               </Box>
             ) : (
+
               <TwoCols>
                 {/* DELANTERA */}
                 <Box>
                   <Label>{t("frontRequired")}</Label>
-
+                
                   <input
                     ref={frontCameraRef}
                     type="file"
