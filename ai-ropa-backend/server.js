@@ -832,7 +832,7 @@ return res.json({
         const face = req.files?.face?.[0];
 
         const category = String(req.body?.category || "").trim();
-        
+
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
       
@@ -880,12 +880,67 @@ if (back) {
     ? `Otro: ${otherCategory}`
     : category;
 
+// ✅ 1) Auto-describir prenda desde la imagen (texto → JSON)
+const garmentPrompt = `
+Devolvé SOLO JSON válido con esta forma exacta:
+{
+  "garment_summary": "max 25 palabras",
+  "must_keep": ["lista corta, max 10 items"],
+  "transparency": "none|sheer|lace|mesh",
+  "opening": "closed|open_front|tie_front|buttoned|zip",
+  "length": "crop|waist|hip|long",
+  "sleeves": "none|short|long",
+  "notes": "max 25 palabras"
+}
+
+Reglas:
+- Mirá la FOTO y describí la PRENDA exactamente como se ve.
+- No inventes forro ni prendas interiores.
+- Si es encaje/transparente, marcá transparency correctamente y agregá en must_keep: "mantener transparencia real".
+`.trim();
+
+const garmentParts = [
+  { text: garmentPrompt },
+  {
+    inlineData: {
+      mimeType: front.mimetype,
+      data: fs.readFileSync(front.path, { encoding: "base64" }),
+    },
+  },
+];
+
+const garmentDescResp = await geminiGenerate({
+  model: MODEL_TEXT,
+  body: { contents: [{ role: "user", parts: garmentParts }] },
+  timeoutMs: 15000,
+});
+
+let garmentDesc = null;
+try {
+  const txt = garmentDescResp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  garmentDesc = JSON.parse(txt);
+} catch {
+  garmentDesc = null;
+}
+
+    
         const basePrompt = `
 ${langLine}
 
 FOTO DE MODA E-COMMERCE ULTRA FIEL A REFERENCIA.
 
 PRIORIDAD ABSOLUTA: LA PRENDA.
+
+IMPORTANTE (LA FOTO DE REFERENCIA PUEDE ESTAR EN MANIQUÍ):
+- IGNORAR el maniquí/cuerpo de referencia.
+- Extraer SOLO la prenda y aplicarla a la modelo sin rediseñar.
+
+PRENDA TRANSPARENTE / ENCAJE (CRÍTICO):
+- Mantener transparencia real del encaje (se ve piel debajo).
+- NO agregar forro, NO “rellenar”, NO hacerla opaca.
+- NO agregar top interno debajo (no inventar remera/corpiño).
+- Mantener abertura frontal (prenda abierta) y las tiras en el centro.
+- Mantener los volados/ruffles del frente y el corte corto (crop).
 
 REGLAS OBLIGATORIAS:
 - Usar EXACTAMENTE la prenda de las fotos referencia.
@@ -921,6 +976,18 @@ Edad: ${ageRange}
 Pose: ${pose}
 Tipo de cuerpo: ${bodyType}
 Fondo: ${background}
+${garmentDesc ? `
+FICHA AUTO-DETECTADA DE PRENDA (OBLIGATORIA):
+Resumen: ${garmentDesc.garment_summary}
+Transparencia: ${garmentDesc.transparency}
+Abertura: ${garmentDesc.opening}
+Largo: ${garmentDesc.length}
+Mangas: ${garmentDesc.sleeves}
+MUST KEEP:
+- ${Array.isArray(garmentDesc.must_keep) ? garmentDesc.must_keep.join("\n- ") : ""}
+Notas: ${garmentDesc.notes}
+` : ""}
+
 `.trim();
 
         const views = [
