@@ -52,17 +52,6 @@ function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.innerHTML = `
-    @keyframes whatsappPulse {
-      0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.6); }
-      70% { box-shadow: 0 0 0 18px rgba(37,211,102,0); }
-      100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
-    }
-  `;
-  document.head.appendChild(style);
-}
 
 
 /* ================== APP ================== */
@@ -2246,41 +2235,7 @@ const res = await fetch(`${API}/suggest-background`, {
 
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-          {/* WhatsApp (dentro del contenedor, NO sticky) */}
-<div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-  <a
-    href={`https://wa.me/5491125457111?text=${encodeURIComponent(t("whatsappPrefill"))}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={styles.whatsappInlineBtn}
-    aria-label="WhatsApp Atención al cliente"
-  onMouseEnter={(e) => {
-  e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
-  e.currentTarget.style.boxShadow =
-    "0 16px 40px rgba(37,211,102,0.45), inset 0 1px 0 rgba(255,255,255,0.4)";
-}}
-
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform = "translateY(0) scale(1)";
-  e.currentTarget.style.boxShadow =
-    "0 10px 30px rgba(37,211,102,0.35), inset 0 1px 0 rgba(255,255,255,0.35)";
-}}
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="#ffffff">
-      <path d="M19.11 17.36c-.27-.14-1.59-.78-1.84-.87-.25-.09-.43-.14-.61.14-.18.27-.7.87-.86 1.05-.16.18-.32.2-.59.07-.27-.14-1.13-.42-2.16-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.13-.13.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.48-.84-2.03-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29 0 1.34.98 2.64 1.12 2.82.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.58.66.21 1.26.18 1.73.11.53-.08 1.59-.65 1.82-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"/>
-      <path d="M16.02 3C8.83 3 3 8.83 3 16.02c0 2.82.9 5.44 2.43 7.58L3 29l5.53-2.4c2.06 1.12 4.41 1.76 6.97 1.76C23.17 28.36 29 22.53 29 15.34 29 8.83 23.17 3 16.02 3zm0 23.36c-2.36 0-4.54-.7-6.38-1.91l-.46-.3-3.28 1.42 1.43-3.2-.3-.48c-1.32-2.05-2.01-4.43-2.01-6.87 0-6.12 4.98-11.1 11.1-11.1 6.12 0 11.1 4.98 11.1 11.1 0 6.12-4.98 11.1-11.1 11.1z"/>
-    </svg>
-    <span style={{ fontWeight: 900, fontSize: 12 }}>
-  {t("whatsapp")}
-</span>
-  </a>
-</div>
+          
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
   <img
@@ -3291,38 +3246,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   resultGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 },
   imgCard: { border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", background: "#ffffff" },
-
- whatsappInlineBtn: {
-  position: "relative",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "10px 16px",
-  borderRadius: 999,
-
-  // Glass premium
-  background: "linear-gradient(135deg, rgba(37,211,102,0.95) 0%, rgba(22,163,74,0.95) 100%)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-
-  color: "#ffffff",
-  textDecoration: "none",
-  border: "1px solid rgba(255,255,255,0.28)",
-
-  // Glow elegante (no exagerado)
-  boxShadow: `
-    0 10px 30px rgba(37,211,102,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.35)
-  `,
-
-  fontWeight: 900,
-  fontSize: 13,
-  letterSpacing: 0.3,
-
-  transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
-  transform: "translateY(0)",
-  userSelect: "none",
-},
+  
   loginCard: {
     maxWidth: 420,
     margin: "80px auto",
