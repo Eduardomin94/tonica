@@ -1,8 +1,18 @@
+
+
+
+
+
+
 Te paso mi page.tsx y mi server.js espera mi petición
 
-que cuando no genera la imagen y devuelve el crédito que avise de alguna manera que no se pudo generar la vista tal.
+
+
 
 que las imagenes sean lo más fiel al producto subido. y las vistas lo más fiel a las vistas porque por ejemplo, en frente completo corta las piernas
+
+
+
 
 depurar bugs en page.tsx y server.js
 

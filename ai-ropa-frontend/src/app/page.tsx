@@ -371,7 +371,7 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-
+  const [failedViews, setFailedViews] = useState<string[]>([]);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
  const isRegenBusy = useMemo(
@@ -906,7 +906,8 @@ const res = await fetch(`${API}/suggest-background`, {
   async function handleGenerate() {
   setError(null);
   setResult(null);
-
+  setFailedViews([]);
+  
   if (!API) return setError(t("missingApiBase"));
 
   // Validaciones
@@ -990,6 +991,8 @@ const res = await fetch(`${API}/suggest-background`, {
       setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
       return;
     }
+    const failed = Array.isArray(data?.failedViews) ? data.failedViews : [];
+setFailedViews(failed);
 
     let urls: string[] = [];
     if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
@@ -1737,7 +1740,33 @@ const res = await fetch(`${API}/suggest-background`, {
       case "generate":
         return (
           <>
-            <FieldTitle>{t("generateTitle")}</FieldTitle>
+            <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 12,
+  }}
+>
+  <FieldTitle>{t("generateTitle")}</FieldTitle>
+
+  <div
+    style={{
+      background: "rgba(251,191,36,0.15)",
+      border: "1px solid rgba(251,191,36,0.4)",
+      color: "#facc15",
+      padding: "6px 10px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 800,
+      maxWidth: 360,
+    }}
+  >
+    ⚠ {t("viewsDisclaimer")}
+  </div>
+</div>
 
             <div style={styles.summaryCard}>
               <div style={styles.summaryTitle}>{t("summary")}</div>
@@ -1903,7 +1932,45 @@ const res = await fetch(`${API}/suggest-background`, {
   ? t("insufficientCredits", selectedCount)
   : t("generate", selectedCount)}
             </Button>
-
+{failedViews.length > 0 && (
+  <div style={styles.inlineWarn}>
+    ⚠️ No se pudieron generar estas vistas:{" "}
+    <b>
+      {failedViews
+        .map((k) =>
+          mode === "product"
+            ? k === "front"
+              ? t("pFront")
+              : k === "back"
+              ? t("pBack")
+              : k === "left"
+              ? t("pLeft")
+              : k === "right"
+              ? t("pRight")
+              : k
+            : k === "front"
+            ? t("vFront")
+            : k === "back"
+            ? t("vBack")
+            : k === "side"
+            ? t("vSide")
+            : k === "frontDetail"
+            ? t("vFrontDetail")
+            : k === "backDetail"
+            ? t("vBackDetail")
+            : k === "pantFrontDetail"
+            ? t("vPantFrontDetail")
+            : k === "pantBackDetail"
+            ? t("vPantBackDetail")
+            : k === "pantSideDetail"
+            ? t("vPantSideDetail")
+            : k
+        )
+        .join(", ")}
+    </b>
+    . Se devolvieron los créditos de las vistas fallidas. Podés volver a generarlas.
+  </div>
+)}
             {result && (
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>

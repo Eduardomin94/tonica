@@ -1,6 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { Inter } from "next/font/google";
+import { translations, type Lang } from "@/app/i18n/translations";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -67,12 +68,12 @@ if (typeof document !== "undefined") {
 /* ================== APP ================== */
 export default function Home() {
   const [language, setLanguage] = useState<"es" | "en" | "pt" | "ko" | "zh">("es");
-  const t = (key: any, ...args: any[]) => {
+ const t = (key: string, ...args: any[]) => {
   const dict = (translations as any)[language] || {};
-  const en = (translations as any).en || {};
-  const es = (translations as any).es || {};
+  const fallbackEn = (translations as any).en || {};
+  const fallbackEs = (translations as any).es || {};
 
-  const val = dict?.[key] ?? en?.[key] ?? es?.[key];
+  const val = dict?.[key] ?? fallbackEn?.[key] ?? fallbackEs?.[key];
   if (typeof val === "function") return val(...args);
   return String(val ?? key);
 };
@@ -186,995 +187,6 @@ const [genStatuses, setGenStatuses] = useState<Record<string, "pending" | "ok" |
     setProductFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-type Lang = "es" | "en" | "pt" | "ko" | "zh";
-
-const translations = {
-  es: {
-    // header / auth
-    title: "Fotonine | Generador IA",
-    subtitle: "Elegí el tipo de imagen que querés generar",
-    signIn: "Iniciar sesión",
-    signInHint: "Accedé con tu cuenta de Google para usar el generador",
-    logout: "Cerrar sesión",
-    scenePlaceholder: 'Ej: "colgado en percha de madera", "sobre arena húmeda"',
-    otherExample: "Ej: Camisa, Blusa, Collar, Gorra, etc",
-    bgPlaceholder: 'Ej: "estudio gris con luz suave"',
-    credits: "Créditos",
-    buyCredits: "Comprar créditos",
-    loading: "Cargando...",
-    ethCaucasian: "Caucásico/a",
-    ethLatino: "Latino/a",
-    ethAsian: "Asiático/a",
-    ethBlack: "Negro/a",
-    ethMediterranean: "Mediterráneo/a",
-    poseSitting: "Sentado/a",
-    poseStanding: "Parado/a",
-    poseWalking: "Caminando",
-    bodyStandard: "Estándar",
-    bodyPlus: "Plus Size",
-    m_hombros: "Hombros",
-m_pecho: "Pecho",
-m_manga: "Manga",
-m_cintura: "Cintura",
-m_cadera: "Cadera",
-m_largo: "Largo",
-exampleCm: "Ej: 52cm",
-    // modes
-    modeModel: "📸Foto con modelo",
-    modeProduct: "⚛️Foto producto",
-    // steps titles
-    stepUpload: "Subir fotos",
-    catTop: "Remera / Top",
-    catOuterwear: "Abrigo / Campera / Buzo",
-    catBottom: "Pantalón / Short / Pollera / Falda",
-    catDress: "Vestido / Enterito",
-    catSet: "Conjunto",
-    catSwim: "Traje de baño",
-    catBody: "Body",
-    catOther: "Otro",
-    age_0_2: "0 a 2 años",
-age_3_6: "3 a 6 años",
-age_6_10: "6 a 10 años",
-age_10_16: "10 a 16 años",
-age_18_24: "18 a 24 años",
-age_25_34: "25 a 34 años",
-age_35_44: "35 a 44 años",
-    stepCategory: "Categoría",
-    stepPockets: "Bolsillos",
-    stepMeasures: "Medidas (opcional)",
-    stepModel: "Modelo",
-    stepEthnicity: "Etnia",
-    stepAge: "Edad",
-    stepFace: "Rostro (opcional)",
-    stepBackground: "Fondo",
-    stepPose: "Pose",
-    stepBodyType: "Tipo de cuerpo",
-    stepScene: "Escena",
-    stepGenerate: "Generar",
-    modelNewborn: "Bebé recién nacido",
-    modelBoy: "Niño",
-    modelGirl: "Niña",
-    modelMan: "Hombre",
-    modelWoman: "Mujer",
-    // nav
-    next: "Siguiente",
-    back: "Atrás",
-    stepOf: (cur: number, total: number) => `Paso ${cur} de ${total}`,
-    previous: "← Anterior",
-    following: "Siguiente →",
-    pageXofY: (p: number, total: number) => `Página ${p} / ${total}`,
-    // upload
-    uploadTitle: "1) Subí fotos",
-    productPhotosLabel: "Fotos del producto (cuantas más, mejor)",
-    frontRequired: "Delantera (obligatorio)",
-    backOptional: "Espalda (opcional)",
-    takePhoto: "📷 Sacar foto",
-    pickFromGallery: "🖼️ Elegir de galería",
-    missingApiBase: "Falta NEXT_PUBLIC_API_BASE en .env.local",
-    missingApiUrl: "Falta NEXT_PUBLIC_API_URL en .env.local",
-    preview: "Preview",
-    remove: "Quitar",
-    photosLoaded: (n: number) => `${n} foto(s) cargada(s)`,
-    // category
-    categoryTitle: "2) Elegí la categoría",
-    other: "Otro",
-    otherSpecify: "Especificá “Otro” (máx 4 palabras)",
-    words: (n: number, max: number) => `Palabras: ${n} / ${max}`,
-    // pockets
-    pocketsTitle: "3) ¿Tiene bolsillos?",
-    yes: "Sí",
-    no: "No",
-    // measures
-    measuresTitle: "4) Medidas (opcional)",
-    measuresHint: "Podés poner cm. Ej: 52cm",
-    // model/ethnicity/age/pose/bodyType
-    modelTitle: "5) Tipo de modelo",
-    ethnicityTitle: "6) Etnia",
-    ageTitle: "7) Edad",
-    chooseModelFirst: "Elegí primero el modelo",
-    poseTitle: "9) Pose",
-    bodyTypeTitle: "Tipo de cuerpo",
-
-    // face
-    faceTitle: "Rostro (opcional)",
-    faceHint1: "✅ Si subís el rostro, se intentará mantener el mismo rostro en todas las fotos.",
-    faceHint2: "⚠️ Si NO lo subís, se pueden generar rostros diferentes en cada imagen.",
-    takeFacePhoto: "📷 Sacar foto (rostro)",
-    pickFaceGallery: "🖼️ Elegir de galería (rostro)",
-    genFace: "✨ Generar rostro",
-    genFaceLoading: "Generando rostro...",
-    missingDataForFace: "Elegí tipo de modelo, etnia y edad antes de generar el rostro.",
-
-    // background / scene
-    backgroundTitle: "8) Fondo (máx 10 palabras)",
-    helpChoosePlace: "Ayudame a elegir",
-    searching: "Buscando...",
-    sceneTitle: "Escena del producto (máx 10 palabras)",
-    helpChoose: "Ayudame a elegir",
-
-    // generate
-    generateTitle: "11) Generar imágenes",
-    summary: "Resumen",
-    uploadedPhotos: "Fotos cargadas",
-    viewsToGenerate: "¿Qué vistas querés generar?",
-    creditsToConsume: (n: number) => `Créditos a consumir: ${n}`,
-    generate: (n: number) => `Generar (${n} crédito${n > 1 ? "s" : ""})`,
-    chooseAtLeastOneView: "Elegí al menos 1 vista",
-    insufficientCredits: (n: number) => `Créditos insuficientes (${n})`,
-    generating: "Generando...",
-    result: "Resultado",
-    download: "⬇️ Descargar",
-    redo: "🔁 Rehacer (1 crédito)",
-    noCreditsRedo: "Sin créditos (1)",
-    redoing: (sec: number) => `Rehaciendo... (${sec}s)`,
-
-    // views model
-    vFront: "Frente Completo",
-    vBack: "Espalda Completo",
-    vSide: "Costado Completo",
-    vFrontDetail: "Detalle Frente",
-    vBackDetail: "Detalle Espalda",
-    vPantFrontDetail: "Detalle Pantalón Frente",
-    vPantBackDetail: "Detalle Pantalón Espalda",
-    vPantSideDetail: "Detalle Pantalón Costado",
-
-    // views product
-    pFront: "Toma principal",
-    pBack: "Ángulo alternativo",
-    pLeft: "Detalle cercano",
-    pRight: "Otro ángulo",
-
-    // overlay
-    regenOverlayTitle: "🔁 Rehaciendo imagen…",
-    regenOverlayHint: "No cierres ni recargues la página.",
-
-    // topup
-    topupOk: "✅ Créditos agregados correctamente",
-    topupFail: "❌ El pago fue rechazado",
-
-    // history
-    history: "Historial de movimientos",
-    packEntrepreneur: "🚀 Paquete Emprendedor — 50 créditos / $75.000",
-    packPyme: "🏢 Paquete PyME — 100 créditos / $150.000",
-    packEnterprise: "📈 Paquete Empresa — 200 créditos / $300.000",
-    noMovements: "Sin movimientos",
-    date: "Fecha",
-    movement: "Movimiento",
-    amount: "Cantidad",
-    expired: "Expirado",
-    purchase: "Compra",
-    refund: "Reintegro",
-    grant: "Bonificación",
-    consumeModel: "📸 Consumo",
-    consumeProduct: "⚛️ Consumo",
-    consumeGeneric: "Consumo",
-
-    // validations
-    errUploadFront: "Subí la foto Delantera (obligatorio).",
-    errUploadProduct: "Subí al menos 1 foto del producto.",
-    errChooseCategory: "Elegí una categoría.",
-    errOtherMissing: "Completá 'Otro' (máx 4 palabras).",
-    errOtherTooLong: "'Otro' debe tener máximo 4 palabras.",
-    errPockets: "Indicá si tiene bolsillos (si/no).",
-    errSceneMissing: "Escribí la escena (máx 10 palabras).",
-    errSceneTooLong: "La escena debe tener máximo 10 palabras.",
-    errModel: "Elegí el tipo de modelo.",
-    errEthnicity: "Elegí la etnia.",
-    errAge: "Elegí la edad.",
-    errPose: "Elegí la pose.",
-    errBodyType: "Elegí el tipo de cuerpo.",
-    errBgMissing: "Escribí el fondo (máx 10 palabras).",
-    errBgTooLong: "El fondo debe tener máximo 10 palabras.",
-    topupOkMsg: "✅ Créditos agregados correctamente",
-    topupFailMsg: "❌ El pago fue rechazado",
-    processing: "Procesando...",
-    buyCreditsBtn: "💳 Comprar créditos",
-    logoutBtn: "🚪 Cerrar sesión",
-    loadingInline: "Cargando...",
-    viewsToGenerateModel: "¿Qué vistas querés generar?",
-    sceneLabel: "Escena",
-    prevPage: "← Anterior",
-    nextPage: "Siguiente →",
-    // misc
-    bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 Bonus de 3 créditos — expira en ${hh}:${mm}:${ss}`,
-    whatsapp: "WhatsApp",
-    whatsappPrefill: "Hola, quiero ayuda con el generador",
-  },
-
-  en: {
-    title: "Fotonine | AI Generator",
-    subtitle: "Choose the type of image you want to generate",
-    signIn: "Sign in",
-    signInHint: "Sign in with Google to use the generator",
-    logout: "Log out",
-    bgPlaceholder: 'e.g. "gray studio with soft light"',
-    credits: "Credits",
-    scenePlaceholder: 'e.g. "hung on a wooden hanger", "on wet sand"',
-    otherExample: "e.g. Shirt, Blouse, Necklace, Cap, etc",
-    catTop: "Top / T-shirt",
-    catOuterwear: "Jacket / Coat / Hoodie",
-    catBottom: "Pants / Shorts / Skirt",
-    catDress: "Dress / Jumpsuit",
-    catSet: "Set",
-    catSwim: "Swimwear",
-    catBody: "Bodysuit",
-    catOther: "Other",
-    ethCaucasian: "Caucasian",
-    ethLatino: "Latino",
-    ethAsian: "Asian",
-    ethBlack: "Black",
-    ethMediterranean: "Mediterranean",
-    age_0_2: "0 to 2 years",
-age_3_6: "3 to 6 years",
-age_6_10: "6 to 10 years",
-age_10_16: "10 to 16 years",
-age_18_24: "18 to 24 years",
-age_25_34: "25 to 34 years",
-age_35_44: "35 to 44 years",
-m_hombros: "Shoulders",
-m_pecho: "Chest",
-m_manga: "Sleeve",
-m_cintura: "Waist",
-m_cadera: "Hips",
-m_largo: "Length",
-exampleCm: "e.g. 52cm",
-    poseSitting: "Sitting",
-    poseStanding: "Standing",
-    poseWalking: "Walking",
-    buyCredits: "Buy credits",
-    bodyStandard: "Standard",
-    bodyPlus: "Plus Size",
-    loading: "Loading...",
-    modeModel: "📸Model photo",
-    modeProduct: "⚛️Product photo",
-    stepUpload: "Upload photos",
-    stepCategory: "Category",
-    stepPockets: "Pockets",
-    stepMeasures: "Measurements (optional)",
-    stepModel: "Model",
-    stepEthnicity: "Ethnicity",
-    missingApiBase: "Missing NEXT_PUBLIC_API_BASE in .env.local",
-    missingApiUrl: "Missing NEXT_PUBLIC_API_URL in .env.local",
-    stepAge: "Age",
-    stepFace: "Face (optional)",
-    stepBackground: "Background",
-    stepPose: "Pose",
-    stepBodyType: "Body type",
-    stepScene: "Scene",
-    stepGenerate: "Generate",
-    modelNewborn: "Newborn baby",
-    modelBoy: "Boy",
-    modelGirl: "Girl",
-    modelMan: "Man",
-    modelWoman: "Woman",
-    next: "Next",
-    back: "Back",
-    stepOf: (cur: number, total: number) => `Step ${cur} of ${total}`,
-    previous: "← Previous",
-    following: "Next →",
-    pageXofY: (p: number, total: number) => `Page ${p} / ${total}`,
-    uploadTitle: "1) Upload photos",
-    productPhotosLabel: "Product photos (the more, the better)",
-    frontRequired: "Front (required)",
-    backOptional: "Back (optional)",
-    takePhoto: "📷 Take photo",
-    pickFromGallery: "🖼️ Choose from gallery",
-    preview: "Preview",
-    remove: "Remove",
-    photosLoaded: (n: number) => `${n} photo(s) uploaded`,
-    categoryTitle: "2) Choose the category",
-    other: "Other",
-    otherSpecify: "Specify “Other” (max 4 words)",
-    words: (n: number, max: number) => `Words: ${n} / ${max}`,
-    pocketsTitle: "3) Does it have pockets?",
-    yes: "Yes",
-    no: "No",
-    measuresTitle: "4) Measurements (optional)",
-    measuresHint: "You can use cm. Example: 52cm",
-    modelTitle: "5) Model type",
-    ethnicityTitle: "6) Ethnicity",
-    ageTitle: "7) Age",
-    chooseModelFirst: "Choose the model first",
-    poseTitle: "9) Pose",
-    bodyTypeTitle: "Body type",
-    faceTitle: "Face (optional)",
-    faceHint1: "✅ If you upload a face, we’ll try to keep the same face across all images.",
-    faceHint2: "⚠️ If you don’t, faces may differ between images.",
-    takeFacePhoto: "📷 Take face photo",
-    pickFaceGallery: "🖼️ Choose face photo",
-    genFace: "✨ Generate face",
-    genFaceLoading: "Generating face...",
-    missingDataForFace: "Pick model type, ethnicity and age before generating the face.",
-    backgroundTitle: "8) Background (max 10 words)",
-    helpChoosePlace: "Help me pick",
-    searching: "Searching...",
-    sceneTitle: "Product scene (max 10 words)",
-    helpChoose: "Help me pick",
-    generateTitle: "11) Generate images",
-    summary: "Summary",
-    uploadedPhotos: "Uploaded photos",
-    viewsToGenerate: "Which views do you want to generate?",
-    creditsToConsume: (n: number) => `Credits to spend: ${n}`,
-    generate: (n: number) => `Generate (${n} credit${n > 1 ? "s" : ""})`,
-    chooseAtLeastOneView: "Pick at least 1 view",
-    insufficientCredits: (n: number) => `Not enough credits (${n})`,
-    generating: "Generating...",
-    result: "Result",
-    download: "⬇️ Download",
-    redo: "🔁 Redo (1 credit)",
-    noCreditsRedo: "No credits (1)",
-    redoing: (sec: number) => `Redoing... (${sec}s)`,
-    vFront: "Full Front",
-    vBack: "Full Back",
-    vSide: "Full Side",
-    vFrontDetail: "Front Detail",
-    vBackDetail: "Back Detail",
-    vPantFrontDetail: "Pants Front Detail",
-    vPantBackDetail: "Pants Back Detail",
-    vPantSideDetail: "Pants Side Detail",
-    pFront: "Main shot",
-    pBack: "Alternate angle",
-    pLeft: "Close-up detail",
-    pRight: "Another angle",
-    regenOverlayTitle: "🔁 Redoing image…",
-    regenOverlayHint: "Don’t close or refresh the page.",
-    topupOk: "✅ Credits added successfully",
-    topupFail: "❌ Payment was rejected",
-    history: "Transaction history",
-    noMovements: "No transactions",
-    date: "Date",
-    movement: "Type",
-    amount: "Amount",
-    expired: "Expired",
-    purchase: "Purchase",
-    refund: "Refund",
-    grant: "Bonus",
-    consumeModel: "📸 Usage",
-    consumeProduct: "⚛️ Usage",
-    consumeGeneric: "Usage",
-    topupOkMsg: "✅ Credits added successfully",
-    topupFailMsg: "❌ Payment was rejected",
-    processing: "Processing...",
-    buyCreditsBtn: "💳 Buy credits",
-    logoutBtn: "🚪 Log out",
-    loadingInline: "Loading...",
-    viewsToGenerateModel: "Which views do you want to generate?",
-    sceneLabel: "Scene",
-    prevPage: "← Previous",
-    nextPage: "Next →",
-    errUploadFront: "Upload the Front photo (required).",
-    packEntrepreneur: "🚀 Entrepreneur Pack — 50 credits / $75,000",
-    packPyme: "🏢 SME Pack — 100 credits / $150,000",
-    packEnterprise: "📈 Enterprise Pack — 200 credits / $300,000",
-    errUploadProduct: "Upload at least 1 product photo.",
-    errChooseCategory: "Choose a category.",
-    errOtherMissing: "Fill in 'Other' (max 4 words).",
-    errOtherTooLong: "'Other' must be max 4 words.",
-    errPockets: "Select pockets (yes/no).",
-    errSceneMissing: "Write the scene (max 10 words).",
-    errSceneTooLong: "Scene must be max 10 words.",
-    errModel: "Choose the model type.",
-    errEthnicity: "Choose the ethnicity.",
-    errAge: "Choose the age.",
-    errPose: "Choose the pose.",
-    errBodyType: "Choose the body type.",
-    errBgMissing: "Write the background (max 10 words).",
-    errBgTooLong: "Background must be max 10 words.",
-    bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3-credit bonus — expires in ${hh}:${mm}:${ss}`,
-    whatsapp: "WhatsApp",
-    whatsappPrefill: "Hi, I need help with the generator",
-  },
-
- pt: {
-  // header / auth
-  title: "Fotonine | Gerador IA",
-  subtitle: "Escolha o tipo de imagem que você quer gerar",
-  signIn: "Entrar",
-  signInHint: "Entre com sua conta Google para usar o gerador",
-  logout: "Sair",
-  credits: "Créditos",
-  scenePlaceholder: 'Ex: "pendurado em cabide de madeira", "na areia úmida"',
-  otherExample: "Ex: Camisa, Blusa, Colar, Boné, etc",
-  bgPlaceholder: 'Ex: "estúdio cinza com luz suave"',
-  buyCredits: "Comprar créditos",
-  loading: "Carregando...",
-  processing: "Processando...",
-  poseSitting: "Sentado/a",
-  poseStanding: "Em pé",
-  poseWalking: "Caminhando",
-  // modes
-  modeModel: "📸 Foto com modelo",
-  modeProduct: "⚛️ Foto do produto",  
-  ethCaucasian: "Caucasiano/a", 
-  ethLatino: "Latino/a",  
-  ethAsian: "Asiático/a", 
-  ethBlack: "Negro/a",
-  ethMediterranean: "Mediterrâneo/a",
-  bodyStandard: "Padrão",
-  bodyPlus: "Plus Size",
-  age_0_2: "0 a 2 anos",
-age_3_6: "3 a 6 anos",
-age_6_10: "6 a 10 anos",
-age_10_16: "10 a 16 anos",
-age_18_24: "18 a 24 anos",
-age_25_34: "25 a 34 anos",
-age_35_44: "35 a 44 anos",
-m_hombros: "Ombros",
-m_pecho: "Peito",
-m_manga: "Manga",
-m_cintura: "Cintura",
-m_cadera: "Quadril",
-m_largo: "Comprimento",
-exampleCm: "Ex: 52cm",
-  // steps titles
-  stepUpload: "Enviar fotos",
-  stepCategory: "Categoria",
-  stepPockets: "Bolsos",
-  stepMeasures: "Medidas (opcional)",
-  stepModel: "Modelo",
-  stepEthnicity: "Etnia",
-  stepAge: "Idade",
-  stepFace: "Rosto (opcional)",
-  stepBackground: "Fundo",
-  stepPose: "Pose",
-  stepBodyType: "Tipo de corpo",
-  stepScene: "Cena",
-  stepGenerate: "Gerar",
-
-  // nav
-  next: "Próximo",
-  back: "Voltar",
-  stepOf: (cur: number, total: number) => `Passo ${cur} de ${total}`,
-  previous: "← Anterior",
-  following: "Próximo →",
-  pageXofY: (p: number, total: number) => `Página ${p} / ${total}`,
-
-  // upload
-  uploadTitle: "1) Envie fotos",
-  productPhotosLabel: "Fotos do produto (quanto mais, melhor)",
-  frontRequired: "Frente (obrigatório)",
-  backOptional: "Costas (opcional)",
-  takePhoto: "📷 Tirar foto",
-  pickFromGallery: "🖼️ Escolher da galeria",
-  preview: "Prévia",
-  remove: "Remover",
-  photosLoaded: (n: number) => `${n} foto(s) enviada(s)`,
-
-  // category
-  categoryTitle: "2) Escolha a categoria",
-  other: "Outro",
-  otherSpecify: "Especifique “Outro” (máx. 4 palavras)",
-  words: (n: number, max: number) => `Palavras: ${n} / ${max}`,
-
-  // pockets
-  pocketsTitle: "3) Tem bolsos?",
-  yes: "Sim",
-  no: "Não",
-
-  // measures
-  measuresTitle: "4) Medidas (opcional)",
-  measuresHint: "Você pode usar cm. Ex: 52cm",
-
-  // model/ethnicity/age/pose/bodyType
-  modelTitle: "5) Tipo de modelo",
-  ethnicityTitle: "6) Etnia",
-  ageTitle: "7) Idade",
-  chooseModelFirst: "Escolha o modelo primeiro",
-  poseTitle: "9) Pose",
-  bodyTypeTitle: "Tipo de corpo",
-  modelNewborn: "Bebê recém-nascido",
-  modelBoy: "Menino",
-  modelGirl: "Menina",
-  modelMan: "Homem",
-  modelWoman: "Mulher",
-  // face
-  faceTitle: "Rosto (opcional)",
-  faceHint1: "✅ Se você enviar o rosto, tentaremos manter o mesmo rosto em todas as fotos.",
-  faceHint2: "⚠️ Se você NÃO enviar, os rostos podem variar entre as imagens.",
-  takeFacePhoto: "📷 Tirar foto (rosto)",
-  pickFaceGallery: "🖼️ Escolher da galeria (rosto)",
-  genFace: "✨ Gerar rosto",
-  genFaceLoading: "Gerando rosto...",
-  missingDataForFace: "Escolha tipo de modelo, etnia e idade antes de gerar o rosto.",
-
-  // background / scene
-  backgroundTitle: "8) Fundo (máx. 10 palavras)",
-  helpChoosePlace: "Me ajude a escolher",
-  searching: "Buscando...",
-  sceneTitle: "Cena do produto (máx. 10 palavras)",
-  helpChoose: "Me ajude a escolher",
-
-  // generate
-  generateTitle: "11) Gerar imagens",
-  summary: "Resumo",
-  uploadedPhotos: "Fotos enviadas",
-  viewsToGenerate: "Quais vistas você quer gerar?",
-  creditsToConsume: (n: number) => `Créditos a consumir: ${n}`,
-  generate: (n: number) => `Gerar (${n} crédito${n > 1 ? "s" : ""})`,
-  chooseAtLeastOneView: "Escolha pelo menos 1 vista",
-  insufficientCredits: (n: number) => `Créditos insuficientes (${n})`,
-  generating: "Gerando...",
-  result: "Resultado",
-  download: "⬇️ Baixar",
-  redo: "🔁 Refazer (1 crédito)",
-  noCreditsRedo: "Sem créditos (1)",
-  redoing: (sec: number) => `Refazendo... (${sec}s)`,
-
-  // views model
-  vFront: "Frente (corpo inteiro)",
-  vBack: "Costas (corpo inteiro)",
-  vSide: "Lado (corpo inteiro)",
-  vFrontDetail: "Detalhe frontal",
-  vBackDetail: "Detalhe traseiro",
-  vPantFrontDetail: "Detalhe calça (frente)",
-  vPantBackDetail: "Detalhe calça (costas)",
-  vPantSideDetail: "Detalhe calça (lado)",
-
-  // views product
-  pFront: "Foto principal",
-  pBack: "Ângulo alternativo",
-  pLeft: "Detalhe de perto",
-  pRight: "Outro ângulo",
-
-  // overlay
-  regenOverlayTitle: "🔁 Refazendo imagem…",
-  regenOverlayHint: "Não feche nem recarregue a página.",
-
-  // topup
-  topupOk: "✅ Créditos adicionados com sucesso",
-  topupFail: "❌ Pagamento rejeitado",
-
-  // history
-  history: "Histórico de movimentos",
-  packEntrepreneur: "🚀 Pacote Empreendedor — 50 créditos / $75.000",
-  packPyme: "🏢 Pacote PyME — 100 créditos / $150.000",
-  packEnterprise: "📈 Pacote Empresa — 200 créditos / $300.000",
-  noMovements: "Sem movimentos",
-  date: "Data",
-  movement: "Movimento",
-  amount: "Quantidade",
-  expired: "Expirado",
-  purchase: "Compra",
-  refund: "Reembolso",
-  grant: "Bônus",
-  consumeModel: "📸 Uso",
-  consumeProduct: "⚛️ Uso",
-  consumeGeneric: "Uso",
-
-  // validations
-  catTop: "Camiseta / Top",
-  catOuterwear: "Jaqueta / Casaco / Moletom",
-  catBottom: "Calça / Short / Saia",
-  catDress: "Vestido / Macacão",
-  catSet: "Conjunto",
-  catSwim: "Moda praia",
-  catBody: "Body",
-  catOther: "Outro",
-  errUploadFront: "Envie a foto da Frente (obrigatório).",
-  errUploadProduct: "Envie pelo menos 1 foto do produto.",
-  errChooseCategory: "Escolha uma categoria.",
-  errOtherMissing: "Preencha 'Outro' (máx. 4 palavras).",
-  errOtherTooLong: "'Outro' deve ter no máximo 4 palavras.",
-  errPockets: "Indique se tem bolsos (sim/não).",
-  errSceneMissing: "Escreva a cena (máx. 10 palavras).",
-  errSceneTooLong: "A cena deve ter no máximo 10 palavras.",
-  errModel: "Escolha o tipo de modelo.",
-  errEthnicity: "Escolha a etnia.",
-  errAge: "Escolha a idade.",
-  errPose: "Escolha a pose.",
-  errBodyType: "Escolha o tipo de corpo.",
-  errBgMissing: "Escreva o fundo (máx. 10 palavras).",
-  errBgTooLong: "O fundo deve ter no máximo 10 palavras.",
-
-  // misc
-  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 Bônus de 3 créditos — expira em ${hh}:${mm}:${ss}`,
-  whatsapp: "WhatsApp",
-  whatsappPrefill: "Olá, preciso de ajuda com o gerador",
-  missingApiBase: "Missing NEXT_PUBLIC_API_BASE in .env.local",
-  missingApiUrl: "Missing NEXT_PUBLIC_API_URL in .env.local",
-} as any,
-
-ko: {
-  title: "Fotonine | AI 생성기",
-  subtitle: "생성할 이미지 유형을 선택하세요",
-  signIn: "로그인",
-  signInHint: "Google 계정으로 로그인해 생성기를 사용하세요",
-  logout: "로그아웃",
-  credits: "크레딧",
-  scenePlaceholder: '예: "나무 옷걸이에 걸린", "젖은 모래 위"',
-  otherExample: "예: 셔츠, 블라우스, 목걸이, 모자 등",
-  bgPlaceholder: '예: "부드러운 조명이 있는 회색 스튜디오"',
-  buyCredits: "크레딧 구매",
-  loading: "로딩 중...",
-  processing: "처리 중...",
-  ethCaucasian: "백인",
-  ethLatino: "라틴계",
-  ethAsian: "아시아계",
-  ethBlack: "흑인",
-  ethMediterranean: "지중해계",
-  modeModel: "📸 모델 사진",
-  modeProduct: "⚛️ 제품 사진",
-  catTop: "상의",
-  catOuterwear: "아우터",
-  catBottom: "하의",
-  catDress: "원피스/점프수트",
-  catSet: "세트",
-  catSwim: "수영복",
-  catBody: "바디수트",
-  catOther: "기타",
-  poseSitting: "앉아 있음",
-  poseStanding: "서 있음",
-  poseWalking: "걷는 중",
-  bodyStandard: "표준 체형",
-  bodyPlus: "플러스 사이즈",
-  age_0_2: "0~2세",
-age_3_6: "3~6세",
-age_6_10: "6~10세",
-age_10_16: "10~16세",
-age_18_24: "18~24세",
-age_25_34: "25~34세",
-age_35_44: "35~44세",
-m_hombros: "어깨",
-m_pecho: "가슴",
-m_manga: "소매",
-m_cintura: "허리",
-m_cadera: "엉덩이",
-m_largo: "길이",
-exampleCm: "예: 52cm",
-  stepUpload: "사진 업로드",
-  stepCategory: "카테고리",
-  stepPockets: "주머니",
-  stepMeasures: "치수(선택)",
-  stepModel: "모델",
-  stepEthnicity: "인종/피부톤",
-  stepAge: "나이",
-  stepFace: "얼굴(선택)",
-  stepBackground: "배경",
-  stepPose: "포즈",
-  stepBodyType: "체형",
-  stepScene: "장면",
-  stepGenerate: "생성",
-
-  next: "다음",
-  back: "뒤로",
-  stepOf: (cur: number, total: number) => `단계 ${cur} / ${total}`,
-  previous: "← 이전",
-  following: "다음 →",
-  pageXofY: (p: number, total: number) => `페이지 ${p} / ${total}`,
-
-  uploadTitle: "1) 사진 업로드",
-  productPhotosLabel: "제품 사진(많을수록 좋아요)",
-  frontRequired: "정면(필수)",
-  backOptional: "후면(선택)",
-  takePhoto: "📷 사진 찍기",
-  pickFromGallery: "🖼️ 갤러리에서 선택",
-  preview: "미리보기",
-  remove: "삭제",
-  photosLoaded: (n: number) => `${n}장 업로드됨`,
-
-  categoryTitle: "2) 카테고리 선택",
-  other: "기타",
-  otherSpecify: "“기타”를 입력하세요(최대 4단어)",
-  words: (n: number, max: number) => `단어: ${n} / ${max}`,
-
-  pocketsTitle: "3) 주머니가 있나요?",
-  yes: "예",
-  no: "아니오",
-
-  measuresTitle: "4) 치수(선택)",
-  measuresHint: "cm 사용 가능. 예: 52cm",
-
-  modelTitle: "5) 모델 유형",
-  ethnicityTitle: "6) 인종/피부톤",
-  ageTitle: "7) 나이",
-  chooseModelFirst: "먼저 모델을 선택하세요",
-  poseTitle: "9) 포즈",
-  bodyTypeTitle: "체형",
-  modelNewborn: "신생아",
-  modelBoy: "남자아이",
-  modelGirl: "여자아이",
-  modelMan: "남성",
-  modelWoman: "여성",
-
-  faceTitle: "얼굴(선택)",
-  faceHint1: "✅ 얼굴을 업로드하면 모든 이미지에서 같은 얼굴을 유지하려고 합니다.",
-  faceHint2: "⚠️ 업로드하지 않으면 이미지마다 얼굴이 달라질 수 있습니다.",
-  takeFacePhoto: "📷 얼굴 사진 찍기",
-  pickFaceGallery: "🖼️ 얼굴 사진 선택",
-  genFace: "✨ 얼굴 생성",
-  genFaceLoading: "얼굴 생성 중...",
-  missingDataForFace: "얼굴 생성 전에 모델/인종/나이를 선택하세요.",
-
-  backgroundTitle: "8) 배경(최대 10단어)",
-  helpChoosePlace: "추천 받기",
-  searching: "검색 중...",
-  sceneTitle: "제품 장면(최대 10단어)",
-  helpChoose: "추천 받기",
-
-  generateTitle: "11) 이미지 생성",
-  summary: "요약",
-  uploadedPhotos: "업로드한 사진",
-  viewsToGenerate: "어떤 뷰를 생성할까요?",
-  creditsToConsume: (n: number) => `사용 크레딧: ${n}`,
-  generate: (n: number) => `생성 (${n} 크레딧)`,
-  chooseAtLeastOneView: "최소 1개 뷰를 선택하세요",
-  insufficientCredits: (n: number) => `크레딧이 부족합니다 (${n})`,
-  generating: "생성 중...",
-  result: "결과",
-  download: "⬇️ 다운로드",
-  redo: "🔁 다시 생성 (1 크레딧)",
-  noCreditsRedo: "크레딧 없음 (1)",
-  redoing: (sec: number) => `다시 생성 중... (${sec}s)`,
-
-  vFront: "정면 전체",
-  vBack: "후면 전체",
-  vSide: "측면 전체",
-  vFrontDetail: "정면 디테일",
-  vBackDetail: "후면 디테일",
-  vPantFrontDetail: "바지 디테일(정면)",
-  vPantBackDetail: "바지 디테일(후면)",
-  vPantSideDetail: "바지 디테일(측면)",
-
-  pFront: "메인 샷",
-  pBack: "대체 각도",
-  pLeft: "근접 디테일",
-  pRight: "다른 각도",
-
-  regenOverlayTitle: "🔁 이미지 다시 생성 중…",
-  regenOverlayHint: "페이지를 닫거나 새로고침하지 마세요.",
-
-  topupOk: "✅ 크레딧이 추가되었습니다",
-  topupFail: "❌ 결제가 거절되었습니다",
-
-  history: "거래 내역",
-  packEntrepreneur: "🚀 창업자 패키지 — 50 크레딧 / $75,000",
-  packPyme: "🏢 SME 패키지 — 100 크레딧 / $150,000",
-  packEnterprise: "📈 기업 패키지 — 200 크레딧 / $300,000",
-  noMovements: "내역 없음",
-  date: "날짜",
-  movement: "유형",
-  amount: "수량",
-  expired: "만료됨",
-  purchase: "구매",
-  refund: "환불",
-  grant: "보너스",
-  consumeModel: "📸 사용",
-  consumeProduct: "⚛️ 사용",
-  consumeGeneric: "사용",
-
-  errUploadFront: "정면 사진을 업로드하세요(필수).",
-  errUploadProduct: "제품 사진을 최소 1장 업로드하세요.",
-  errChooseCategory: "카테고리를 선택하세요.",
-  errOtherMissing: "‘기타’를 입력하세요(최대 4단어).",
-  errOtherTooLong: "‘기타’는 최대 4단어입니다.",
-  errPockets: "주머니 여부를 선택하세요(예/아니오).",
-  errSceneMissing: "장면을 입력하세요(최대 10단어).",
-  errSceneTooLong: "장면은 최대 10단어입니다.",
-  errModel: "모델 유형을 선택하세요.",
-  errEthnicity: "인종/피부톤을 선택하세요.",
-  errAge: "나이를 선택하세요.",
-  errPose: "포즈를 선택하세요.",
-  errBodyType: "체형을 선택하세요.",
-  errBgMissing: "배경을 입력하세요(최대 10단어).",
-  errBgTooLong: "배경은 최대 10단어입니다.",
-
-  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3크레딧 보너스 — ${hh}:${mm}:${ss} 후 만료`,
-  whatsapp: "WhatsApp",
-  whatsappPrefill: "안녕하세요, 생성기 도움을 받고 싶어요",
-  missingApiBase: "Missing NEXT_PUBLIC_API_BASE in .env.local",
-  missingApiUrl: "Missing NEXT_PUBLIC_API_URL in .env.local",
-} as any,
-
-zh: {
-  title: "Fotonine | AI 生成器",
-  subtitle: "选择你想生成的图片类型",
-  signIn: "登录",
-  signInHint: "使用 Google 登录以使用生成器",
-  logout: "退出登录",
-  credits: "积分",
-  scenePlaceholder: '例如：“挂在木衣架上”，“在湿沙上”',
-  otherExample: "例如：衬衫、女式上衣、项链、帽子等",
-  bgPlaceholder: '例如："柔和灯光的灰色影棚"',
-  buyCredits: "购买积分",
-  loading: "加载中...",
-  processing: "处理中...",
-  ethCaucasian: "高加索",
-  ethLatino: "拉丁裔",
-  ethAsian: "亚裔",
-  ethBlack: "黑人",
-  ethMediterranean: "地中海裔",
-  modeModel: "📸 模特照片",
-  modeProduct: "⚛️ 产品照片",
-  catTop: "上衣",
-  catOuterwear: "外套",
-  catBottom: "下装",
-  catDress: "连衣裙/连体裤",
-  catSet: "套装",
-  catSwim: "泳装",
-  catBody: "连体衣",
-  catOther: "其他",
-  poseSitting: "坐着",
-  poseStanding: "站立",
-  poseWalking: "行走",
-  bodyStandard: "标准体型",
-  bodyPlus: "加大码",
-  age_0_2: "0-2 岁",
-age_3_6: "3-6 岁",
-age_6_10: "6-10 岁",
-age_10_16: "10-16 岁",
-age_18_24: "18-24 岁",
-age_25_34: "25-34 岁",
-age_35_44: "35-44 岁",
-m_hombros: "肩宽",
-m_pecho: "胸围",
-m_manga: "袖长",
-m_cintura: "腰围",
-m_cadera: "臀围",
-m_largo: "衣长",
-exampleCm: "例如：52cm",
-  stepUpload: "上传照片",
-  stepCategory: "类别",
-  stepPockets: "口袋",
-  stepMeasures: "尺寸（可选）",
-  stepModel: "模特",
-  stepEthnicity: "人种/肤色",
-  stepAge: "年龄",
-  stepFace: "面部（可选）",
-  stepBackground: "背景",
-  stepPose: "姿势",
-  stepBodyType: "体型",
-  stepScene: "场景",
-  stepGenerate: "生成",
-
-  next: "下一步",
-  back: "返回",
-  stepOf: (cur: number, total: number) => `第 ${cur} 步 / 共 ${total} 步`,
-  previous: "← 上一页",
-  following: "下一页 →",
-  pageXofY: (p: number, total: number) => `第 ${p} 页 / 共 ${total} 页`,
-
-  uploadTitle: "1) 上传照片",
-  productPhotosLabel: "产品照片（越多越好）",
-  frontRequired: "正面（必填）",
-  backOptional: "背面（可选）",
-  takePhoto: "📷 拍照",
-  pickFromGallery: "🖼️ 从相册选择",
-  preview: "预览",
-  remove: "移除",
-  photosLoaded: (n: number) => `已上传 ${n} 张照片`,
-
-  categoryTitle: "2) 选择类别",
-  other: "其他",
-  otherSpecify: "请填写“其他”（最多 4 个词）",
-  words: (n: number, max: number) => `词数：${n} / ${max}`,
-
-  pocketsTitle: "3) 有口袋吗？",
-  yes: "有",
-  no: "没有",
-
-  measuresTitle: "4) 尺寸（可选）",
-  measuresHint: "可使用 cm，例如：52cm",
-
-  modelTitle: "5) 模特类型",
-  ethnicityTitle: "6) 人种/肤色",
-  ageTitle: "7) 年龄",
-  chooseModelFirst: "请先选择模特类型",
-  poseTitle: "9) 姿势",
-  bodyTypeTitle: "体型",
-
-  faceTitle: "面部（可选）",
-  faceHint1: "✅ 上传面部后，我们会尽量在所有图片中保持同一张脸。",
-  faceHint2: "⚠️ 若不上传，生成的图片可能会出现不同的脸。",
-  takeFacePhoto: "📷 拍摄面部照片",
-  pickFaceGallery: "🖼️ 选择面部照片",
-  genFace: "✨ 生成面部",
-  genFaceLoading: "正在生成面部...",
-  missingDataForFace: "生成面部前请先选择模特类型、人种/肤色和年龄。",
-
-  backgroundTitle: "8) 背景（最多 10 个词）",
-  helpChoosePlace: "帮我推荐",
-  searching: "搜索中...",
-  sceneTitle: "产品场景（最多 10 个词）",
-  helpChoose: "帮我推荐",
-  modelNewborn: "新生儿",
-  modelBoy: "男孩",
-  modelGirl: "女孩",
-  modelMan: "男",
-  modelWoman: "女",
-  generateTitle: "11) 生成图片",
-  summary: "摘要",
-  uploadedPhotos: "已上传的照片",
-  viewsToGenerate: "你想生成哪些视角？",
-  creditsToConsume: (n: number) => `将消耗积分：${n}`,
-  generate: (n: number) => `生成（${n} 积分）`,
-  chooseAtLeastOneView: "请至少选择 1 个视角",
-  insufficientCredits: (n: number) => `积分不足（${n}）`,
-  generating: "生成中...",
-  result: "结果",
-  download: "⬇️ 下载",
-  redo: "🔁 重新生成（1 积分）",
-  noCreditsRedo: "积分不足（1）",
-  redoing: (sec: number) => `重新生成中...（${sec}s）`,
-
-  vFront: "正面全身",
-  vBack: "背面全身",
-  vSide: "侧面全身",
-  vFrontDetail: "正面细节",
-  vBackDetail: "背面细节",
-  vPantFrontDetail: "裤子细节（正面）",
-  vPantBackDetail: "裤子细节（背面）",
-  vPantSideDetail: "裤子细节（侧面）",
-
-  pFront: "主图",
-  pBack: "替代角度",
-  pLeft: "近景细节",
-  pRight: "其他角度",
-
-  regenOverlayTitle: "🔁 正在重新生成…",
-  regenOverlayHint: "请不要关闭或刷新页面。",
-
-  topupOk: "✅ 积分已成功添加",
-  topupFail: "❌ 支付被拒绝",
-
-  history: "交易记录",
-  packEntrepreneur: "🚀 创业者套餐 — 50 积分 / $75,000",
-  packPyme: "🏢 中小企业套餐 — 100 积分 / $150,000",
-  packEnterprise: "📈 企业套餐 — 200 积分 / $300,000",
-  noMovements: "暂无记录",
-  date: "日期",
-  movement: "类型",
-  amount: "数量",
-  expired: "已过期",
-  purchase: "购买",
-  refund: "退款",
-  grant: "赠送",
-  consumeModel: "📸 使用",
-  consumeProduct: "⚛️ 使用",
-  consumeGeneric: "使用",
-
-  errUploadFront: "请上传正面照片（必填）。",
-  errUploadProduct: "请至少上传 1 张产品照片。",
-  errChooseCategory: "请选择一个类别。",
-  errOtherMissing: "请填写“其他”（最多 4 个词）。",
-  errOtherTooLong: "“其他”最多 4 个词。",
-  errPockets: "请选择是否有口袋（有/没有）。",
-  errSceneMissing: "请输入场景（最多 10 个词）。",
-  errSceneTooLong: "场景最多 10 个词。",
-  errModel: "请选择模特类型。",
-  errEthnicity: "请选择人种/肤色。",
-  errAge: "请选择年龄。",
-  errPose: "请选择姿势。",
-  errBodyType: "请选择体型。",
-  errBgMissing: "请输入背景（最多 10 个词）。",
-  errBgTooLong: "背景最多 10 个词。",
-
-  bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3 积分奖励 — 将在 ${hh}:${mm}:${ss} 后过期`,
-  whatsapp: "WhatsApp",
-  whatsappPrefill: "你好，我需要生成器的帮助",
-  missingApiBase: "Missing NEXT_PUBLIC_API_BASE in .env.local",
-  missingApiUrl: "Missing NEXT_PUBLIC_API_URL in .env.local",
-} as any,
-} as const;
 
 
   function handleLogout() {
@@ -1359,7 +371,7 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-
+  const [failedViews, setFailedViews] = useState<string[]>([]);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
  const isRegenBusy = useMemo(
@@ -1894,7 +906,8 @@ const res = await fetch(`${API}/suggest-background`, {
   async function handleGenerate() {
   setError(null);
   setResult(null);
-
+  setFailedViews([]);
+  
   if (!API) return setError(t("missingApiBase"));
 
   // Validaciones
@@ -1978,6 +991,8 @@ const res = await fetch(`${API}/suggest-background`, {
       setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
       return;
     }
+    const failed = Array.isArray(data?.failedViews) ? data.failedViews : [];
+setFailedViews(failed);
 
     let urls: string[] = [];
     if (Array.isArray(data?.imageUrls)) urls = data.imageUrls;
@@ -2725,7 +1740,33 @@ const res = await fetch(`${API}/suggest-background`, {
       case "generate":
         return (
           <>
-            <FieldTitle>{t("generateTitle")}</FieldTitle>
+            <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 12,
+  }}
+>
+  <FieldTitle>{t("generateTitle")}</FieldTitle>
+
+  <div
+    style={{
+      background: "rgba(251,191,36,0.15)",
+      border: "1px solid rgba(251,191,36,0.4)",
+      color: "#facc15",
+      padding: "6px 10px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 800,
+      maxWidth: 360,
+    }}
+  >
+    ⚠ {t("viewsDisclaimer")}
+  </div>
+</div>
 
             <div style={styles.summaryCard}>
               <div style={styles.summaryTitle}>{t("summary")}</div>
@@ -2891,7 +1932,45 @@ const res = await fetch(`${API}/suggest-background`, {
   ? t("insufficientCredits", selectedCount)
   : t("generate", selectedCount)}
             </Button>
-
+{failedViews.length > 0 && (
+  <div style={styles.inlineWarn}>
+    ⚠️ No se pudieron generar estas vistas:{" "}
+    <b>
+      {failedViews
+        .map((k) =>
+          mode === "product"
+            ? k === "front"
+              ? t("pFront")
+              : k === "back"
+              ? t("pBack")
+              : k === "left"
+              ? t("pLeft")
+              : k === "right"
+              ? t("pRight")
+              : k
+            : k === "front"
+            ? t("vFront")
+            : k === "back"
+            ? t("vBack")
+            : k === "side"
+            ? t("vSide")
+            : k === "frontDetail"
+            ? t("vFrontDetail")
+            : k === "backDetail"
+            ? t("vBackDetail")
+            : k === "pantFrontDetail"
+            ? t("vPantFrontDetail")
+            : k === "pantBackDetail"
+            ? t("vPantBackDetail")
+            : k === "pantSideDetail"
+            ? t("vPantSideDetail")
+            : k
+        )
+        .join(", ")}
+    </b>
+    . Se devolvieron los créditos de las vistas fallidas. Podés volver a generarlas.
+  </div>
+)}
             {result && (
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontWeight: 700, marginBottom: 10 }}>
