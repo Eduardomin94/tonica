@@ -556,7 +556,7 @@ return !frontFile ? t("errUploadFront") : null;
 
     if (key === "scene") {
   if (!scene.trim()) return t("errSceneMissing");
-  if (wordCount(scene) > 10) return t("errSceneTooLong");
+  if (wordCount(scene) > 100) return t("errSceneTooLong");
   return null;
 }
 
@@ -568,7 +568,7 @@ return !frontFile ? t("errUploadFront") : null;
 
     if (key === "background") {
   if (!background.trim()) return t("errBgMissing");
-  if (wordCount(background) > 10) return t("errBgTooLong");
+  if (wordCount(background) > 100) return t("errBgTooLong");
   return null;
 }
 
@@ -633,8 +633,8 @@ return !frontFile ? t("errUploadFront") : null;
           break;
 
           case 8:
-          if (!background.trim() || wordCount(background) > 10) return setStep(8);
-          break;
+  if (!background.trim() || wordCount(background) > 100) return setStep(8);
+  break;
 
         case 9:
           if (!pose) return setStep(9);
@@ -975,7 +975,7 @@ const queueTimer = window.setTimeout(() => {
       setStep(1);
       return setError(t("errSceneMissing"));
     }
-    if (wordCount(scene) > 10) {
+    if (wordCount(scene) > 100) {
       setStep(1);
       return setError(t("errSceneTooLong"));
     }
@@ -1686,7 +1686,7 @@ setFaceFile(file);
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>
-  {t("words", wordCount(background), 10)}
+  {t("words", wordCount(background), 100)}
 </SmallMuted>
               <Button variant="secondary" onClick={handleSuggestBackground} disabled={helpLoading || !category || !modelType}>
                 {helpLoading ? t("searching") : t("helpChoosePlace")}
@@ -1746,7 +1746,7 @@ setFaceFile(file);
 />
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
-              <SmallMuted>{t("words", wordCount(scene), 10)}</SmallMuted>
+              <SmallMuted>{t("words", wordCount(scene), 100)}</SmallMuted>
 
               <Button
                 variant="secondary"
@@ -2998,6 +2998,46 @@ const label =
 </button>
             </form>
           </div>
+               </div>
+
+        {/* ===== FOOTER CREDITOS ===== */}
+        <div
+          style={{
+            marginTop: 60,
+            paddingTop: 30,
+            borderTop: "1px solid rgba(255,255,255,0.15)",
+            textAlign: "center",
+            fontSize: 13,
+            color: "rgba(255,255,255,0.75)",
+            fontWeight: 600,
+          }}
+        >
+          {t("footerDevelopedBy")}{" "}
+          <a
+            href="https://tonicaespecial.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#a78bfa",
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            Tonicaespecial
+          </a>{" "}
+          {t("footerAnd")}{" "}
+          <a
+            href="https://www.instagram.com/stcerocuatro/?hl=es"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#22d3ee",
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            @stcerocuatro
+          </a>
         </div>
 
       </div>
