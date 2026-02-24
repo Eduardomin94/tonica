@@ -133,25 +133,22 @@ app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
     ]
   : [];
 
-    const transporter = makeTransporter();
+const resend = makeTransporter();
 
-    await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
-      to: process.env.ADMIN_EMAIL,
-      replyTo: email,
-      subject: "📩 Nuevo mensaje desde formulario",
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height:1.4">
-          <h2 style="margin:0 0 10px">Nuevo mensaje de usuario</h2>
-          <p style="margin:0 0 6px"><b>Email:</b> ${escapeHtml(email)}</p>
-          <p style="margin:10px 0 6px"><b>Mensaje:</b></p>
-          <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px;margin:0">${escapeHtml(
-            message
-          )}</pre>
-        </div>
-      `,
-      attachments,
-    });
+await resend.emails.send({
+  from: process.env.FROM_EMAIL,
+  to: process.env.ADMIN_EMAIL,
+  subject: "📩 Nuevo mensaje desde formulario",
+  reply_to: email, // ✅ para responder al usuario
+  html: `
+    <div style="font-family: Arial, sans-serif; line-height:1.4">
+      <h2 style="margin:0 0 10px">Nuevo mensaje de usuario</h2>
+      <p><b>Email:</b> ${email}</p>
+      <p><b>Mensaje:</b></p>
+      <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px">${message}</pre>
+    </div>
+  `,
+});
 
     return res.json({ success: true });
   } catch (err) {

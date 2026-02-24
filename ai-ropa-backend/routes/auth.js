@@ -3,7 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prismaClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-import { sendNewUserEmail } from "../mailer.js";
+import { makeTransporter } from "../mailer.js";
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -110,12 +110,25 @@ newUserNameForMail = name ?? null;
 if (isNewUser) {
   const totalUsers = await prisma.user.count();
 
-  sendNewUserEmail({
-    newUser: { email: newUserEmailForMail, name: newUserNameForMail },
-    totalUsers,
-  }).catch((e) => {
-    console.error("NEW USER EMAIL ERROR:", e);
-  });
+  const resend = makeTransporter();
+
+  resend.emails
+    .send({
+      from: process.env.FROM_EMAIL,
+      to: process.env.ADMIN_EMAIL,
+      subject: `🆕 Nuevo usuario: ${newUserEmailForMail} (Total: ${totalUsers})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height:1.4">
+          <h2 style="margin:0 0 10px">Nuevo usuario registrado</h2>
+          <p style="margin:0 0 6px"><b>Email:</b> ${newUserEmailForMail || "-"}</p>
+          <p style="margin:0 0 6px"><b>Nombre:</b> ${newUserNameForMail || "-"}</p>
+          <p style="margin:0 0 12px"><b>Total de usuarios:</b> ${totalUsers}</p>
+        </div>
+      `,
+    })
+    .catch((e) => {
+      console.error("NEW USER EMAIL ERROR:", e);
+    });
 }
     const accessToken = jwt.sign(
       { sub: user.id },
