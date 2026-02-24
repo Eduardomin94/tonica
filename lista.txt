@@ -1,25 +1,13 @@
 
+
+
+
+
+
+
 Poner abajo de todo Powered by Tonicaespecial/studio04
 
 
-
-
-
-
-
-tiene que poder responderle al mail que el usuario envió
-
-hacer que en el backend no se guarde ninguna imagen para no tener costo de almacenamiento
-
-
-
-
-
-
-
-
-
-
-
+🚀 Comprimir imágenes antes de mandarlas a Gemini (para bajar RAM y latencia)
 
 corrientes, vestido, casa, cena

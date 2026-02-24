@@ -4,13 +4,12 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 import { prisma } from "./prismaClient.js";
-
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import fetch from "node-fetch";
+import { makeTransporter } from "./mailer.js";
 
 dotenv.config();
 console.log("ENV CHECK:", {
@@ -21,6 +20,35 @@ console.log("ENV CHECK:", {
 fs.mkdirSync("uploads", { recursive: true });
 
 const app = express();
+// =====================
+// QUEUE / SEMAPHORE (FIFO) para /generate
+// =====================
+const MAX_CONCURRENT_GENERATIONS = 12;
+let activeGenerations = 0;
+
+// Cola FIFO
+const waitQueue = [];
+
+// Esperar turno
+function acquireGenerationSlot() {
+  if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
+    activeGenerations++;
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    waitQueue.push(resolve);
+  }).then(() => {
+    activeGenerations++;
+  });
+}
+
+// Liberar turno
+function releaseGenerationSlot() {
+  activeGenerations = Math.max(0, activeGenerations - 1);
+  const next = waitQueue.shift();
+  if (next) next();
+}
 const PORT = process.env.PORT || 3001;
 
 // =====================
@@ -68,6 +96,81 @@ app.use(express.json({ limit: "10mb" }));
 // ROUTES
 // =====================
 app.use("/auth", authRoutes);
+// =====================
+// FEEDBACK FORM
+// =====================
+// =====================
+// FEEDBACK FORM
+// =====================
+const feedbackUpload = multer({ dest: "uploads/" });
+
+app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
+  const file = req.file;
+
+  try {
+    const email = String(req.body?.email || "").trim();
+    const message = String(req.body?.message || "").trim();
+
+    if (!email || !message) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    // validación simple
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
+    const attachments = file
+      ? [
+          {
+            filename: file.originalname || "screenshot.png",
+            path: file.path,
+          },
+        ]
+      : [];
+
+    const transporter = makeTransporter();
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      to: process.env.ADMIN_EMAIL,
+      replyTo: email,
+      subject: "📩 Nuevo mensaje desde formulario",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height:1.4">
+          <h2 style="margin:0 0 10px">Nuevo mensaje de usuario</h2>
+          <p style="margin:0 0 6px"><b>Email:</b> ${escapeHtml(email)}</p>
+          <p style="margin:10px 0 6px"><b>Mensaje:</b></p>
+          <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px;margin:0">${escapeHtml(
+            message
+          )}</pre>
+        </div>
+      `,
+      attachments,
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("FEEDBACK ERROR:", err);
+    return res.status(500).json({ error: "Error enviando mensaje" });
+  } finally {
+    if (file?.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {}
+    }
+  }
+});
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 
 async function applyWelcomeBonusExpiry(walletId) {
   // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
@@ -96,11 +199,13 @@ async function applyWelcomeBonusExpiry(walletId) {
   });
   if (alreadyExpired) return;
 
-  // 4) bonus restante = suma de todos los WELCOME_BONUS*
-  const remaining = Math.max(
-    0,
-    bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0)
-  );
+  // 4) bonus restante = suma de WELCOME_BONUS* excepto EXPIRE
+const remaining = Math.max(
+  0,
+  bonusEntries
+    .filter((e) => e.refType !== "WELCOME_BONUS_EXPIRE")
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0)
+);
 
   // 5) crear movimiento "expirado" consumiendo lo que quedaba
   await prisma.creditEntry.create({
@@ -348,10 +453,12 @@ Vibe: ${vibe}
       timeoutMs: 15000,
     });
 
-    // limpiar archivo temporal si vino
-    if (front) {
-      try { fs.unlinkSync(front.path); } catch {}
-    }
+    // limpiar archivos temporales si vinieron
+if (Array.isArray(req.files)) {
+  for (const f of req.files) {
+    try { fs.unlinkSync(f.path); } catch {}
+  }
+}
 
     if (status >= 400) {
       const opts = fallbackOptions(language);
@@ -421,55 +528,7 @@ Tipo de cuerpo: ${bodyType || "Estandar"}
       return res.status(500).json({ error: "Gemini face error" });
     }
 
-    const fallbackOptions = (lang) => {
-  switch (lang) {
-    case "en":
-      return [
-        "Industrial loft with concrete walls",
-        "Outdoor rooftop at sunset",
-        "Minimal white cyclorama studio",
-        "Luxury marble interior setting",
-        "Urban street background, soft daylight",
-      ];
-
-    case "pt":
-      return [
-        "Loft industrial com paredes de concreto",
-        "Terraço ao pôr do sol",
-        "Estúdio branco ciclorama minimalista",
-        "Interior sofisticado com mármore",
-        "Rua urbana com luz natural suave",
-      ];
-
-    case "ko":
-      return [
-        "콘크리트 벽의 인더스트리얼 로프트",
-        "노을 지는 옥상 야외 공간",
-        "미니멀 화이트 사이클로라마 스튜디오",
-        "고급스러운 대리석 인테리어",
-        "자연광이 부드러운 도시 거리",
-      ];
-
-    case "zh":
-      return [
-        "工业风混凝土墙背景",
-        "日落屋顶户外场景",
-        "极简白色无缝影棚",
-        "大理石奢华室内空间",
-        "自然光柔和的城市街景",
-      ];
-
-    case "es":
-    default:
-      return [
-        "loft industrial con paredes de hormigón",
-        "terraza urbana al atardecer",
-        "estudio ciclorama blanco minimalista",
-        "interior elegante con mármol",
-        "calle urbana con luz natural suave",
-      ];
-  }
-};
+   
 
     const imgB64 = extractImageBase64(data);
     if (!imgB64) return res.status(500).json({ error: "No face image returned" });
@@ -497,6 +556,7 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
+    await acquireGenerationSlot();
     const mode = String(req.body?.mode || "model").toLowerCase();
     const language = String(req.body?.language || "es").toLowerCase();
     const langLine =
@@ -517,6 +577,18 @@ try {
   selectedViews = {};
 }
 
+// ✅ Ajustar pant views ANTES de calcular COST (solo en modo model)
+if (mode === "model") {
+  const category = String(req.body?.category || "");
+  const isPantsCategory =
+    category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
+
+  if (!isPantsCategory) {
+    selectedViews.pantFrontDetail = false;
+    selectedViews.pantBackDetail = false;
+    selectedViews.pantSideDetail = false;
+  }
+}
    const requestedKeys =
   mode === "product"
     ? ["front", "back", "left", "right"].filter((k) => !!selectedViews?.[k])
@@ -531,11 +603,15 @@ try {
         "pantSideDetail",
       ].filter((k) => !!selectedViews?.[k]);
 
+    let COST = requestedKeys.length;
 
-
-
-
-    const COST = requestedKeys.length;
+    // 🔒 FORZAR UNA SOLA VISTA
+if (requestedKeys.length !== 1) {
+  return res.status(400).json({
+    error: "ONLY_ONE_VIEW_ALLOWED",
+  });
+}
+    console.log("DEBUG COST", { mode, requestedKeys, COST });
 
     if (COST <= 0) {
       return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
@@ -583,7 +659,7 @@ const bonusBalance = bonusActive
 
 takeFromBonus = Math.min(COST, bonusBalance);
 takeFromPaid = COST - takeFromBonus;
-
+console.log("DEBUG CHARGE SPLIT", { COST, bonusBalance, takeFromBonus, takeFromPaid });
 // 1) descontar pagos (solo si hace falta)
 if (takeFromPaid > 0) {
   const updated = await prisma.wallet.updateMany({
@@ -595,21 +671,19 @@ if (takeFromPaid > 0) {
     return res.status(402).json({ error: "Sin créditos suficientes" });
   }
 
- consumeEntry = await prisma.creditEntry.create({
-  data: {
-    walletId: wallet.id,
-    type: "CONSUME",
-    amount: -takeFromPaid,
-    idempotencyKey: String(idem),
-    refType: "GENERATION",
-    metadata: {
-      mode, // "model" | "product"
-      views: selectedViews,
+  consumeEntry = await prisma.creditEntry.create({
+    data: {
+      walletId: wallet.id,
+      type: "CONSUME",
+      amount: -takeFromPaid,
+      idempotencyKey: String(idem),
+      refType: "GENERATION",
+      metadata: { mode, views: selectedViews },
     },
-  },
-});
+  });
+}
 
-// 2) descontar bonus (si hace falta)
+// 2) descontar bonus (si hace falta)  ✅ ahora afuera
 if (takeFromBonus > 0) {
   await prisma.creditEntry.create({
     data: {
@@ -618,10 +692,7 @@ if (takeFromBonus > 0) {
       amount: -takeFromBonus,
       idempotencyKey: String(idem) + ":welcome",
       refType: "WELCOME_BONUS_CONSUME",
-      metadata: {
-        mode,
-        views: selectedViews,
-      },
+      metadata: { mode, views: selectedViews },
     },
   });
 }
@@ -644,7 +715,7 @@ if (takeFromBonus > 0) {
           },
         }));
 
-        const langLine =
+        const langLineProduct =
   language === "en"
     ? "Write the entire description in English."
     : language === "pt"
@@ -655,15 +726,42 @@ if (takeFromBonus > 0) {
     ? "所有描述请使用简体中文。"
     : "Escribí toda la descripción en español.";
 
-        const basePrompt = `
-${langLine}
+const basePrompt = `
+${langLineProduct}
 
-Foto de producto e-commerce premium, fotorealista, iluminación de estudio suave.
-Solo el producto, sin personas, sin manos, sin texto, sin marcas de agua.
-Escena: ${scene}.
-Mantener exactamente el mismo producto, color y textura.
+FOTO DE PRODUCTO E-COMMERCE PREMIUM (FOTOREALISTA).
+
+OBJETIVO PRINCIPAL:
+Replicar EXACTAMENTE el mismo producto de las fotos de referencia.
+
+FIDELIDAD OBLIGATORIA (NO NEGOCIABLE):
+- MISMO producto (idéntico modelo).
+- MISMO color (sin variaciones).
+- MISMA textura/material (no “mejorar” ni “suavizar”).
+- MISMO patrón/estampado/logos (si existen).
+- MISMA forma/silueta/volumen.
+- MISMOS detalles: costuras, cierres, botones, bordes, etiquetas, herrajes.
+- NO re-diseñar. NO reinterpretar. NO estilizar diferente.
+
+COMPOSICIÓN:
+- Solo el producto (sin personas, sin manos, sin maniquí, sin perchas).
+- Un solo producto (sin duplicados).
+- Fondo continuo tipo estudio.
+- Iluminación suave tipo estudio, sin sombras duras.
+
+ESCENA / FONDO (sin afectar el producto):
+Escena: ${scene}
 `.trim();
 
+const negativeBlock = `
+PROHIBIDO:
+- Cambiar color, tono o saturación del producto.
+- Cambiar el material.
+- Cambiar forma, proporciones o diseño.
+- Quitar/agregar detalles (cierres, botones, bolsillos, costuras, etiquetas).
+- Agregar texto, marca de agua, logos inventados, packaging.
+- Collage, grilla, múltiples paneles, duplicados.
+`.trim();
         const variationHint = regenVar
   ? `
 VARIACIÓN (REHACER PRODUCTO):
@@ -690,7 +788,7 @@ VARIACIÓN (REHACER PRODUCTO):
           views.map((v) =>
   retry(
     async (attempt) => {
-      console.log(`MODEL view=${v.key} attempt=${attempt}`);
+      console.log(`PRODUCT view=${v.key} attempt=${attempt}`);
               const sideHint =
   v.key === "side"
     ? `
@@ -720,6 +818,7 @@ ${basePrompt}
 ${variationHint}
 
 Cámara: ${v.label}.
+${negativeBlock}
 
 IMPORTANTE:
 - Generar UNA SOLA imagen.
@@ -839,16 +938,11 @@ return res.json({
         const back = req.files?.back?.[0];
         const face = req.files?.face?.[0];
 
+        const category = String(req.body?.category || "").trim();
+
         if (!front) return res.status(400).json({ error: "Falta foto delantera" });
 
-        const category = String(req.body?.category || "");
-        console.log("DEBUG category:", category);
-        const isPantsCategory = category === "bottom" || category === "Pantalón/Short/Pollera/Falda";
-if (!isPantsCategory) {
-  selectedViews.pantFrontDetail = false;
-  selectedViews.pantBackDetail = false;
-  selectedViews.pantSideDetail = false;
-}
+      
 
         const otherCategory = String(req.body?.other_category || "");
         const pockets = String(req.body?.pockets || "");
@@ -888,14 +982,72 @@ if (back) {
 
 
 
-        const catFinal = category === "otro" && otherCategory ? `Otro: ${otherCategory}` : category;
+        const catFinal =
+  (category === "other" || category === "otro") && otherCategory
+    ? `Otro: ${otherCategory}`
+    : category;
 
+// ✅ 1) Auto-describir prenda desde la imagen (texto → JSON)
+const garmentPrompt = `
+Devolvé SOLO JSON válido con esta forma exacta:
+{
+  "garment_summary": "max 25 palabras",
+  "must_keep": ["lista corta, max 10 items"],
+  "transparency": "none|sheer|lace|mesh",
+  "opening": "closed|open_front|tie_front|buttoned|zip",
+  "length": "crop|waist|hip|long",
+  "sleeves": "none|short|long",
+  "notes": "max 25 palabras"
+}
+
+Reglas:
+- Mirá la FOTO y describí la PRENDA exactamente como se ve.
+- No inventes forro ni prendas interiores.
+- Si es encaje/transparente, marcá transparency correctamente y agregá en must_keep: "mantener transparencia real".
+`.trim();
+
+const garmentParts = [
+  { text: garmentPrompt },
+  {
+    inlineData: {
+      mimeType: front.mimetype,
+      data: fs.readFileSync(front.path, { encoding: "base64" }),
+    },
+  },
+];
+
+const garmentDescResp = await geminiGenerate({
+  model: MODEL_TEXT,
+  body: { contents: [{ role: "user", parts: garmentParts }] },
+  timeoutMs: 15000,
+});
+
+let garmentDesc = null;
+try {
+  const txt = garmentDescResp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  garmentDesc = JSON.parse(txt);
+} catch {
+  garmentDesc = null;
+}
+
+    
         const basePrompt = `
 ${langLine}
 
 FOTO DE MODA E-COMMERCE ULTRA FIEL A REFERENCIA.
 
 PRIORIDAD ABSOLUTA: LA PRENDA.
+
+IMPORTANTE (LA FOTO DE REFERENCIA PUEDE ESTAR EN MANIQUÍ):
+- IGNORAR el maniquí/cuerpo de referencia.
+- Extraer SOLO la prenda y aplicarla a la modelo sin rediseñar.
+
+PRENDA TRANSPARENTE / ENCAJE (CRÍTICO):
+- Mantener transparencia real del encaje (se ve piel debajo).
+- NO agregar forro, NO “rellenar”, NO hacerla opaca.
+- NO agregar top interno debajo (no inventar remera/corpiño).
+- Mantener abertura frontal (prenda abierta) y las tiras en el centro.
+- Mantener los volados/ruffles del frente y el corte corto (crop).
 
 REGLAS OBLIGATORIAS:
 - Usar EXACTAMENTE la prenda de las fotos referencia.
@@ -931,6 +1083,18 @@ Edad: ${ageRange}
 Pose: ${pose}
 Tipo de cuerpo: ${bodyType}
 Fondo: ${background}
+${garmentDesc ? `
+FICHA AUTO-DETECTADA DE PRENDA (OBLIGATORIA):
+Resumen: ${garmentDesc.garment_summary}
+Transparencia: ${garmentDesc.transparency}
+Abertura: ${garmentDesc.opening}
+Largo: ${garmentDesc.length}
+Mangas: ${garmentDesc.sleeves}
+MUST KEEP:
+- ${Array.isArray(garmentDesc.must_keep) ? garmentDesc.must_keep.join("\n- ") : ""}
+Notas: ${garmentDesc.notes}
+` : ""}
+
 `.trim();
 
         const views = [
@@ -954,7 +1118,9 @@ Fondo: ${background}
         }
 
         const settled = await Promise.allSettled(
-          views.map(async (v) => {
+          views.map((v) =>
+  retry(async (attempt) => {
+    console.log(`MODEL view=${v.key} attempt=${attempt}`);
 
 const frontFullHint =
   v.key === "front"
@@ -1186,14 +1352,24 @@ TOMA OBLIGATORIA – DETALLE PANTALÓN COSTADO:
 
 const variationHint = regenVar
   ? `
-VARIACIÓN (REHACER):
-- Mantener misma modelo y misma prenda (NO cambiar color, textura, diseño).
-- Mantener el mismo encuadre obligatorio de la vista.
-- Cambiar NOTABLEMENTE al menos 2 cosas:
-  1) micro-pose (peso en otra pierna, manos/brazos distintos, mirada distinta)
-  2) luz (más suave o un poco más contrastada, siempre estudio)
-  3) fondo (siempre estudio: blanco ↔ gris claro ↔ beige suave)
-- No repetir la imagen anterior.
+VARIACIÓN (REGENERAR MISMA FOTO):
+REGLA #1 (CRÍTICA): el producto DEBE ser idéntico a la referencia.
+PROHIBIDO cambiar: color, material, textura, forma, costuras, cierres, botones, logos, etiquetas, herrajes.
+
+MANTENER:
+- MISMO producto (idéntico modelo).
+- MISMO encuadre general: producto centrado, fondo continuo.
+- MISMA escena base: ${scene}
+
+SOLO PODÉS CAMBIAR (elige 2 o 3):
+1) Luz: suavidad/contraste leve, dirección ligeramente distinta (siempre estudio).
+2) Fondo de estudio: blanco ↔ gris claro ↔ beige suave (sin texturas ni props).
+3) Micro-ángulo: rotación leve o altura de cámara mínima (sin deformación, sin perspectiva extrema).
+
+IMPORTANTE:
+- NO agregar objetos, props ni contexto.
+- NO generar collage ni duplicados.
+- Debe verse como otra toma del MISMO producto, no otro producto.
 - Código variación: ${regenVar}
 `
   : "";
@@ -1230,7 +1406,111 @@ SALIDA OBLIGATORIA:
 - No devolver explicación.
 `.trim();
 
-            const parts = [{ text: viewPrompt }, ...refParts];
+            // ✅ AUTO-CROP PRENDA (TOP) DESDE LA FOTO FRONT usando sharp + bbox de Gemini
+const frontBuf = fs.readFileSync(front.path);
+
+// 1) Pedimos a Gemini (texto) un bounding box normalizado del TOP/prenda principal
+const bboxPrompt = `
+Devolvé SOLO JSON válido:
+{"x":0.0,"y":0.0,"w":1.0,"h":1.0}
+
+Reglas:
+- Es un bounding box alrededor de la PRENDA (top) únicamente.
+- Excluir fondo, maniquí/soporte, cuello de maniquí, etc.
+- Coordenadas normalizadas 0..1 respecto a la imagen.
+- Si hay dudas, incluir toda la prenda (mejor grande que chico).
+`.trim();
+
+const bboxResp = await geminiGenerate({
+  model: MODEL_TEXT,
+  body: {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: bboxPrompt },
+          {
+            inlineData: {
+              mimeType: front.mimetype,
+              data: frontBuf.toString("base64"),
+            },
+          },
+        ],
+      },
+    ],
+  },
+  timeoutMs: 15000,
+});
+
+let box = null;
+try {
+  const txt = bboxResp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parsed = JSON.parse(txt);
+  if (
+    parsed &&
+    Number.isFinite(parsed.x) &&
+    Number.isFinite(parsed.y) &&
+    Number.isFinite(parsed.w) &&
+    Number.isFinite(parsed.h)
+  ) {
+    box = parsed;
+  }
+} catch {
+  box = null;
+}
+
+// 2) Convertimos bbox (0..1) a pixeles y recortamos (con padding)
+const meta = await (await import("sharp")).default(frontBuf).metadata();
+const W = meta.width || 0;
+const H = meta.height || 0;
+
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+let left, top, width, height;
+
+if (box && W > 0 && H > 0) {
+  const pad = 0.06; // 6% padding alrededor
+  const x1 = clamp(box.x - pad, 0, 1);
+  const y1 = clamp(box.y - pad, 0, 1);
+  const x2 = clamp(box.x + box.w + pad, 0, 1);
+  const y2 = clamp(box.y + box.h + pad, 0, 1);
+
+  left = Math.floor(x1 * W);
+  top = Math.floor(y1 * H);
+  width = Math.max(1, Math.floor((x2 - x1) * W));
+  height = Math.max(1, Math.floor((y2 - y1) * H));
+
+  // clamp final para no pasarnos
+  width = Math.min(width, W - left);
+  height = Math.min(height, H - top);
+} else {
+  // fallback: recorte centrado (parte superior)
+  left = Math.floor(W * 0.18);
+  top = Math.floor(H * 0.08);
+  width = Math.floor(W * 0.64);
+  height = Math.floor(H * 0.62);
+}
+
+const sharpMod = (await import("sharp")).default;
+const garmentCropPng = await sharpMod(frontBuf)
+  .extract({ left, top, width, height })
+  .png()
+  .toBuffer();
+
+const garmentPart = {
+  inlineData: {
+    mimeType: "image/png",
+    data: garmentCropPng.toString("base64"),
+  },
+};
+
+// 3) Armamos parts: primero la PRENDA recortada (para que “atienda” eso primero)
+const parts = [
+  { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
+  garmentPart,
+  { text: viewPrompt },
+  ...refParts,
+];
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
@@ -1247,7 +1527,7 @@ if (v.key === "front" || v.key === "frontDetail") {
   });
 }
             if (status >= 400) throw new Error("Gemini model error");
-
+            console.log("MODEL RAW RESPONSE:", JSON.stringify(data).slice(0, 1000));
             const imgB64 = extractImageBase64(data);
             if (!imgB64) throw new Error("No model image returned");
 
@@ -1257,8 +1537,11 @@ if (v.key === "front" || v.key === "frontDetail") {
             const filePath = path.join("uploads", fileName);
             fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
             return `/uploads/${fileName}`;
-          })
-        );
+      },
+      { attempts: 2, delayMs: 900 }
+    )
+  )
+);
 
 
         try {
@@ -1344,55 +1627,55 @@ return res.json({
       }
 
       return res.status(400).json({ error: "Modo inválido" });
-    }
-  } catch (err) {
-      console.error("GENERATE ERROR:", err);
+} catch (err) {
+  console.error("GENERATE ERROR:", err);
 
-      // REFUND (devolver pagos y bonus)
-try {
-  if (wallet) {
-    if (takeFromPaid > 0) {
-      await prisma.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: { increment: takeFromPaid } },
-      });
+  // REFUND (devolver pagos y bonus)
+  try {
+    if (wallet) {
+      if (takeFromPaid > 0) {
+        await prisma.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: takeFromPaid } },
+        });
 
-      await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "REFUND",
-          amount: takeFromPaid,
-          idempotencyKey: `refund:${idem}`,
-          refType: "GENERATION",
-          refId: consumeEntry?.id || null,
-        },
-      });
-    }
+        await prisma.creditEntry.create({
+          data: {
+            walletId: wallet.id,
+            type: "REFUND",
+            amount: takeFromPaid,
+            idempotencyKey: `refund:${idem}`,
+            refType: "GENERATION",
+            refId: consumeEntry?.id || null,
+          },
+        });
+      }
 
-    if (takeFromBonus > 0) {
-      await prisma.creditEntry.create({
-        data: {
-          walletId: wallet.id,
-          type: "GRANT",
-          amount: takeFromBonus,
-          idempotencyKey: `restore:${idem}`,
-          refType: "WELCOME_BONUS_RESTORE",
-        },
-      });
+      if (takeFromBonus > 0) {
+        await prisma.creditEntry.create({
+          data: {
+            walletId: wallet.id,
+            type: "GRANT",
+            amount: takeFromBonus,
+            idempotencyKey: `restore:${idem}`,
+            refType: "WELCOME_BONUS_RESTORE",
+          },
+        });
+      }
     }
+  } catch (refundError) {
+    console.error("REFUND FAILED:", refundError);
   }
-} catch (refundError) {
-  console.error("REFUND FAILED:", refundError);
-}
 
-      return res.status(500).json({
-        error: "Error en generate",
-        details: String(err?.message || err),
-      });
-    }
+  return res.status(500).json({
+    error: "Error en generate",
+    details: String(err?.message || err),
+  });
+} finally{
+  releaseGenerationSlot();
+}
   }
 );
-
 // =====================
 // MERCADO PAGO: CREATE PREFERENCE
 // =====================

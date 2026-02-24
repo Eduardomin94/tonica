@@ -52,17 +52,6 @@ function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.innerHTML = `
-    @keyframes whatsappPulse {
-      0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.6); }
-      70% { box-shadow: 0 0 0 18px rgba(37,211,102,0); }
-      100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
-    }
-  `;
-  document.head.appendChild(style);
-}
 
 
 /* ================== APP ================== */
@@ -368,9 +357,15 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   // ui
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [queueNotice, setQueueNotice] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<{
+  type: "success" | "error";
+  message: string;
+} | null>(null);
   const [failedViews, setFailedViews] = useState<string[]>([]);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
@@ -386,7 +381,15 @@ React.useEffect(() => {
   const id = window.setInterval(() => setBonusTick((n) => n + 1), 1000);
   return () => window.clearInterval(id);
 }, []);
+React.useEffect(() => {
+  if (!feedbackToast) return;
 
+  const t = window.setTimeout(() => {
+    setFeedbackToast(null);
+  }, 4000);
+
+  return () => window.clearTimeout(t);
+}, [feedbackToast]);
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
     if (!isRegenBusy) return;
@@ -439,7 +442,7 @@ React.useEffect(() => {
     { title: t("stepBodyType"), key: "bodyType" },
     { title: t("stepGenerate"), key: "generate" },
   ];
-}, [mode, language]);
+}, [mode, t]);
 
   React.useEffect(() => {
     // ✅ si estamos restaurando desde localStorage, NO borres el resultado
@@ -490,9 +493,17 @@ React.useEffect(() => {
 
   React.useEffect(() => {
     fetchMe();
-    fetchEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API]);
+  React.useEffect(() => {
+  if (!API) return;
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  fetchEntries();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [API]);
 
   React.useEffect(() => {
     try {
@@ -602,7 +613,7 @@ return !frontFile ? t("errUploadFront") : null;
 
         case 1:
           if (!category) return setStep(1);
-          if (category === "other" && (!otherCategory.trim() || wordCount(otherCategory) > 4)) return setStep(1);
+          if (category === "other" && (!otherCategory.trim() || wordCount(otherCategory) > 5)) return setStep(1);
           break;
 
         case 2:
@@ -621,40 +632,52 @@ return !frontFile ? t("errUploadFront") : null;
           if (!ageRange) return setStep(6);
           break;
 
-        case 7:
-          if (!background.trim() || wordCount(background) > 10) return setStep(7);
-          break;
-
-        case 8:
-          if (!pose) return setStep(8);
+          case 8:
+          if (!background.trim() || wordCount(background) > 10) return setStep(8);
           break;
 
         case 9:
-          if (!bodyType) return setStep(9);
+          if (!pose) return setStep(9);
+          break;
+
+        case 10:
+          if (!bodyType) return setStep(10);
           break;
       }
     }
   }
 
   async function fetchMe() {
-    if (!API) return;
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
+  if (!API) return;
 
-    setAccessToken(token);
-    setLoadingMe(true);
-    try {
-      const res = await fetch(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) return;
-      setUser(data);
-      setBalance(data?.wallet?.balance ?? 0);
-    } finally {
-      setLoadingMe(false);
-    }
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+
+  setAccessToken(token);
+  setLoadingMe(true);
+
+  try {
+    const url = `${API}/auth/me`;
+    console.log("fetchMe API:", API);
+    console.log("fetchMe URL:", url);
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("fetchMe status:", res.status, data);
+
+    if (!res.ok) return;
+
+    setUser(data);
+    setBalance(data?.wallet?.balance ?? 0);
+  } catch (err) {
+    console.error("fetchMe failed:", err);
+  } finally {
+    setLoadingMe(false);
   }
+}
 
   async function fetchEntries() {
     if (!API) return;
@@ -713,7 +736,7 @@ async function handleRegenerateOne(
 
   setError(null);
 
-  const lockKey = `regen:${index}`;
+  const lockKey = `regen:${viewKey}:${index}`;
 
   // Si ya hay uno corriendo para ese índice, no hagas nada
   if (regenLockRef.current[lockKey]) return;
@@ -798,7 +821,20 @@ if (!bodyType) {
     setRegenLoading((m) => ({ ...m, [lockKey]: true }));
     setRegenStartedAt((m) => ({ ...m, [lockKey]: Date.now() }));
 
-   const oneView = { front: false, back: false, [viewKey]: true };
+   const oneView =
+  mode === "product"
+    ? { front: false, back: false, left: false, right: false, [viewKey]: true }
+    : {
+        front: false,
+        back: false,
+        side: false,
+        frontDetail: false,
+        backDetail: false,
+        pantFrontDetail: false,
+        pantBackDetail: false,
+        pantSideDetail: false,
+        [viewKey]: true,
+      };
 
 
     const fd = new FormData();
@@ -806,7 +842,7 @@ if (!bodyType) {
     fd.append("views", JSON.stringify(oneView));
     fd.append("language", language);
     fd.append("regen_variation", String(Date.now()));
-    fd.append("regen_variation", String(Date.now()));
+
 
     if (mode === "product") {
       appendProductFormData(fd);
@@ -850,9 +886,21 @@ console.log("=== END FORM DATA DEBUG ===");
     void fetchMe();
 void fetchEntries();
 
-  } catch (e: any) {
-    setError(String(e?.message || e));
-  } finally {
+} catch (e: any) {
+  const msg = String(e?.message || e);
+
+  // Mensaje más claro si parece error de red/timeout/cola
+  const friendly =
+    msg.includes("Failed to fetch") ||
+    msg.includes("NetworkError") ||
+    msg.includes("Load failed") ||
+    msg.includes("timeout") ||
+    msg.includes("Timeout")
+      ? "No se pudo completar la generación (posible cola/timeout). Por favor volvé a reintentarlo otra vez."
+      : msg;
+
+  setError(friendly);
+} finally {
     // ✅ esperar 2 frames para que el <img> pinte antes de sacar el overlay
     setTimeout(() => {
   setRegenLoading((m) => {
@@ -908,6 +956,12 @@ const res = await fetch(`${API}/suggest-background`, {
   setResult(null);
   setFailedViews([]);
   
+  setQueueNotice(false);
+
+// ⏳ Si tarda, mostramos aviso de cola (Railway/Gemini)
+const queueTimer = window.setTimeout(() => {
+  setQueueNotice(true);
+}, 4000);
   if (!API) return setError(t("missingApiBase"));
 
   // Validaciones
@@ -931,10 +985,12 @@ const res = await fetch(`${API}/suggest-background`, {
   } else {
     if (!frontFile) return (goToFirstErrorStep(), setError(t("errUploadFront")));
     if (!category) return (goToFirstErrorStep(), setError(t("errChooseCategory")));
+    
     if (category === "other") {
       if (!otherCategory.trim()) return (goToFirstErrorStep(), setError(t("errOtherMissing")));
-      if (wordCount(otherCategory) > 4) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
+      if (wordCount(otherCategory) > 5) return (goToFirstErrorStep(), setError(t("errOtherTooLong")));
     }
+    
     if (!pockets) return (goToFirstErrorStep(), setError(t("errPockets")));
     if (!modelType) return (goToFirstErrorStep(), setError(t("errModel")));
     if (!ethnicity) return (goToFirstErrorStep(), setError(t("errEthnicity")));
@@ -1016,8 +1072,10 @@ setFailedViews(failed);
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
-    setLoading(false);
-  }
+  window.clearTimeout(queueTimer);
+  setQueueNotice(false);
+  setLoading(false);
+}
 }
   // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {
@@ -1026,7 +1084,30 @@ setFailedViews(failed);
         return (
           <>
             <FieldTitle>{t("uploadTitle")}</FieldTitle>
-
+<div
+  style={{
+    marginTop: 10,
+    marginBottom: 12,
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: "rgba(251,191,36,0.12)",
+    border: "1px solid rgba(251,191,36,0.35)",
+    color: "#facc15",
+    fontSize: 12,
+    fontWeight: 700,
+    lineHeight: 1.35,
+  }}
+>
+ {mode === "product" ? (
+  <>
+    ⚠️ EN LO POSIBLE, subí el producto solo y sobre fondo liso. Si querés una imagen con todos sus colores, subí todas las variantes, una por una individualmente.
+  </>
+) : (
+  <>
+    ⚠️ EN LO POSIBLE, subí la prenda sola (percha o extendida) sobre fondo liso. Evitá maniquí/personas y accesorios. Buena luz y encuadre recto.
+  </>
+)}
+</div>
             {mode === "product" ? (
               <Box>
                 <Label>{t("productPhotosLabel")}</Label>
@@ -1130,11 +1211,12 @@ setFailedViews(failed);
 )}
               </Box>
             ) : (
+
               <TwoCols>
                 {/* DELANTERA */}
                 <Box>
                   <Label>{t("frontRequired")}</Label>
-
+                
                   <input
                     ref={frontCameraRef}
                     type="file"
@@ -1406,41 +1488,6 @@ setFailedViews(failed);
 />
     </>
   );
-
-  {faceFile && (
-    <div style={{ marginTop: 12 }}>
-      <div style={{ ...styles.previewCard, position: "relative" }}>
-        <img src={facePreview || ""} alt="rostro" style={styles.previewImg} />
-        <button
-          type="button"
-          onClick={() => setFaceFile(null)}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            border: "1px solid rgba(15,23,42,0.15)",
-            background: "rgba(255,255,255,0.95)",
-            color: "#0f172a",
-            fontWeight: 900,
-            fontSize: 16,
-            display: "grid",
-            placeItems: "center",
-            cursor: "pointer",
-            boxShadow: "0 10px 18px rgba(15,23,42,0.08)",
-          }}
-          aria-label="Quitar rostro"
-          title="Quitar"
-        >
-          ✕
-        </button>
-      </div>
-
-      <SmallMuted style={{ marginTop: 8 }}>{faceFile?.name}</SmallMuted>
-    </div>
-  )}
 
       case "ethnicity":
         return (
@@ -1740,7 +1787,7 @@ const res = await fetch(`${API}/suggest-background`, {
       case "generate":
         return (
           <>
-            <div
+          <div
   style={{
     display: "flex",
     alignItems: "center",
@@ -1751,21 +1798,6 @@ const res = await fetch(`${API}/suggest-background`, {
   }}
 >
   <FieldTitle>{t("generateTitle")}</FieldTitle>
-
-  <div
-    style={{
-      background: "rgba(251,191,36,0.15)",
-      border: "1px solid rgba(251,191,36,0.4)",
-      color: "#facc15",
-      padding: "6px 10px",
-      borderRadius: 999,
-      fontSize: 12,
-      fontWeight: 800,
-      maxWidth: 360,
-    }}
-  >
-    ⚠ {t("viewsDisclaimer")}
-  </div>
 </div>
 
             <div style={styles.summaryCard}>
@@ -1779,22 +1811,22 @@ const res = await fetch(`${API}/suggest-background`, {
 
                 {mode === "product" ? (
                   <div style={styles.previewGrid}>
-                    {productFiles.map((file, i) => (
-                      <div key={i} style={styles.previewCard}>
-                        <img src={URL.createObjectURL(file)} alt={`producto-${i}`} style={styles.previewImg} />
-                      </div>
-                    ))}
+                    {productPreviews.map((p, i) => (
+  <div key={`${p.file.name}-${p.file.size}-${p.file.lastModified}`} style={styles.previewCard}>
+    <img src={p.url} alt={`producto-${i}`} style={styles.previewImg} />
+  </div>
+))}
                   </div>
                 ) : (
                   <div style={styles.previewGrid}>
                     {frontFile && (
                       <div style={styles.previewCard}>
-                        <img src={URL.createObjectURL(frontFile)} alt="delantera" style={styles.previewImg} />
+                       <img src={frontPreview || ""} alt="delantera" style={styles.previewImg} />
                       </div>
                     )}
                     {backFile && (
                       <div style={styles.previewCard}>
-                        <img src={URL.createObjectURL(backFile)} alt="espalda" style={styles.previewImg} />
+                        <img src={backPreview || ""}  alt="espalda" style={styles.previewImg} />
                       </div>
                     )}
                   </div>
@@ -1841,28 +1873,42 @@ const res = await fetch(`${API}/suggest-background`, {
   { key: "left", label: t("pLeft") },
   { key: "right", label: t("pRight") },
 ].map((v) => (
-                  <label
-                    key={v.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "rgba(255,255,255,0.06)",
-                      marginBottom: 10,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={(views as any)[v.key]}
-                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-                      style={{ width: 18, height: 18 }}
-                    />
-                  </label>
+                  <div
+  key={v.key}
+  style={styles.switchRow}
+  onClick={() => {
+    setViews((prev) => {
+      const isOn = !!(prev as any)[v.key];
+
+      // Si está prendido y tocás, lo apaga (queda 0 seleccionadas)
+      if (isOn) return { ...prev, [v.key]: false };
+
+      // Si lo prendés: apagamos todo y dejamos solo este
+      const next: any = {};
+      for (const k of Object.keys(prev)) next[k] = false;
+      next[v.key] = true;
+      return next;
+    });
+  }}
+  role="switch"
+  aria-checked={(views as any)[v.key]}
+>
+  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+
+  <div
+    style={{
+      ...styles.switchWrap,
+      ...((views as any)[v.key] ? styles.switchWrapOn : {}),
+    }}
+  >
+    <div
+      style={{
+        ...styles.switchKnob,
+        ...((views as any)[v.key] ? styles.switchKnobOn : {}),
+      }}
+    />
+  </div>
+</div>
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
@@ -1874,6 +1920,7 @@ const res = await fetch(`${API}/suggest-background`, {
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   {t("viewsToGenerate")}
                 </div>
+
 
                 {[
   { key: "front", label: t("vFront") },
@@ -1889,28 +1936,42 @@ const res = await fetch(`${API}/suggest-background`, {
     ]
   : []),
 ].map((v) => (
-                  <label
-                    key={v.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "rgba(255,255,255,0.06)",
-                      marginBottom: 10,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={(views as any)[v.key]}
-                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-                      style={{ width: 18, height: 18 }}
-                    />
-                  </label>
+                <div
+  key={v.key}
+  style={styles.switchRow}
+  onClick={() => {
+    setViews((prev) => {
+      const isOn = !!(prev as any)[v.key];
+
+      // si estaba prendido y tocás, lo apaga (puede quedar 0 seleccionadas)
+      if (isOn) return { ...prev, [v.key]: false };
+
+      // si lo prendés: apagamos todo y dejamos solo este
+      const next: any = {};
+      for (const k of Object.keys(prev)) next[k] = false;
+      next[v.key] = true;
+      return next;
+    });
+  }}
+  role="switch"
+  aria-checked={(views as any)[v.key]}
+>
+  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+
+  <div
+    style={{
+      ...styles.switchWrap,
+      ...((views as any)[v.key] ? styles.switchWrapOn : {}),
+    }}
+  >
+    <div
+      style={{
+        ...styles.switchKnob,
+        ...((views as any)[v.key] ? styles.switchKnobOn : {}),
+      }}
+    />
+  </div>
+</div>
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
@@ -1995,7 +2056,7 @@ const res = await fetch(`${API}/suggest-background`, {
 
 
 
-                    const loadKey = `regen:${idx}`;
+                    const loadKey = `regen:${viewKey}:${idx}`;
                     void nowTick;
 
                     const label =
@@ -2149,6 +2210,12 @@ const res = await fetch(`${API}/suggest-background`, {
   // ====== APP ======
   return (
     <div className={inter.className} style={styles.page}>
+      <style>{`
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`}</style>
+
       {isRegenBusy && (
         <div
           style={{
@@ -2216,41 +2283,7 @@ const res = await fetch(`${API}/suggest-background`, {
 
         {/* Header */}
         <div style={{ ...styles.header, flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-          {/* WhatsApp (dentro del contenedor, NO sticky) */}
-<div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-  <a
-    href={`https://wa.me/5491125457111?text=${encodeURIComponent(t("whatsappPrefill"))}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={styles.whatsappInlineBtn}
-    aria-label="WhatsApp Atención al cliente"
-  onMouseEnter={(e) => {
-  e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
-  e.currentTarget.style.boxShadow =
-    "0 16px 40px rgba(37,211,102,0.45), inset 0 1px 0 rgba(255,255,255,0.4)";
-}}
-
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform = "translateY(0) scale(1)";
-  e.currentTarget.style.boxShadow =
-    "0 10px 30px rgba(37,211,102,0.35), inset 0 1px 0 rgba(255,255,255,0.35)";
-}}
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20" fill="#ffffff">
-      <path d="M19.11 17.36c-.27-.14-1.59-.78-1.84-.87-.25-.09-.43-.14-.61.14-.18.27-.7.87-.86 1.05-.16.18-.32.2-.59.07-.27-.14-1.13-.42-2.16-1.34-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.13-.13.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.48-.84-2.03-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29 0 1.34.98 2.64 1.12 2.82.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.58.66.21 1.26.18 1.73.11.53-.08 1.59-.65 1.82-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"/>
-      <path d="M16.02 3C8.83 3 3 8.83 3 16.02c0 2.82.9 5.44 2.43 7.58L3 29l5.53-2.4c2.06 1.12 4.41 1.76 6.97 1.76C23.17 28.36 29 22.53 29 15.34 29 8.83 23.17 3 16.02 3zm0 23.36c-2.36 0-4.54-.7-6.38-1.91l-.46-.3-3.28 1.42 1.43-3.2-.3-.48c-1.32-2.05-2.01-4.43-2.01-6.87 0-6.12 4.98-11.1 11.1-11.1 6.12 0 11.1 4.98 11.1 11.1 0 6.12-4.98 11.1-11.1 11.1z"/>
-    </svg>
-    <span style={{ fontWeight: 900, fontSize: 12 }}>
-  {t("whatsapp")}
-</span>
-  </a>
-</div>
+          
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
   <img
@@ -2751,27 +2784,224 @@ const label =
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
             {error && <div style={styles.inlineErr}>{error}</div>}
-
+            {queueNotice && (
+  <div style={styles.inlineWarn}>
+    ⏳ Alta demanda. Estás en cola, tu generación comenzará pronto…
+  </div>
+)}
             {panel}
 
             <div style={styles.footer}>
               <Button variant="secondary" onClick={prev} disabled={isRegenBusy || step === 0 || loading}>
                 {t("back")}
               </Button>
-
+<div
+  style={{
+    marginTop: 12,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+  }}
+>
+  🔒 Las imágenes generadas no se guardan en el servidor. Por favor ⬇️ descargalas antes de reiniciar la página.
+</div>
               <div style={{ flex: 1 }} />
 
               {!isLast ? (
                 <Button onClick={next} disabled={isRegenBusy || !canGoNext}>
                   {t("next")}
                 </Button>
+                
               ) : null}
             </div>
-          </section>
+                    </section>
         </div>
+
+        {/* ================= FEEDBACK SECTION (AL FINAL) ================= */}
+        <div
+          style={{
+            marginTop: 60,
+            paddingTop: 40,
+            borderTop: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 720,
+              margin: "0 auto",
+              padding: 28,
+              borderRadius: 20,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
+              ¿Tuviste un inconveniente?
+            </div>
+            {feedbackToast && (
+  <div
+    style={{
+      marginTop: 12,
+      marginBottom: 14,
+      padding: "10px 12px",
+      borderRadius: 14,
+      fontWeight: 800,
+      fontSize: 13,
+      border:
+        feedbackToast.type === "success"
+          ? "1px solid rgba(34,197,94,0.35)"
+          : "1px solid rgba(239,68,68,0.35)",
+      background:
+        feedbackToast.type === "success"
+          ? "rgba(34,197,94,0.12)"
+          : "rgba(239,68,68,0.12)",
+      color:
+        feedbackToast.type === "success"
+          ? "#86efac"
+          : "#fecaca",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    }}
+  >
+    <span>
+      {feedbackToast.type === "success" ? "✅ " : "⚠️ "}
+      {feedbackToast.message}
+    </span>
+
+    <button
+      type="button"
+      onClick={() => setFeedbackToast(null)}
+      style={{
+        border: "none",
+        background: "transparent",
+        color: "rgba(255,255,255,0.75)",
+        fontWeight: 900,
+        cursor: "pointer",
+        padding: "4px 8px",
+        borderRadius: 10,
+      }}
+      aria-label="Cerrar"
+      title="Cerrar"
+    >
+      ✕
+    </button>
+  </div>
+)}
+
+            <div style={{ fontSize: 13, color: "#cbd5e1", marginBottom: 20, lineHeight: 1.6 }}>
+              Estamos mejorando cada día para poder brindarte el mejor servicio. Enviános un mensaje con el error o el
+              inconveniente que tuviste en una captura y especificanos qué te gustaría que mejoremos o implementemos.
+              <br />
+              <span style={{ fontWeight: 900, color: "#ffffff" }}>Por favor ingresá tu mail</span>{" "}
+              para enviarte una respuesta de nuestra parte.
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                setFeedbackLoading(true);
+                setFeedbackToast(null);
+                e.preventDefault();
+
+                const form = e.currentTarget;
+                const email = (form.elements.namedItem("feedback_email") as HTMLInputElement).value.trim();
+                const message = (form.elements.namedItem("feedback_message") as HTMLTextAreaElement).value.trim();
+                const file = (form.elements.namedItem("feedback_file") as HTMLInputElement).files?.[0];
+
+                if (!email || !message) {
+                  setFeedbackToast({ type: "error", message: "Completá tu mail y el mensaje." });
+                  return;
+                }
+
+                const fd = new FormData();
+                fd.append("email", email);
+                fd.append("message", message);
+                if (file) fd.append("screenshot", file);
+
+                const url = `${API}/feedback`;
+
+                try {
+  const r = await fetch(url, { method: "POST", body: fd });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error || "Error enviando mensaje");
+  setFeedbackToast({ type: "success", message: "¡Gracias! Recibimos tu mensaje 🙌" });
+  form.reset();
+} catch (err: any) {
+  setFeedbackToast({ type: "error", message: err?.message || "Error enviando mensaje" });
+} finally {
+  setFeedbackLoading(false);
+}
+              }}
+              style={{ display: "grid", gap: 12 }}
+            >
+              <input
+  name="feedback_email"
+  type="email"
+  placeholder="Tu mail"
+  defaultValue={user?.email || ""}
+  style={styles.input}
+  required
+/>
+
+              <textarea
+                name="feedback_message"
+                placeholder="Contanos qué pasó y qué te gustaría que mejoremos..."
+                style={{ ...styles.input, minHeight: 120 }}
+                required
+              />
+
+              <input
+                name="feedback_file"
+                type="file"
+                accept="image/*"
+                style={styles.file}
+              />
+
+              <button
+  type="submit"
+  disabled={feedbackLoading}
+  style={{
+    ...styles.buyBtnFull,
+    height: 46,
+    opacity: feedbackLoading ? 0.7 : 1,
+    cursor: feedbackLoading ? "not-allowed" : "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  }}
+>
+  {feedbackLoading ? (
+    <>
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 999,
+          border: "2px solid rgba(255,255,255,0.35)",
+          borderTopColor: "#ffffff",
+          display: "inline-block",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+      Enviando...
+    </>
+  ) : (
+    "Enviar mensaje"
+  )}
+</button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   );
+
 }
 
 /* ================== UI COMPONENTS ================== */
@@ -3261,38 +3491,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   resultGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 },
   imgCard: { border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", background: "#ffffff" },
-
- whatsappInlineBtn: {
-  position: "relative",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "10px 16px",
-  borderRadius: 999,
-
-  // Glass premium
-  background: "linear-gradient(135deg, rgba(37,211,102,0.95) 0%, rgba(22,163,74,0.95) 100%)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-
-  color: "#ffffff",
-  textDecoration: "none",
-  border: "1px solid rgba(255,255,255,0.28)",
-
-  // Glow elegante (no exagerado)
-  boxShadow: `
-    0 10px 30px rgba(37,211,102,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.35)
-  `,
-
-  fontWeight: 900,
-  fontSize: 13,
-  letterSpacing: 0.3,
-
-  transition: "all 0.25s cubic-bezier(.4,0,.2,1)",
-  transform: "translateY(0)",
-  userSelect: "none",
-},
+  
   loginCard: {
     maxWidth: 420,
     margin: "80px auto",
@@ -3365,6 +3564,50 @@ pagerBtnPrimary: {
   color: "#ffffff",
   background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
   boxShadow: "0 10px 22px rgba(99,102,241,0.28)",
+},
+switchRow: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "10px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  marginBottom: 10,
+},
+
+switchWrap: {
+  width: 44,
+  height: 26,
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.22)",
+  background: "rgba(255,255,255,0.12)",
+  position: "relative",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  flexShrink: 0,
+},
+
+switchWrapOn: {
+  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+  border: "1px solid rgba(34,197,94,0.65)",
+  boxShadow: "0 10px 22px rgba(34,197,94,0.22)",
+},
+
+switchKnob: {
+  width: 22,
+  height: 22,
+  borderRadius: 999,
+  background: "#ffffff",
+  position: "absolute",
+  top: 1,
+  left: 1,
+  transition: "left 0.2s ease",
+  boxShadow: "0 8px 18px rgba(0,0,0,0.25)",
+},
+
+switchKnobOn: {
+  left: 21,
 },
 
 };

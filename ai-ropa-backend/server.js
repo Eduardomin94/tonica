@@ -2,8 +2,6 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import multer from "multer";
-import fs from "fs";
-import path from "path";
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 import { prisma } from "./prismaClient.js";
@@ -17,7 +15,7 @@ console.log("ENV CHECK:", {
   AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET ? "OK" : "MISSING",
   FRONTEND_URL: process.env.FRONTEND_URL,
 });
-fs.mkdirSync("uploads", { recursive: true });
+
 
 const app = express();
 // =====================
@@ -102,7 +100,10 @@ app.use("/auth", authRoutes);
 // =====================
 // FEEDBACK FORM
 // =====================
-const feedbackUpload = multer({ dest: "uploads/" });
+const feedbackUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 },
+});
 
 app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
   const file = req.file;
@@ -121,13 +122,14 @@ app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
     }
 
     const attachments = file
-      ? [
-          {
-            filename: file.originalname || "screenshot.png",
-            path: file.path,
-          },
-        ]
-      : [];
+  ? [
+      {
+        filename: file.originalname || "screenshot.png",
+        content: file.buffer,
+        contentType: file.mimetype || "image/png",
+      },
+    ]
+  : [];
 
     const transporter = makeTransporter();
 
@@ -154,11 +156,6 @@ app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
     console.error("FEEDBACK ERROR:", err);
     return res.status(500).json({ error: "Error enviando mensaje" });
   } finally {
-    if (file?.path) {
-      try {
-        fs.unlinkSync(file.path);
-      } catch {}
-    }
   }
 });
 
@@ -270,7 +267,10 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_TEXT = "gemini-flash-latest";
 const MODEL_IMAGE = "gemini-2.5-flash-image";
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024 }, // 12MB por archivo (ajustable)
+});
 
 async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
   if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
@@ -407,11 +407,11 @@ app.post("/suggest-background", upload.any(), async (req, res) => {
   ? req.files.find((f) => f.fieldname === "front")
   : null;
 
-  console.log("SUGGEST-BG FILE:", front ? {
+ console.log("SUGGEST-BG FILE:", front ? {
   fieldname: front.fieldname,
   mimetype: front.mimetype,
   size: front.size,
-  path: front.path,
+  hasBuffer: !!front.buffer,
 } : null);
 
     const prompt = `
@@ -441,7 +441,7 @@ Vibe: ${vibe}
           {
             inlineData: {
               mimeType: front.mimetype,
-              data: fs.readFileSync(front.path, { encoding: "base64" }),
+              data: front.buffer.toString("base64"),
             },
           },
         ]
@@ -453,12 +453,7 @@ Vibe: ${vibe}
       timeoutMs: 15000,
     });
 
-    // limpiar archivos temporales si vinieron
-if (Array.isArray(req.files)) {
-  for (const f of req.files) {
-    try { fs.unlinkSync(f.path); } catch {}
-  }
-}
+
 
     if (status >= 400) {
       const opts = fallbackOptions(language);
@@ -533,11 +528,10 @@ Tipo de cuerpo: ${bodyType || "Estandar"}
     const imgB64 = extractImageBase64(data);
     if (!imgB64) return res.status(500).json({ error: "No face image returned" });
 
-    const fileName = `generated-face-${Date.now()}-${Math.random().toString(16).slice(2)}.png`;
-    const filePath = path.join("uploads", fileName);
-    fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
+   return res.json({
+  imageUrl: `data:image/png;base64,${imgB64}`,
+});
 
-    return res.json({ imageUrl: `/uploads/${fileName}` });
   } catch (err) {
     console.error("GENERATE FACE ERROR:", err);
     return res.status(500).json({ error: "Error generando rostro" });
@@ -711,7 +705,7 @@ if (takeFromBonus > 0) {
         const imagesParts = files.slice(0, 8).map((f) => ({
           inlineData: {
             mimeType: f.mimetype,
-            data: fs.readFileSync(f.path, { encoding: "base64" }),
+            data: f.buffer.toString("base64"),
           },
         }));
 
@@ -841,25 +835,13 @@ IMPORTANTE:
             const imgB64 = extractImageBase64(data);
             if (!imgB64) throw new Error("No product image returned");
 
-            const fileName = `generated-product-${v.key}-${Date.now()}-${Math.random()
-              .toString(16)
-              .slice(2)}.png`;
-            const filePath = path.join("uploads", fileName);
-            fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
-            return `/uploads/${fileName}`;
+            return `data:image/png;base64,${imgB64}`;
               },
     { attempts: 2, delayMs: 900 }
   )
 )
 );
         
-
-        for (const f of files) {
-          try {
-            fs.unlinkSync(f.path);
-          } catch {}
-        }
-
         const fulfilled = settled
   .map((r, i) => ({ r, i }))
   .filter((x) => x.r.status === "fulfilled")
@@ -959,7 +941,7 @@ if (face) {
   refParts.push({
     inlineData: {
       mimeType: face.mimetype,
-      data: fs.readFileSync(face.path, { encoding: "base64" }),
+      data: face.buffer.toString("base64"),
     },
   });
 }
@@ -967,7 +949,7 @@ if (face) {
 refParts.push({
   inlineData: {
     mimeType: front.mimetype,
-    data: fs.readFileSync(front.path, { encoding: "base64" }),
+    data: front.buffer.toString("base64"),
   },
 });
 
@@ -975,7 +957,7 @@ if (back) {
   refParts.push({
     inlineData: {
       mimeType: back.mimetype,
-      data: fs.readFileSync(back.path, { encoding: "base64" }),
+      data: back.buffer.toString("base64"),
     },
   });
 }
@@ -1011,7 +993,7 @@ const garmentParts = [
   {
     inlineData: {
       mimeType: front.mimetype,
-      data: fs.readFileSync(front.path, { encoding: "base64" }),
+      data: front.buffer.toString("base64"),
     },
   },
 ];
@@ -1407,7 +1389,7 @@ SALIDA OBLIGATORIA:
 `.trim();
 
             // ✅ AUTO-CROP PRENDA (TOP) DESDE LA FOTO FRONT usando sharp + bbox de Gemini
-const frontBuf = fs.readFileSync(front.path);
+const frontBuf = front.buffer;
 
 // 1) Pedimos a Gemini (texto) un bounding box normalizado del TOP/prenda principal
 const bboxPrompt = `
@@ -1531,31 +1513,13 @@ if (v.key === "front" || v.key === "frontDetail") {
             const imgB64 = extractImageBase64(data);
             if (!imgB64) throw new Error("No model image returned");
 
-            const fileName = `generated-model-${v.key}-${Date.now()}-${Math.random()
-              .toString(16)
-              .slice(2)}.png`;
-            const filePath = path.join("uploads", fileName);
-            fs.writeFileSync(filePath, Buffer.from(imgB64, "base64"));
-            return `/uploads/${fileName}`;
+           return `data:image/png;base64,${imgB64}`;
       },
       { attempts: 2, delayMs: 900 }
     )
   )
 );
 
-
-        try {
-          fs.unlinkSync(front.path);
-        } catch {}
-        if (back) {
-          try {
-            fs.unlinkSync(back.path);
-          } catch {}
-        }
-
-        if (face) {
-  try { fs.unlinkSync(face.path); } catch {}
-} 
 
         const fulfilled = settled
   .map((r, i) => ({ r, i }))
@@ -1788,7 +1752,6 @@ app.post("/mp/webhook", async (req, res) => {
 // =====================
 // STATIC + HEALTH
 // =====================
-app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => res.json({ status: "OK" }));
 
 // =====================

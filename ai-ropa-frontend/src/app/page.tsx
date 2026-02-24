@@ -874,7 +874,8 @@ console.log("=== END FORM DATA DEBUG ===");
     else if (typeof data?.imageUrl === "string") url = data.imageUrl;
     if (!url) throw new Error("El servidor no devolvió imagen.");
 
-    const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
+    const absolute =
+  url.startsWith("data:") ? url : (url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`);
 
     setResult((prev) => {
       if (!prev) return prev;
@@ -1059,7 +1060,9 @@ setFailedViews(failed);
       return;
     }
 
-    const absolute = urls.map((u) => (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`));
+    const absolute = urls.map((u) =>
+  u.startsWith("data:") ? u : (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`)
+);
     if (Array.isArray(data?.imageKeys)) {
   setResultKeys(data.imageKeys);
 }
@@ -1616,13 +1619,12 @@ setFailedViews(failed);
               const url = String(data?.imageUrl || "");
               if (!url) throw new Error("El servidor no devolvió imageUrl");
 
-              const absolute = url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
+              const dataUrl = url.startsWith("data:") ? url : (url.startsWith("http") ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`);
 
-              const imgRes = await fetch(absolute);
-              const blob = await imgRes.blob();
-              const file = new File([blob], `face-${Date.now()}.png`, { type: blob.type || "image/png" });
+const blob = await (await fetch(dataUrl)).blob(); // fetch(dataURL) funciona
+const file = new File([blob], `face-${Date.now()}.png`, { type: blob.type || "image/png" });
+setFaceFile(file);
 
-              setFaceFile(file);
             } catch (e: any) {
               setError(String(e?.message || e));
             } finally {
