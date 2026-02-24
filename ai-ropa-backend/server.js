@@ -135,7 +135,23 @@ app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
 
 const resend = makeTransporter();
 
-await resend.emails.send({
+const out = await resend.emails.send({
+  from: process.env.FROM_EMAIL,
+  to: process.env.ADMIN_EMAIL,
+  subject: "📩 Nuevo mensaje desde formulario",
+  reply_to: email,
+  html: `
+    <div style="font-family: Arial, sans-serif; line-height:1.4">
+      <h2 style="margin:0 0 10px">Nuevo mensaje de usuario</h2>
+      <p><b>Email:</b> ${email}</p>
+      <p><b>Mensaje:</b></p>
+      <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px">${escapeHtml(message)}</pre>
+    </div>
+  `,
+  attachments, // dejalo si ya lo tenías armado
+});
+
+console.log("RESEND feedback out:", out);
   from: process.env.FROM_EMAIL,
   to: process.env.ADMIN_EMAIL,
   subject: "📩 Nuevo mensaje desde formulario",

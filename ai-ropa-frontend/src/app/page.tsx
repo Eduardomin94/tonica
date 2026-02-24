@@ -1103,7 +1103,7 @@ setFailedViews(failed);
 >
  {mode === "product" ? (
   <>
-    ⚠️ EN LO POSIBLE, subí el producto solo y sobre fondo liso. Si querés una imagen con todos sus colores, subí todas las variantes, una por una individualmente.
+    ⚠️ EN LO POSIBLE, subí el producto solo y sobre fondo liso. Si querés una imagen con todos sus colores, subí todas las variantes, una por una individualmente y generá la imagen.
   </>
 ) : (
   <>
