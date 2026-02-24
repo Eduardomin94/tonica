@@ -3,7 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prismaClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
-
+import { sendNewUserEmail } from "../mailer.js";
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -42,7 +42,9 @@ const payload = ticket.getPayload();
     if (!email) {
       return res.status(400).json({ error: "Google token missing email" });
     }
-
+let isNewUser = false;
+let newUserEmailForMail = null;
+let newUserNameForMail = null;
    const user = await prisma.$transaction(async (tx) => {
   const existing = await tx.user.findUnique({
     where: { email },
@@ -74,7 +76,9 @@ const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
     },
     include: { wallet: { include: { entries: true } } },
   });
-
+isNewUser = true;
+newUserEmailForMail = email;
+newUserNameForMail = name ?? null;
   return created;
 }
 
@@ -102,6 +106,20 @@ const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
 
   return updated;
 });
+
+if (isNewUser) {
+  try {
+    const totalUsers = await prisma.user.count();
+
+    // no bloqueamos el login si el mail falla
+    await sendNewUserEmail({
+      newUser: { email: newUserEmailForMail, name: newUserNameForMail },
+      totalUsers,
+    });
+  } catch (e) {
+    console.error("NEW USER EMAIL ERROR:", e);
+  }
+}
     const accessToken = jwt.sign(
       { sub: user.id },
       process.env.AUTH_JWT_SECRET,

@@ -1,14 +1,21 @@
 
+Poner abajo de todo Powered by Tonicaespecial/studio04
+
+poner un form de "Estamos mejorando cada día para poder brindarte el mejor servicio." "Envianos un mensaje con el error o el inconveniente que tuviste en una captura y especificanos que te gustaría que mejoremos o implementemos" "Por favor ingresá tu mail para enviarte una respuesta de nuestra parte."
+
+
+
+hacer que en el backend no se guarde ninguna imagen para no tener costo de almacenamiento
 
 
 
 
 
-Te paso mi page.tsx y mi server.js espera mi petición
 
 
-cambiar leyenda en foto producto lo de "⚠ Las vistas generadas no son 100% exactas. Para una mayor tasa de éxito, generarlas individualmente."
 
-enviarme un mail o un mensaje cuando hay un usuario nuevo
 
-que las imagenes sean lo más fiel al producto subido. y las vistas lo más fiel a las vistas porque por ejemplo, en frente completo corta las piernas
+
+
+
+corrientes, vestido, casa, cena
