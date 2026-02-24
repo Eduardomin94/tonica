@@ -1,9 +1,13 @@
 
 Poner abajo de todo Powered by Tonicaespecial/studio04
 
-poner un form de "Estamos mejorando cada día para poder brindarte el mejor servicio." "Envianos un mensaje con el error o el inconveniente que tuviste en una captura y especificanos que te gustaría que mejoremos o implementemos" "Por favor ingresá tu mail para enviarte una respuesta de nuestra parte."
 
 
+
+
+
+
+tiene que poder responderle al mail que el usuario envió
 
 hacer que en el backend no se guarde ninguna imagen para no tener costo de almacenamiento
 

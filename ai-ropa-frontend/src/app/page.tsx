@@ -361,6 +361,11 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<{
+  type: "success" | "error";
+  message: string;
+} | null>(null);
   const [failedViews, setFailedViews] = useState<string[]>([]);
   const [result, setResult] = useState<{ imageUrls: string[]; promptUsed?: string } | null>(null);
 
@@ -376,7 +381,15 @@ React.useEffect(() => {
   const id = window.setInterval(() => setBonusTick((n) => n + 1), 1000);
   return () => window.clearInterval(id);
 }, []);
+React.useEffect(() => {
+  if (!feedbackToast) return;
 
+  const t = window.setTimeout(() => {
+    setFeedbackToast(null);
+  }, 4000);
+
+  return () => window.clearTimeout(t);
+}, [feedbackToast]);
   const [nowTick, setNowTick] = useState(0);
   React.useEffect(() => {
     if (!isRegenBusy) return;
@@ -2197,6 +2210,12 @@ const res = await fetch(`${API}/suggest-background`, {
   // ====== APP ======
   return (
     <div className={inter.className} style={styles.page}>
+      <style>{`
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`}</style>
+
       {isRegenBusy && (
         <div
           style={{
@@ -2776,20 +2795,213 @@ const label =
               <Button variant="secondary" onClick={prev} disabled={isRegenBusy || step === 0 || loading}>
                 {t("back")}
               </Button>
-
+<div
+  style={{
+    marginTop: 12,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+  }}
+>
+  🔒 Las imágenes generadas no se guardan en el servidor. Por favor ⬇️ descargalas antes de reiniciar la página.
+</div>
               <div style={{ flex: 1 }} />
 
               {!isLast ? (
                 <Button onClick={next} disabled={isRegenBusy || !canGoNext}>
                   {t("next")}
                 </Button>
+                
               ) : null}
             </div>
-          </section>
+                    </section>
         </div>
+
+        {/* ================= FEEDBACK SECTION (AL FINAL) ================= */}
+        <div
+          style={{
+            marginTop: 60,
+            paddingTop: 40,
+            borderTop: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 720,
+              margin: "0 auto",
+              padding: 28,
+              borderRadius: 20,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
+              ¿Tuviste un inconveniente?
+            </div>
+            {feedbackToast && (
+  <div
+    style={{
+      marginTop: 12,
+      marginBottom: 14,
+      padding: "10px 12px",
+      borderRadius: 14,
+      fontWeight: 800,
+      fontSize: 13,
+      border:
+        feedbackToast.type === "success"
+          ? "1px solid rgba(34,197,94,0.35)"
+          : "1px solid rgba(239,68,68,0.35)",
+      background:
+        feedbackToast.type === "success"
+          ? "rgba(34,197,94,0.12)"
+          : "rgba(239,68,68,0.12)",
+      color:
+        feedbackToast.type === "success"
+          ? "#86efac"
+          : "#fecaca",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    }}
+  >
+    <span>
+      {feedbackToast.type === "success" ? "✅ " : "⚠️ "}
+      {feedbackToast.message}
+    </span>
+
+    <button
+      type="button"
+      onClick={() => setFeedbackToast(null)}
+      style={{
+        border: "none",
+        background: "transparent",
+        color: "rgba(255,255,255,0.75)",
+        fontWeight: 900,
+        cursor: "pointer",
+        padding: "4px 8px",
+        borderRadius: 10,
+      }}
+      aria-label="Cerrar"
+      title="Cerrar"
+    >
+      ✕
+    </button>
+  </div>
+)}
+
+            <div style={{ fontSize: 13, color: "#cbd5e1", marginBottom: 20, lineHeight: 1.6 }}>
+              Estamos mejorando cada día para poder brindarte el mejor servicio. Enviános un mensaje con el error o el
+              inconveniente que tuviste en una captura y especificanos qué te gustaría que mejoremos o implementemos.
+              <br />
+              <span style={{ fontWeight: 900, color: "#ffffff" }}>Por favor ingresá tu mail</span>{" "}
+              para enviarte una respuesta de nuestra parte.
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                setFeedbackLoading(true);
+                setFeedbackToast(null);
+                e.preventDefault();
+
+                const form = e.currentTarget;
+                const email = (form.elements.namedItem("feedback_email") as HTMLInputElement).value.trim();
+                const message = (form.elements.namedItem("feedback_message") as HTMLTextAreaElement).value.trim();
+                const file = (form.elements.namedItem("feedback_file") as HTMLInputElement).files?.[0];
+
+                if (!email || !message) {
+                  setFeedbackToast({ type: "error", message: "Completá tu mail y el mensaje." });
+                  return;
+                }
+
+                const fd = new FormData();
+                fd.append("email", email);
+                fd.append("message", message);
+                if (file) fd.append("screenshot", file);
+
+                const url = `${API}/feedback`;
+
+                try {
+  const r = await fetch(url, { method: "POST", body: fd });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error || "Error enviando mensaje");
+  setFeedbackToast({ type: "success", message: "¡Gracias! Recibimos tu mensaje 🙌" });
+  form.reset();
+} catch (err: any) {
+  setFeedbackToast({ type: "error", message: err?.message || "Error enviando mensaje" });
+} finally {
+  setFeedbackLoading(false);
+}
+              }}
+              style={{ display: "grid", gap: 12 }}
+            >
+              <input
+  name="feedback_email"
+  type="email"
+  placeholder="Tu mail"
+  defaultValue={user?.email || ""}
+  style={styles.input}
+  required
+/>
+
+              <textarea
+                name="feedback_message"
+                placeholder="Contanos qué pasó y qué te gustaría que mejoremos..."
+                style={{ ...styles.input, minHeight: 120 }}
+                required
+              />
+
+              <input
+                name="feedback_file"
+                type="file"
+                accept="image/*"
+                style={styles.file}
+              />
+
+              <button
+  type="submit"
+  disabled={feedbackLoading}
+  style={{
+    ...styles.buyBtnFull,
+    height: 46,
+    opacity: feedbackLoading ? 0.7 : 1,
+    cursor: feedbackLoading ? "not-allowed" : "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  }}
+>
+  {feedbackLoading ? (
+    <>
+      <span
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 999,
+          border: "2px solid rgba(255,255,255,0.35)",
+          borderTopColor: "#ffffff",
+          display: "inline-block",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+      Enviando...
+    </>
+  ) : (
+    "Enviar mensaje"
+  )}
+</button>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   );
+
 }
 
 /* ================== UI COMPONENTS ================== */

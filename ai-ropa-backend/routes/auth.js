@@ -108,17 +108,14 @@ newUserNameForMail = name ?? null;
 });
 
 if (isNewUser) {
-  try {
-    const totalUsers = await prisma.user.count();
+  const totalUsers = await prisma.user.count();
 
-    // no bloqueamos el login si el mail falla
-    await sendNewUserEmail({
-      newUser: { email: newUserEmailForMail, name: newUserNameForMail },
-      totalUsers,
-    });
-  } catch (e) {
+  sendNewUserEmail({
+    newUser: { email: newUserEmailForMail, name: newUserNameForMail },
+    totalUsers,
+  }).catch((e) => {
     console.error("NEW USER EMAIL ERROR:", e);
-  }
+  });
 }
     const accessToken = jwt.sign(
       { sub: user.id },

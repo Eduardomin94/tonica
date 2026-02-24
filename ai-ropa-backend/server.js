@@ -4,13 +4,12 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-
 import authRoutes from "./routes/auth.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 import { prisma } from "./prismaClient.js";
-
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import fetch from "node-fetch";
+import { makeTransporter } from "./mailer.js";
 
 dotenv.config();
 console.log("ENV CHECK:", {
@@ -97,6 +96,81 @@ app.use(express.json({ limit: "10mb" }));
 // ROUTES
 // =====================
 app.use("/auth", authRoutes);
+// =====================
+// FEEDBACK FORM
+// =====================
+// =====================
+// FEEDBACK FORM
+// =====================
+const feedbackUpload = multer({ dest: "uploads/" });
+
+app.post("/feedback", feedbackUpload.single("screenshot"), async (req, res) => {
+  const file = req.file;
+
+  try {
+    const email = String(req.body?.email || "").trim();
+    const message = String(req.body?.message || "").trim();
+
+    if (!email || !message) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+
+    // validación simple
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+
+    const attachments = file
+      ? [
+          {
+            filename: file.originalname || "screenshot.png",
+            path: file.path,
+          },
+        ]
+      : [];
+
+    const transporter = makeTransporter();
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      to: process.env.ADMIN_EMAIL,
+      replyTo: email,
+      subject: "📩 Nuevo mensaje desde formulario",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height:1.4">
+          <h2 style="margin:0 0 10px">Nuevo mensaje de usuario</h2>
+          <p style="margin:0 0 6px"><b>Email:</b> ${escapeHtml(email)}</p>
+          <p style="margin:10px 0 6px"><b>Mensaje:</b></p>
+          <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px;margin:0">${escapeHtml(
+            message
+          )}</pre>
+        </div>
+      `,
+      attachments,
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("FEEDBACK ERROR:", err);
+    return res.status(500).json({ error: "Error enviando mensaje" });
+  } finally {
+    if (file?.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {}
+    }
+  }
+});
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 
 async function applyWelcomeBonusExpiry(walletId) {
   // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
