@@ -6,7 +6,8 @@
 
 Te paso mi page.tsx y mi server.js espera mi petición
 
-hacer checkbox de vistas en switchs
+
+cambiar leyenda en foto producto lo de "⚠ Las vistas generadas no son 100% exactas. Para una mayor tasa de éxito, generarlas individualmente."
 
 enviarme un mail o un mensaje cuando hay un usuario nuevo
 

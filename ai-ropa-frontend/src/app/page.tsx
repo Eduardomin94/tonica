@@ -1085,8 +1085,15 @@ setFailedViews(failed);
     lineHeight: 1.35,
   }}
 >
-  ⚠️ En lo posible, subí la prenda sola (percha o extendida) sobre fondo liso.
-  Evitá maniquí/personas y accesorios. Buena luz y encuadre recto.
+ {mode === "product" ? (
+  <>
+    ⚠️ EN LO POSIBLE, subí el producto solo y sobre fondo liso. Si querés una imagen con todos sus colores, subí todas las variantes, una por una individualmente.
+  </>
+) : (
+  <>
+    ⚠️ EN LO POSIBLE, subí la prenda sola (percha o extendida) sobre fondo liso. Evitá maniquí/personas y accesorios. Buena luz y encuadre recto.
+  </>
+)}
 </div>
             {mode === "product" ? (
               <Box>
@@ -1846,20 +1853,6 @@ const res = await fetch(`${API}/suggest-background`, {
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   {t("viewsToGenerate")}
                 </div>
-                <div
-  style={{
-    marginBottom: 12,
-    padding: "10px 12px",
-    borderRadius: 12,
-    background: "rgba(251,191,36,0.12)",
-    border: "1px solid rgba(251,191,36,0.35)",
-    color: "#facc15",
-    fontSize: 12,
-    fontWeight: 700,
-  }}
->
-  ⚠ {t("viewsDisclaimer")}
-</div>
 
                 {[
   { key: "front", label: t("pFront") },
@@ -1914,20 +1907,7 @@ const res = await fetch(`${API}/suggest-background`, {
                 <div style={{ fontWeight: 900, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
                   {t("viewsToGenerate")}
                 </div>
-                    <div
-      style={{
-        marginBottom: 12,
-        padding: "10px 12px",
-        borderRadius: 12,
-        background: "rgba(251,191,36,0.12)",
-        border: "1px solid rgba(251,191,36,0.35)",
-        color: "#facc15",
-        fontSize: 12,
-        fontWeight: 700,
-      }}
-    >
-      ⚠ {t("viewsDisclaimer")}
-    </div>
+
 
                 {[
   { key: "front", label: t("vFront") },

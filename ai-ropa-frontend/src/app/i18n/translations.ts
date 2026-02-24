@@ -32,9 +32,7 @@ m_cintura: "Cintura",
 m_cadera: "Cadera",
 m_largo: "Largo",
 exampleCm: "Ej: 52cm",
-viewsDisclaimer:
-  "Las vistas generadas no son 100% exactas. Para una mayor tasa de éxito, generarlas individualmente.",
-    // modes
+
     modeModel: "📸Foto con modelo",
     modeProduct: "⚛️Foto producto",
     // steps titles
@@ -398,8 +396,6 @@ exampleCm: "e.g. 52cm",
     bonusExpiresIn: (hh: string, mm: string, ss: string) => `🎁 3-credit bonus — expires in ${hh}:${mm}:${ss}`,
     whatsapp: "WhatsApp",
     whatsappPrefill: "Hi, I need help with the generator",
-    viewsDisclaimer:
-  "Generated views are not 100% exact. For higher success rate, generate them individually.",
   },
 
  pt: {
@@ -409,8 +405,6 @@ exampleCm: "e.g. 52cm",
   signIn: "Entrar",
   signInHint: "Entre com sua conta Google para usar o gerador",
   logout: "Sair",
-  viewsDisclaimer:
-  "As vistas geradas não são 100% exatas. Para maior taxa de sucesso, gere individualmente.",
   sceneLabel: "Fundo",
   credits: "Créditos",
   scenePlaceholder: 'Ex: "pendurado em cabide de madeira", "na areia úmida"',
@@ -782,8 +776,6 @@ exampleCm: "예: 52cm",
   consumeModel: "📸 사용",
   consumeProduct: "⚛️ 사용",
   consumeGeneric: "사용",
-  viewsDisclaimer:
-  "생성된 뷰는 100% 정확하지 않습니다. 더 높은 성공률을 위해 개별적으로 생성하세요.",
   errUploadFront: "정면 사진을 업로드하세요(필수).",
   errUploadProduct: "제품 사진을 최소 1장 업로드하세요.",
   errChooseCategory: "카테고리를 선택하세요.",
@@ -815,8 +807,6 @@ zh: {
   logout: "退出登录",
   sceneLabel: "背景",
   credits: "积分",
-  viewsDisclaimer:
-  "生成的视图并非100%准确。为了提高成功率，请单独生成。",
   scenePlaceholder: '例如：“挂在木衣架上”，“在湿沙上”',
   otherExample: "例如：衬衫、女式上衣、项链、帽子等",
   bgPlaceholder: '例如："柔和灯光的灰色影棚"',
