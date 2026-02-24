@@ -21,6 +21,35 @@ console.log("ENV CHECK:", {
 fs.mkdirSync("uploads", { recursive: true });
 
 const app = express();
+// =====================
+// QUEUE / SEMAPHORE (FIFO) para /generate
+// =====================
+const MAX_CONCURRENT_GENERATIONS = 12;
+let activeGenerations = 0;
+
+// Cola FIFO
+const waitQueue = [];
+
+// Esperar turno
+function acquireGenerationSlot() {
+  if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
+    activeGenerations++;
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    waitQueue.push(resolve);
+  }).then(() => {
+    activeGenerations++;
+  });
+}
+
+// Liberar turno
+function releaseGenerationSlot() {
+  activeGenerations = Math.max(0, activeGenerations - 1);
+  const next = waitQueue.shift();
+  if (next) next();
+}
 const PORT = process.env.PORT || 3001;
 
 // =====================
@@ -453,6 +482,7 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
+    await acquireGenerationSlot();
     const mode = String(req.body?.mode || "model").toLowerCase();
     const language = String(req.body?.language || "es").toLowerCase();
     const langLine =
@@ -499,11 +529,14 @@ if (mode === "model") {
         "pantSideDetail",
       ].filter((k) => !!selectedViews?.[k]);
 
-
-
-
-
     let COST = requestedKeys.length;
+
+    // 🔒 FORZAR UNA SOLA VISTA
+if (requestedKeys.length !== 1) {
+  return res.status(400).json({
+    error: "ONLY_ONE_VIEW_ALLOWED",
+  });
+}
     console.log("DEBUG COST", { mode, requestedKeys, COST });
 
     if (COST <= 0) {
@@ -1564,6 +1597,8 @@ return res.json({
     error: "Error en generate",
     details: String(err?.message || err),
   });
+} finally{
+  releaseGenerationSlot();
 }
   }
 );

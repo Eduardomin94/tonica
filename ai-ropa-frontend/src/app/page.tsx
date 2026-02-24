@@ -357,6 +357,7 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   // ui
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [queueNotice, setQueueNotice] = useState(false);
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -872,9 +873,21 @@ console.log("=== END FORM DATA DEBUG ===");
     void fetchMe();
 void fetchEntries();
 
-  } catch (e: any) {
-    setError(String(e?.message || e));
-  } finally {
+} catch (e: any) {
+  const msg = String(e?.message || e);
+
+  // Mensaje más claro si parece error de red/timeout/cola
+  const friendly =
+    msg.includes("Failed to fetch") ||
+    msg.includes("NetworkError") ||
+    msg.includes("Load failed") ||
+    msg.includes("timeout") ||
+    msg.includes("Timeout")
+      ? "No se pudo completar la generación (posible cola/timeout). Por favor volvé a reintentarlo otra vez."
+      : msg;
+
+  setError(friendly);
+} finally {
     // ✅ esperar 2 frames para que el <img> pinte antes de sacar el overlay
     setTimeout(() => {
   setRegenLoading((m) => {
@@ -930,6 +943,12 @@ const res = await fetch(`${API}/suggest-background`, {
   setResult(null);
   setFailedViews([]);
   
+  setQueueNotice(false);
+
+// ⏳ Si tarda, mostramos aviso de cola (Railway/Gemini)
+const queueTimer = window.setTimeout(() => {
+  setQueueNotice(true);
+}, 4000);
   if (!API) return setError(t("missingApiBase"));
 
   // Validaciones
@@ -1040,8 +1059,10 @@ setFailedViews(failed);
   } catch (e: any) {
     setError(String(e?.message || e));
   } finally {
-    setLoading(false);
-  }
+  window.clearTimeout(queueTimer);
+  setQueueNotice(false);
+  setLoading(false);
+}
 }
   // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {
@@ -1846,28 +1867,42 @@ const res = await fetch(`${API}/suggest-background`, {
   { key: "left", label: t("pLeft") },
   { key: "right", label: t("pRight") },
 ].map((v) => (
-                  <label
-                    key={v.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "rgba(255,255,255,0.06)",
-                      marginBottom: 10,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={(views as any)[v.key]}
-                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-                      style={{ width: 18, height: 18 }}
-                    />
-                  </label>
+                  <div
+  key={v.key}
+  style={styles.switchRow}
+  onClick={() => {
+    setViews((prev) => {
+      const isOn = !!(prev as any)[v.key];
+
+      // Si está prendido y tocás, lo apaga (queda 0 seleccionadas)
+      if (isOn) return { ...prev, [v.key]: false };
+
+      // Si lo prendés: apagamos todo y dejamos solo este
+      const next: any = {};
+      for (const k of Object.keys(prev)) next[k] = false;
+      next[v.key] = true;
+      return next;
+    });
+  }}
+  role="switch"
+  aria-checked={(views as any)[v.key]}
+>
+  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+
+  <div
+    style={{
+      ...styles.switchWrap,
+      ...((views as any)[v.key] ? styles.switchWrapOn : {}),
+    }}
+  >
+    <div
+      style={{
+        ...styles.switchKnob,
+        ...((views as any)[v.key] ? styles.switchKnobOn : {}),
+      }}
+    />
+  </div>
+</div>
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
@@ -1908,28 +1943,42 @@ const res = await fetch(`${API}/suggest-background`, {
     ]
   : []),
 ].map((v) => (
-                  <label
-                    key={v.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      background: "rgba(255,255,255,0.06)",
-                      marginBottom: 10,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={(views as any)[v.key]}
-                      onChange={(e) => setViews((prev) => ({ ...prev, [v.key]: e.target.checked }))}
-                      style={{ width: 18, height: 18 }}
-                    />
-                  </label>
+                <div
+  key={v.key}
+  style={styles.switchRow}
+  onClick={() => {
+    setViews((prev) => {
+      const isOn = !!(prev as any)[v.key];
+
+      // si estaba prendido y tocás, lo apaga (puede quedar 0 seleccionadas)
+      if (isOn) return { ...prev, [v.key]: false };
+
+      // si lo prendés: apagamos todo y dejamos solo este
+      const next: any = {};
+      for (const k of Object.keys(prev)) next[k] = false;
+      next[v.key] = true;
+      return next;
+    });
+  }}
+  role="switch"
+  aria-checked={(views as any)[v.key]}
+>
+  <span style={{ fontWeight: 800, color: "#ffffff" }}>{v.label}</span>
+
+  <div
+    style={{
+      ...styles.switchWrap,
+      ...((views as any)[v.key] ? styles.switchWrapOn : {}),
+    }}
+  >
+    <div
+      style={{
+        ...styles.switchKnob,
+        ...((views as any)[v.key] ? styles.switchKnobOn : {}),
+      }}
+    />
+  </div>
+</div>
                 ))}
 
                 <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 700 }}>
@@ -2736,7 +2785,11 @@ const label =
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
             {error && <div style={styles.inlineErr}>{error}</div>}
-
+            {queueNotice && (
+  <div style={styles.inlineWarn}>
+    ⏳ Alta demanda. Estás en cola, tu generación comenzará pronto…
+  </div>
+)}
             {panel}
 
             <div style={styles.footer}>
@@ -3319,6 +3372,50 @@ pagerBtnPrimary: {
   color: "#ffffff",
   background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
   boxShadow: "0 10px 22px rgba(99,102,241,0.28)",
+},
+switchRow: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "10px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  marginBottom: 10,
+},
+
+switchWrap: {
+  width: 44,
+  height: 26,
+  borderRadius: 999,
+  border: "1px solid rgba(255,255,255,0.22)",
+  background: "rgba(255,255,255,0.12)",
+  position: "relative",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  flexShrink: 0,
+},
+
+switchWrapOn: {
+  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+  border: "1px solid rgba(34,197,94,0.65)",
+  boxShadow: "0 10px 22px rgba(34,197,94,0.22)",
+},
+
+switchKnob: {
+  width: 22,
+  height: 22,
+  borderRadius: 999,
+  background: "#ffffff",
+  position: "absolute",
+  top: 1,
+  left: 1,
+  transition: "left 0.2s ease",
+  boxShadow: "0 8px 18px rgba(0,0,0,0.25)",
+},
+
+switchKnobOn: {
+  left: 21,
 },
 
 };

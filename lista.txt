@@ -6,12 +6,8 @@
 
 Te paso mi page.tsx y mi server.js espera mi petición
 
+hacer checkbox de vistas en switchs
 
+enviarme un mail o un mensaje cuando hay un usuario nuevo
 
 que las imagenes sean lo más fiel al producto subido. y las vistas lo más fiel a las vistas porque por ejemplo, en frente completo corta las piernas
-
-
-
-synka
-preguntar a mari sobre el pedido de la web
-cambiar dolares 
