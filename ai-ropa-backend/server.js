@@ -64,6 +64,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://tonica-woad.vercel.app",
+  "https://fotonine.com",
+  "https://www.fotonine.com",
   (process.env.FRONTEND_URL || "").trim(),
 ].filter(Boolean);
 
