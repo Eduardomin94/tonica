@@ -148,12 +148,17 @@ const out = await resend.emails.send({
       <pre style="white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:10px">${escapeHtml(message)}</pre>
     </div>
   `,
-  attachments, // dejalo si ya lo tenías armado
+  attachments,
 });
 
-console.log("RESEND feedback out:", out);
+console.log("RESEND feedback out:", JSON.stringify(out));
 
-    return res.json({ success: true });
+if (out?.error) {
+  console.error("RESEND feedback error:", out.error);
+  return res.status(500).json({ error: out.error?.message || "Resend error" });
+}
+
+return res.json({ success: true, id: out?.data?.id || out?.id });
   } catch (err) {
     console.error("FEEDBACK ERROR:", err);
     return res.status(500).json({ error: "Error enviando mensaje" });
