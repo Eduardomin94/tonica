@@ -10,4 +10,4 @@ Poner abajo de todo Powered by Tonicaespecial/studio04
 
 🚀 Comprimir imágenes antes de mandarlas a Gemini (para bajar RAM y latencia)
 
-corrientes, vestido, casa, cena
+testgit
