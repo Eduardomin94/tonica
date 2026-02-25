@@ -1657,11 +1657,11 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     let unitPrice;
 
     if (credits === 50) {
-  unitPrice = 75000;
+  unitPrice = 1;
 } else if (credits === 100) {
-  unitPrice = 150000;
+  unitPrice = 1;
 } else if (credits === 200) {
-  unitPrice = 300000;
+  unitPrice = 1;
 } else {
   return res.status(400).json({ error: "Paquete inválido" });
 }
