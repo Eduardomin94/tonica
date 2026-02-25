@@ -77,6 +77,15 @@ const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
     },
     include: { wallet: { include: { entries: true } } },
   });
+
+  // ✅ FORZAR wallet.email por SQL (funciona aunque Prisma Client no tenga el campo)
+await tx.$executeRawUnsafe(
+  `UPDATE "Wallet" SET "email" = $1 WHERE "userId" = $2`,
+  email,
+  created.id
+);
+
+
 isNewUser = true;
 newUserEmailForMail = email;
 newUserNameForMail = name ?? null;
