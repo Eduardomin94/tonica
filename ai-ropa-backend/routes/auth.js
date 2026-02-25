@@ -124,6 +124,24 @@ newUserNameForMail = name ?? null;
   return updated;
 });
 
+
+// ✅ AUTOFIX DEFINITIVO: asegurar Wallet.email SIEMPRE (por SQL directo)
+await prisma.$executeRawUnsafe(
+  `UPDATE "Wallet"
+   SET "email" = $1
+   WHERE "userId" = $2 AND ("email" IS NULL OR "email" = '')`,
+  email,
+  user.id
+);
+// ✅ AUTOFIX DEFINITIVO: asegurar Wallet.email SIEMPRE (por SQL directo)
+await prisma.$executeRawUnsafe(
+  `UPDATE "Wallet"
+   SET "email" = $1
+   WHERE "userId" = $2 AND ("email" IS NULL OR "email" = '')`,
+  email,
+  user.id
+);
+
 if (isNewUser) {
   const totalUsers = await prisma.user.count();
 
