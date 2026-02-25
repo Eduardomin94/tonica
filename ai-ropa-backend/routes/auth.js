@@ -138,6 +138,19 @@ if (isNewUser) {
       console.error("NEW USER EMAIL ERROR:", e);
     });
 }
+// ✅ autocorrección: si wallet.email quedó NULL, lo rellenamos
+try {
+  if (user?.wallet?.id && (!user.wallet.email || user.wallet.email === "")) {
+    await prisma.wallet.update({
+      where: { id: user.wallet.id },
+      data: { email: user.email },
+    });
+    // mantener el objeto user coherente para la respuesta
+    user.wallet.email = user.email;
+  }
+} catch (e) {
+  console.error("WALLET EMAIL AUTOFIX ERROR:", e);
+}
     const accessToken = jwt.sign(
       { sub: user.id },
       process.env.AUTH_JWT_SECRET,
