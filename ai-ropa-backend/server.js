@@ -174,7 +174,27 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+async function requireAdmin(req, res, next) {
+  try {
+    const adminEmail = String(process.env.ADMIN_EMAIL || "").toLowerCase().trim();
+    if (!adminEmail) return res.status(500).json({ error: "ADMIN_EMAIL missing" });
 
+    const me = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { email: true },
+    });
+
+    const myEmail = String(me?.email || "").toLowerCase().trim();
+    if (!myEmail || myEmail !== adminEmail) {
+      return res.status(403).json({ error: "ADMIN_ONLY" });
+    }
+
+    return next();
+  } catch (err) {
+    console.error("requireAdmin error:", err);
+    return res.status(500).json({ error: "Admin check failed" });
+  }
+}
 
 async function applyWelcomeBonusExpiry(walletId) {
   // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
@@ -264,6 +284,56 @@ console.log("BONUS ENTRIES DEBUG:", allEntries);
   } catch (err) {
     console.error("WALLET ENTRIES ERROR:", err);
     return res.status(500).json({ error: "Error cargando historial" });
+  }
+});
+// =====================
+// ADMIN: COMPRAS (quién / cuánto / cuándo)
+// =====================
+app.get("/admin/purchases", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query?.page || 1));
+    const pageSize = Math.min(100, Math.max(1, Number(req.query?.pageSize || 50)));
+    const skip = (page - 1) * pageSize;
+
+    const [items, total] = await Promise.all([
+      prisma.creditEntry.findMany({
+        where: { type: "PURCHASE", refType: "MP_PAYMENT" },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          amount: true, // créditos comprados
+          refId: true,  // paymentId de MP
+          metadata: true,
+          wallet: {
+            select: {
+              user: { select: { id: true, email: true, name: true } },
+            },
+          },
+        },
+      }),
+      prisma.creditEntry.count({
+        where: { type: "PURCHASE", refType: "MP_PAYMENT" },
+      }),
+    ]);
+
+    const purchases = items.map((e) => ({
+      id: e.id,
+      when: e.createdAt,
+      email: e.wallet?.user?.email || null,
+      name: e.wallet?.user?.name || null,
+      credits: e.amount,
+      paymentId: e.refId,
+      ars: e.metadata?.amountArs ?? null,
+      status: e.metadata?.status ?? null,
+    }));
+
+    return res.json({ page, pageSize, total, purchases });
+  } catch (err) {
+    console.error("ADMIN purchases error:", err);
+    return res.status(500).json({ error: "Error cargando compras" });
   }
 });
 
@@ -1738,15 +1808,23 @@ app.post("/mp/webhook", async (req, res) => {
       });
 
       await tx.creditEntry.create({
-        data: {
-          walletId: user.wallet.id,
-          type: "PURCHASE",
-          amount: credits,
-          idempotencyKey: `mp:${paymentId}`,
-          refType: "MP_PAYMENT",
-          refId: String(paymentId),
-        },
-      });
+  data: {
+    walletId: user.wallet.id,
+    type: "PURCHASE",
+    amount: credits,
+    idempotencyKey: `mp:${paymentId}`,
+    refType: "MP_PAYMENT",
+    refId: String(paymentId),
+    metadata: {
+      status: payment?.status ?? null,
+      amountArs: payment?.transaction_amount ?? null,
+      currency: payment?.currency_id ?? "ARS",
+      payerEmail: payment?.payer?.email ?? null,
+      dateApproved: payment?.date_approved ?? null,
+      creditsPurchased: credits,
+    },
+  },
+});
     });
 
     return res.sendStatus(200);
