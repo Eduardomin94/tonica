@@ -103,7 +103,7 @@ newUserNameForMail = name ?? null;
   // Si por alguna razón no tenía wallet, la creamos (sin bono)
   if (!updated.wallet) {
     await tx.wallet.create({
-      data: { userId: updated.id, balance: 0 },
+      data: { userId: updated.id, balance: 0, email: email },
     });
 
     return tx.user.findUnique({
