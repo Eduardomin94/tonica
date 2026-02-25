@@ -1659,9 +1659,9 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     if (credits === 50) {
   unitPrice = 1;
 } else if (credits === 100) {
-  unitPrice = 1;
+  unitPrice = 2;
 } else if (credits === 200) {
-  unitPrice = 1;
+  unitPrice = 3;
 } else {
   return res.status(400).json({ error: "Paquete inválido" });
 }
