@@ -556,7 +556,7 @@ return !frontFile ? t("errUploadFront") : null;
 
     if (key === "scene") {
   if (!scene.trim()) return t("errSceneMissing");
-  if (wordCount(scene) > 100) return t("errSceneTooLong");
+  if (wordCount(scene) > 25) return t("errSceneTooLong");
   return null;
 }
 
@@ -568,7 +568,7 @@ return !frontFile ? t("errUploadFront") : null;
 
     if (key === "background") {
   if (!background.trim()) return t("errBgMissing");
-  if (wordCount(background) > 100) return t("errBgTooLong");
+  if (wordCount(background) > 25) return t("errBgTooLong");
   return null;
 }
 
@@ -633,7 +633,7 @@ return !frontFile ? t("errUploadFront") : null;
           break;
 
           case 8:
-  if (!background.trim() || wordCount(background) > 100) return setStep(8);
+  if (!background.trim() || wordCount(background) > 25) return setStep(8);
   break;
 
         case 9:
@@ -975,7 +975,7 @@ const queueTimer = window.setTimeout(() => {
       setStep(1);
       return setError(t("errSceneMissing"));
     }
-    if (wordCount(scene) > 100) {
+    if (wordCount(scene) > 25) {
       setStep(1);
       return setError(t("errSceneTooLong"));
     }
@@ -1686,7 +1686,7 @@ setFaceFile(file);
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
               <SmallMuted>
-  {t("words", wordCount(background), 100)}
+  {t("words", wordCount(background), 25)}
 </SmallMuted>
               <Button variant="secondary" onClick={handleSuggestBackground} disabled={helpLoading || !category || !modelType}>
                 {helpLoading ? t("searching") : t("helpChoosePlace")}
@@ -1746,7 +1746,7 @@ setFaceFile(file);
 />
 
             <Row style={{ marginTop: 10, justifyContent: "space-between" }}>
-              <SmallMuted>{t("words", wordCount(scene), 100)}</SmallMuted>
+              <SmallMuted>{t("words", wordCount(scene), 25)}</SmallMuted>
 
               <Button
                 variant="secondary"
