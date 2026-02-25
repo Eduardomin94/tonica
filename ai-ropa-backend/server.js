@@ -1657,7 +1657,7 @@ app.post("/mp/create-preference", requireAuth, async (req, res) => {
     let unitPrice;
 
     if (credits === 50) {
-  unitPrice = 1;
+  unitPrice = 75000;
 } else if (credits === 100) {
   unitPrice = 150000;
 } else if (credits === 200) {
