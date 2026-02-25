@@ -62,6 +62,7 @@ const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas
       wallet: {
         create: {
           balance: 0, // 👈 el bonus NO va en balance (se calcula aparte)
+          email: email,
           entries: {
             create: {
               type: "GRANT",
@@ -91,6 +92,13 @@ newUserNameForMail = name ?? null;
     },
     include: { wallet: true },
   });
+
+  if (updated.wallet) {
+  await tx.wallet.update({
+    where: { id: updated.wallet.id },
+    data: { email: email },
+  });
+}
 
   // Si por alguna razón no tenía wallet, la creamos (sin bono)
   if (!updated.wallet) {
