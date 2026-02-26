@@ -596,8 +596,18 @@ app.get("/admin/payments-stats", requireAdmin09, async (req, res) => {
     const skip = (page - 1) * pageSize;
 
     // filtros opcionales
-    const from = req.query?.from ? new Date(String(req.query.from)) : null;
-    const to = req.query?.to ? new Date(String(req.query.to)) : null;
+    let from = req.query?.from ? new Date(String(req.query.from)) : null;
+let to = req.query?.to ? new Date(String(req.query.to)) : null;
+
+// ✅ Si es misma fecha, expandimos a todo el día
+if (from && to && String(req.query.from) === String(req.query.to)) {
+  const start = new Date(`${req.query.from}T00:00:00.000Z`);
+  const end = new Date(`${req.query.to}T00:00:00.000Z`);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  from = start;
+  to = end;
+}
     const userQ = String(req.query?.user || "").trim().toLowerCase();
 
     const where = {

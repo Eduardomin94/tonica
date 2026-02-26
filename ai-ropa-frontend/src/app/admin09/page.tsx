@@ -1203,41 +1203,18 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
   >
     <div style={{ paddingTop: 6 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <select
-          value={payInterval}
-          onChange={(e) => {
-  const value = e.target.value as any;
-  setPayInterval(value);
+       <input
+  type="date"
+  value={payFrom}
+  onChange={(e) => {
+    const date = e.target.value;
 
-  const now = new Date();
-  let start = new Date();
-
-  if (value === "day") {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }
-
-  if (value === "week") {
-    start = new Date();
-    start.setDate(now.getDate() - 7);
-  }
-
-  if (value === "month") {
-    start = new Date();
-    start.setDate(now.getDate() - 30);
-  }
-
-  setPayFrom(start.toISOString().split("T")[0]);
-  setPayTo(now.toISOString().split("T")[0]);
-
-  setPaymentsPage(1);
-  setTimeout(loadStats, 0);
-}}
-          style={{ padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
-        >
-          <option value="day">Día</option>
-          <option value="week">Semana</option>
-          <option value="month">Mes</option>
-        </select>
+    setPayFrom(date);
+    setPayTo(date);      // mismo día inicio/fin
+    setPaymentsPage(1);  // reset paginación
+  }}
+  style={{ padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
+/>
 
         <button
           onClick={loadStats}

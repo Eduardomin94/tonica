@@ -1,12 +1,11 @@
 
 
+que el dato de las tablas se puedan descargar en un excel por mes.
+
+preguntar a chatgpt donde puedo entrar a borrar datos de hace 1 año para que no pese tanto el backend
 
 
 
 
-
-que no se abra automaticamente la tabla de movimientos
-
-que muestre cuantos usuarios hay en total arriba de todo como un header. "USUARIOS DE FOTONINE = x usuarios"
 
 preguntar a chatgpt cuando aguanta mi plan de railway actual y mis archivos
