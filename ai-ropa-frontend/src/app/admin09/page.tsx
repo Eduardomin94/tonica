@@ -441,6 +441,94 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         </button>
       </div>
 
+      <style>{`
+  /* === Admin09 responsive tables + mobile cards === */
+
+  /* Helpers */
+  .admin09-clip {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: bottom;
+  }
+
+  /* Desktop table visible */
+  .admin09-desktopTable { display: block; }
+  .admin09-mobileCards { display: none; }
+
+  /* Base table */
+  .admin09-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  /* Mobile cards */
+  .admin09-cardList {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .admin09-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+    padding: 12px;
+  }
+  .admin09-cardTop {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .admin09-cardTitle {
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+  .admin09-cardSub {
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
+    margin-top: 4px;
+  }
+  .admin09-kv {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 6px 10px;
+    font-size: 13px;
+    align-items: baseline;
+  }
+  .admin09-k {
+    color: #64748b;
+    font-weight: 900;
+    font-size: 12px;
+  }
+  .admin09-v {
+    color: #0f172a;
+    font-weight: 800;
+    word-break: break-word;
+  }
+  .admin09-vStrong {
+    color: #0f172a;
+    font-weight: 1000;
+  }
+
+  @media (max-width: 720px) {
+    /* Hide table, show cards */
+    .admin09-desktopTable { display: none; }
+    .admin09-mobileCards { display: block; }
+
+    .admin09-clip { max-width: 140px; }
+
+    .admin09-kv { grid-template-columns: 110px 1fr; }
+  }
+`}</style>
+
       {/* Tabla 1 */}
 <section style={{ marginTop: 22, padding: 16, border: "1px solid #e5e7eb", borderRadius: 16, background: "#fff" }}>
   <div
@@ -513,93 +601,178 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         </button>
       </div>
 
-      <div style={{ overflowX: "auto", marginTop: 14 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ textAlign: "left", background: "#f8fafc" }}>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Movimiento</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Monto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((e) => (
-              <tr key={e.id}>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(e.createdAt)}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-                  {e.movement} {e.mode ? `(${e.mode})` : ""}
-                </td>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{e.userEmail || "—"}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-                  {e.amount}
-                </td>
-              </tr>
-            ))}
-            {entries.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ padding: 12, color: "#64748b" }}>
-                  Sin resultados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {/* Desktop: tabla */}
+<div className="admin09-desktopTable" style={{ marginTop: 14 }}>
+  <table className="admin09-table">
+    <thead>
+      <tr style={{ textAlign: "left", background: "#f8fafc" }}>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Movimiento</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Monto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {entries.map((e) => (
+        <tr key={e.id}>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(e.createdAt)}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+            {e.movement} {e.mode ? `(${e.mode})` : ""}
+          </td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{e.userEmail || "—"}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
+            {e.amount}
+          </td>
+        </tr>
+      ))}
+      {entries.length === 0 && (
+        <tr>
+          <td colSpan={4} style={{ padding: 12, color: "#64748b" }}>
+            Sin resultados.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
 
-        {(() => {
-          const totalPages = Math.max(1, Math.ceil(entriesTotal / PAGE_SIZE));
-          if (totalPages <= 1) return null;
+  {(() => {
+    const totalPages = Math.max(1, Math.ceil(entriesTotal / PAGE_SIZE));
+    if (totalPages <= 1) return null;
 
-          return (
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setEntriesPage((p) => Math.max(1, p - 1));
-                  setTimeout(loadEntries, 0);
-                }}
-                disabled={entriesPage <= 1}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#fff",
-                  fontWeight: 900,
-                  cursor: entriesPage <= 1 ? "not-allowed" : "pointer",
-                  opacity: entriesPage <= 1 ? 0.5 : 1,
-                }}
-              >
-                Anterior
-              </button>
+    return (
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setEntriesPage((p) => Math.max(1, p - 1));
+            setTimeout(loadEntries, 0);
+          }}
+          disabled={entriesPage <= 1}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            background: "#fff",
+            fontWeight: 900,
+            cursor: entriesPage <= 1 ? "not-allowed" : "pointer",
+            opacity: entriesPage <= 1 ? 0.5 : 1,
+          }}
+        >
+          Anterior
+        </button>
 
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
-                Página {entriesPage} de {totalPages}
-              </div>
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+          Página {entriesPage} de {totalPages}
+        </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setEntriesPage((p) => Math.min(totalPages, p + 1));
-                  setTimeout(loadEntries, 0);
-                }}
-                disabled={entriesPage >= totalPages}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#0f172a",
-                  color: "#fff",
-                  fontWeight: 900,
-                  cursor: entriesPage >= totalPages ? "not-allowed" : "pointer",
-                  opacity: entriesPage >= totalPages ? 0.5 : 1,
-                }}
-              >
-                Siguiente
-              </button>
-            </div>
-          );
-        })()}
+        <button
+          type="button"
+          onClick={() => {
+            setEntriesPage((p) => Math.min(totalPages, p + 1));
+            setTimeout(loadEntries, 0);
+          }}
+          disabled={entriesPage >= totalPages}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            background: "#0f172a",
+            color: "#fff",
+            fontWeight: 900,
+            cursor: entriesPage >= totalPages ? "not-allowed" : "pointer",
+            opacity: entriesPage >= totalPages ? 0.5 : 1,
+          }}
+        >
+          Siguiente
+        </button>
       </div>
+    );
+  })()}
+</div>
+
+{/* Mobile: cards */}
+<div className="admin09-mobileCards">
+  <div className="admin09-cardList">
+    {entries.map((e) => (
+      <div key={e.id} className="admin09-card">
+        <div className="admin09-cardTop">
+          <div>
+            <div className="admin09-cardTitle">{e.userEmail || "—"}</div>
+            <div className="admin09-cardSub">{fmt(e.createdAt)}</div>
+          </div>
+          <div className="admin09-vStrong">{e.amount}</div>
+        </div>
+
+        <div className="admin09-kv">
+          <div className="admin09-k">Movimiento</div>
+          <div className="admin09-v">
+            {e.movement} {e.mode ? `(${e.mode})` : ""}
+          </div>
+        </div>
+      </div>
+    ))}
+
+    {entries.length === 0 && (
+      <div style={{ padding: 12, color: "#64748b", fontWeight: 800 }}>
+        Sin resultados.
+      </div>
+    )}
+  </div>
+
+  {(() => {
+    const totalPages = Math.max(1, Math.ceil(entriesTotal / PAGE_SIZE));
+    if (totalPages <= 1) return null;
+
+    return (
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setEntriesPage((p) => Math.max(1, p - 1));
+            setTimeout(loadEntries, 0);
+          }}
+          disabled={entriesPage <= 1}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            background: "#fff",
+            fontWeight: 900,
+            cursor: entriesPage <= 1 ? "not-allowed" : "pointer",
+            opacity: entriesPage <= 1 ? 0.5 : 1,
+          }}
+        >
+          Anterior
+        </button>
+
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+          Página {entriesPage} de {totalPages}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEntriesPage((p) => Math.min(totalPages, p + 1));
+            setTimeout(loadEntries, 0);
+          }}
+          disabled={entriesPage >= totalPages}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: "1px solid #cbd5e1",
+            background: "#0f172a",
+            color: "#fff",
+            fontWeight: 900,
+            cursor: entriesPage >= totalPages ? "not-allowed" : "pointer",
+            opacity: entriesPage >= totalPages ? 0.5 : 1,
+          }}
+        >
+          Siguiente
+        </button>
+      </div>
+    );
+  })()}
+</div>
     </div>
   </div>
 </section>
@@ -916,8 +1089,8 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         </button>
       </div>
 
-      <div style={{ overflowX: "auto", marginTop: 12 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <div className="admin09-tableWrap" style={{ marginTop: 12 }}>
+  <table className="admin09-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ textAlign: "left", background: "#f8fafc" }}>
               <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
@@ -949,7 +1122,9 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
           {u.name || "—"} <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
         </td>
-        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{u.email || "—"}</td>
+        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+  <span className="admin09-clip">{u.email || "—"}</span>
+</td>
         <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
           {u.credits}
         </td>
