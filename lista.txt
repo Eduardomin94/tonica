@@ -4,9 +4,7 @@
 
 
 
+hacer deploy /admin09
 
 
-HACER QUE LOS MAILS SEAN HILOS DIFERENTES
-
-testgit
-desde corrientes
+preguntar a chatgpt cuando aguanta mi plan de railway actual y mis archivos

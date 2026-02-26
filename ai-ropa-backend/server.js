@@ -14,6 +14,7 @@ console.log("ENV CHECK:", {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   AUTH_JWT_SECRET: process.env.AUTH_JWT_SECRET ? "OK" : "MISSING",
   FRONTEND_URL: process.env.FRONTEND_URL,
+  ADMIN09_PASSWORD: process.env.ADMIN09_PASSWORD ? "OK" : "MISSING",
 });
 
 
@@ -62,7 +63,9 @@ const mpPreference = new Preference(mpClient);
 // =====================
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "http://localhost:3001",
+  "http://127.0.0.1:3001",
   "https://tonica-woad.vercel.app",
   "https://fotonine.com",
   "https://www.fotonine.com",
@@ -83,7 +86,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key", "X-Admin-Password"],
   })
 );
 
@@ -174,6 +177,95 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
+// =====================
+// ADMIN09: rate limit / lockout (por IP)
+// =====================
+
+// Railway/Vercel proxy: permite leer req.ip correcto
+app.set("trust proxy", 1);
+
+const ADMIN09_MAX_ATTEMPTS = 4;
+const ADMIN09_LOCK_MS = 10 * 60 * 1000; // 10 minutos
+const admin09Attempts = new Map(); // key: ip -> { attempts, lockedUntil }
+
+function admin09Key(req) {
+  // 1) si viene por proxy, tomar la primera IP real
+  const xf = String(req.headers["x-forwarded-for"] || "");
+  let ip = xf ? xf.split(",")[0].trim() : String(req.ip || req.connection?.remoteAddress || "");
+
+  // 2) normalizar localhost ipv6/ipv4-mapped
+  if (ip === "::1") ip = "127.0.0.1";
+  if (ip.startsWith("::ffff:")) ip = ip.replace("::ffff:", "");
+
+  return ip || "unknown";
+}
+
+function requireAdmin09(req, res, next) {
+  const pass = String(process.env.ADMIN09_PASSWORD || "");
+  if (!pass) return res.status(500).json({ error: "ADMIN09_PASSWORD missing" });
+
+  const provided = String(req.headers["x-admin-password"] || "");
+  const key = admin09Key(req);
+
+  const now = Date.now();
+  const st = admin09Attempts.get(key) || { attempts: 0, lockedUntil: 0 };
+
+  // 1) si está bloqueado
+  if (st.lockedUntil && now < st.lockedUntil) {
+    const retryAfterSec = Math.ceil((st.lockedUntil - now) / 1000);
+    return res.status(429).json({
+      error: "ADMIN09_LOCKED",
+      retryAfterSec,
+      attempts: st.attempts,
+      maxAttempts: ADMIN09_MAX_ATTEMPTS,
+    });
+  }
+
+  // 2) check password
+  const ok = provided && provided === pass;
+
+  console.log("ADMIN09 CHECK:", {
+    ip: key,
+    hasProvided: !!provided,
+    providedLen: provided.length,
+    envLen: pass.length,
+    match: ok,
+    attempts: st.attempts,
+    locked: st.lockedUntil ? now < st.lockedUntil : false,
+  });
+
+  if (!ok) {
+    st.attempts = (st.attempts || 0) + 1;
+
+    // al intento #4: bloquear 10 minutos
+    if (st.attempts >= ADMIN09_MAX_ATTEMPTS) {
+      st.lockedUntil = now + ADMIN09_LOCK_MS;
+      admin09Attempts.set(key, st);
+
+      return res.status(429).json({
+        error: "ADMIN09_LOCKED",
+        retryAfterSec: Math.ceil(ADMIN09_LOCK_MS / 1000),
+        attempts: st.attempts,
+        maxAttempts: ADMIN09_MAX_ATTEMPTS,
+      });
+    }
+
+    admin09Attempts.set(key, st);
+
+    return res.status(401).json({
+      error: "ADMIN09_UNAUTHORIZED",
+      attempts: st.attempts,
+      maxAttempts: ADMIN09_MAX_ATTEMPTS,
+      attemptsLeft: Math.max(0, ADMIN09_MAX_ATTEMPTS - st.attempts),
+    });
+  }
+
+  // 3) si es correcto, resetear estado
+  admin09Attempts.delete(key);
+  next();
+}
+
 async function requireAdmin(req, res, next) {
   try {
     const adminEmail = String(process.env.ADMIN_EMAIL || "").toLowerCase().trim();
@@ -286,6 +378,286 @@ console.log("BONUS ENTRIES DEBUG:", allEntries);
     return res.status(500).json({ error: "Error cargando historial" });
   }
 });
+app.get("/admin/entries", requireAdmin09, async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query?.page || 1));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 50)));
+    const skip = (page - 1) * pageSize;
+
+    const userQ = String(req.query?.user || "").trim().toLowerCase();
+    const from = req.query?.from ? new Date(String(req.query.from)) : null;
+    const to = req.query?.to ? new Date(String(req.query.to)) : null;
+
+    const where = {
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+      ...(userQ
+        ? {
+            wallet: {
+              user: {
+                email: { contains: userQ, mode: "insensitive" },
+              },
+            },
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.creditEntry.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          type: true,
+          amount: true,
+          refType: true,
+          metadata: true,
+          wallet: { select: { user: { select: { id: true, email: true, name: true } } } },
+        },
+      }),
+      prisma.creditEntry.count({ where }),
+    ]);
+
+    const entries = items.map((e) => ({
+      id: e.id,
+      createdAt: e.createdAt,
+      userEmail: e.wallet?.user?.email || null,
+      userName: e.wallet?.user?.name || null,
+      movement: e.refType === "WELCOME_BONUS_EXPIRE" ? "EXPIRED" : e.type,
+      amount: e.amount,
+      refType: e.refType,
+      mode: e.metadata?.mode ?? null,
+    }));
+
+    return res.json({ page, pageSize, total, entries });
+  } catch (err) {
+    console.error("ADMIN entries error:", err);
+    return res.status(500).json({ error: "Error cargando entries" });
+  }
+});
+app.get("/admin/users-stats", requireAdmin09, async (req, res) => {
+  try {
+    const interval = String(req.query?.interval || "day");
+    const allowed = new Set(["day", "week", "month"]);
+    const bucket = allowed.has(interval) ? interval : "day";
+
+    const rows = await prisma.$queryRaw`
+      SELECT
+        date_trunc(${bucket}, "createdAt") AS bucket,
+        COUNT(*)::int AS count
+      FROM "User"
+      GROUP BY 1
+      ORDER BY 1 DESC
+      LIMIT 200;
+    `;
+
+    return res.json({ interval: bucket, rows });
+  } catch (err) {
+    console.error("ADMIN users-stats error:", err);
+    return res.status(500).json({ error: "Error stats users" });
+  }
+});
+
+app.get("/admin/payments-stats", requireAdmin09, async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query?.page || 1));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 20)));
+    const skip = (page - 1) * pageSize;
+
+    // filtros opcionales
+    const from = req.query?.from ? new Date(String(req.query.from)) : null;
+    const to = req.query?.to ? new Date(String(req.query.to)) : null;
+    const userQ = String(req.query?.user || "").trim().toLowerCase();
+
+    const where = {
+      type: "PURCHASE",
+      refType: "MP_PAYMENT",
+      // solo aprobados
+      metadata: { path: ["status"], equals: "approved" },
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+      ...(userQ
+        ? {
+            wallet: {
+              user: {
+                email: { contains: userQ, mode: "insensitive" },
+              },
+            },
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.creditEntry.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          amount: true, // créditos
+          refId: true,  // paymentId
+          metadata: true,
+          wallet: { select: { user: { select: { id: true, email: true, name: true } } } },
+        },
+      }),
+      prisma.creditEntry.count({ where }),
+    ]);
+// Total ARS (suma de amountArs en metadata) para el mismo filtro
+const allForSum = await prisma.creditEntry.findMany({
+  where,
+  select: { metadata: true },
+});
+
+const totalArs = allForSum.reduce((sum, e) => {
+  const v = Number(e?.metadata?.amountArs ?? 0);
+  return sum + (Number.isFinite(v) ? v : 0);
+}, 0);
+    
+    const payments = items.map((e) => ({
+      id: e.id,
+      createdAt: e.createdAt,
+      email: e.wallet?.user?.email || null,
+      name: e.wallet?.user?.name || null,
+      credits: e.amount,
+      ars: e.metadata?.amountArs ?? null,
+      paymentId: e.refId ?? null,
+      status: e.metadata?.status ?? null,
+    }));
+
+    return res.json({ page, pageSize, total, totalArs, payments });
+  } catch (err) {
+    console.error("ADMIN payments list error:", err);
+    return res.status(500).json({ error: "Error cargando pagos" });
+  }
+});
+
+app.get("/admin/user-balances", requireAdmin09, async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query?.page || 1));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 50)));
+    const skip = (page - 1) * pageSize;
+
+    const userQ = String(req.query?.user || "").trim().toLowerCase();
+
+    const whereUser = userQ
+      ? {
+          OR: [
+            { email: { contains: userQ, mode: "insensitive" } },
+            { name: { contains: userQ, mode: "insensitive" } },
+          ],
+        }
+      : {};
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany({
+        where: whereUser,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          wallet: { select: { balance: true } },
+        },
+      }),
+      prisma.user.count({ where: whereUser }),
+    ]);
+
+    const users = items.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      createdAt: u.createdAt,
+      credits: u.wallet?.balance ?? 0,
+    }));
+
+    return res.json({ page, pageSize, total, users });
+  } catch (err) {
+    console.error("ADMIN user-balances error:", err);
+    return res.status(500).json({ error: "Error cargando balances" });
+  }
+});
+
+app.get("/admin/user-movements", requireAdmin09, async (req, res) => {
+  try {
+    const userId = String(req.query?.userId || "").trim();
+    if (!userId) return res.status(400).json({ error: "userId required" });
+
+    const page = Math.max(1, Number(req.query?.page || 1));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 50)));
+    const skip = (page - 1) * pageSize;
+
+   const user = await prisma.user.findUnique({
+  where: { id: userId },
+  select: { id: true, wallet: { select: { id: true } } },
+});
+
+if (!user) return res.status(404).json({ error: "User not found" });
+
+let walletId = user.wallet?.id;
+
+// ✅ si no tiene wallet, la creamos ahora
+if (!walletId) {
+  const w = await prisma.wallet.create({
+    data: { userId: user.id, balance: 0 },
+    select: { id: true },
+  });
+  walletId = w.id;
+}
+
+    const [items, total] = await Promise.all([
+      prisma.creditEntry.findMany({
+        where: { walletId },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+        select: {
+          id: true,
+          createdAt: true,
+          type: true,
+          amount: true,
+          refType: true,
+          metadata: true,
+        },
+      }),
+      prisma.creditEntry.count({ where: { walletId } }),
+    ]);
+
+    const movements = items.map((e) => ({
+      id: e.id,
+      createdAt: e.createdAt,
+      type: e.type,
+      refType: e.refType,
+      amount: e.amount,
+      mode: e.metadata?.mode ?? null,
+    }));
+
+    return res.json({ page, pageSize, total, movements });
+  } catch (err) {
+    console.error("ADMIN user-movements error:", err);
+    return res.status(500).json({ error: "Error cargando movimientos" });
+  }
+});
+
 // =====================
 // ADMIN: COMPRAS (quién / cuánto / cuándo)
 // =====================
@@ -1838,6 +2210,10 @@ app.post("/mp/webhook", async (req, res) => {
 // STATIC + HEALTH
 // =====================
 app.get("/", (req, res) => res.json({ status: "OK" }));
+
+app.get("/admin09-test", requireAdmin09, (req, res) => {
+  res.json({ ok: true, message: "Admin09 autorizado correctamente" });
+});
 
 // =====================
 // MP RETURN ROUTES
