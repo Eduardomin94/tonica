@@ -5,7 +5,8 @@
 
 
 
+que no se abra automaticamente la tabla de movimientos
 
-que en movimientos solo muestre momivientos del día y lo de los días anteriores no aparezcan y se borren para no almacenar basura en el servidor
+que muestre cuantos usuarios hay en total arriba de todo como un header. "USUARIOS DE FOTONINE = x usuarios"
 
 preguntar a chatgpt cuando aguanta mi plan de railway actual y mis archivos

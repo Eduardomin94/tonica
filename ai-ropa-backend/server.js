@@ -442,28 +442,47 @@ app.get("/admin/entries", requireAdmin09, async (req, res) => {
     const skip = (page - 1) * pageSize;
 
     const userQ = String(req.query?.user || "").trim().toLowerCase();
-    const from = req.query?.from ? new Date(String(req.query.from)) : null;
-    const to = req.query?.to ? new Date(String(req.query.to)) : null;
+
+const date = req.query?.date ? String(req.query.date) : "";
+const from = req.query?.from ? new Date(String(req.query.from)) : null;
+const to = req.query?.to ? new Date(String(req.query.to)) : null;
+
+// ✅ Si viene date=YYYY-MM-DD, usamos ese día completo
+let dayStart = null;
+let dayEnd = null;
+
+if (date) {
+  const start = new Date(`${date}T00:00:00.000Z`);
+  const end = new Date(`${date}T23:59:59.999Z`);
+  if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+    dayStart = start;
+    dayEnd = end;
+  }
+}
 
     const where = {
-      ...(from || to
-        ? {
-            createdAt: {
-              ...(from ? { gte: from } : {}),
-              ...(to ? { lte: to } : {}),
-            },
-          }
-        : {}),
-      ...(userQ
-        ? {
-            wallet: {
-              user: {
-                email: { contains: userQ, mode: "insensitive" },
-              },
-            },
-          }
-        : {}),
-    };
+  // ✅ prioridad: fecha exacta
+  ...(dayStart && dayEnd
+    ? { createdAt: { gte: dayStart, lte: dayEnd } }
+    : from || to
+    ? {
+        createdAt: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        },
+      }
+    : {}),
+
+  ...(userQ
+    ? {
+        wallet: {
+          user: {
+            email: { contains: userQ, mode: "insensitive" },
+          },
+        },
+      }
+    : {}),
+};
 
     const [items, total] = await Promise.all([
       prisma.creditEntry.findMany({
@@ -503,27 +522,73 @@ app.get("/admin/entries", requireAdmin09, async (req, res) => {
 });
 app.get("/admin/users-stats", requireAdmin09, async (req, res) => {
   try {
-    const interval = String(req.query?.interval || "day");
-    const allowed = new Set(["day", "week", "month"]);
-    const bucket = allowed.has(interval) ? interval : "day";
+  const date = req.query?.date ? String(req.query.date) : ""; // YYYY-MM-DD (ancla)
+  const page = Math.max(1, Number(req.query?.page || 1));
+  const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 20)));
+  const skip = (page - 1) * pageSize;
 
-    const rows = await prisma.$queryRaw`
-      SELECT
-        date_trunc(${bucket}, "createdAt") AS bucket,
-        COUNT(*)::int AS count
+  // ancla: si no viene date, usamos hoy
+  const anchor = date || new Date().toISOString().split("T")[0];
+
+  // rango: desde el inicio del tiempo hasta el FIN del día ancla (inclusive)
+  const anchorStart = new Date(`${anchor}T00:00:00.000Z`);
+  const anchorEnd = new Date(`${anchor}T00:00:00.000Z`);
+  anchorEnd.setUTCDate(anchorEnd.getUTCDate() + 1); // exclusivo (lt)
+
+  if (Number.isNaN(anchorStart.getTime()) || Number.isNaN(anchorEnd.getTime())) {
+    return res.status(400).json({ error: "INVALID_DATE" });
+  }
+
+  // total de "días distintos" hasta esa fecha (para paginación)
+  const totalArr = await prisma.$queryRaw`
+    SELECT COUNT(*)::int AS total
+    FROM (
+      SELECT date_trunc('day', "createdAt") AS bucket
       FROM "User"
+      WHERE "createdAt" < ${anchorEnd}
       GROUP BY 1
-      ORDER BY 1 DESC
-      LIMIT 200;
-    `;
+    ) t;
+  `;
+  const total = Number(totalArr?.[0]?.total || 0);
 
-    return res.json({ interval: bucket, rows });
-  } catch (err) {
+  // 20 líneas paginadas: buckets por día (desc)
+  const rows = await prisma.$queryRaw`
+    SELECT
+      date_trunc('day', "createdAt") AS bucket,
+      COUNT(*)::int AS count
+    FROM "User"
+    WHERE "createdAt" < ${anchorEnd}
+    GROUP BY 1
+    ORDER BY 1 DESC
+    OFFSET ${skip}
+    LIMIT ${pageSize};
+  `;
+
+  return res.json({
+    mode: "day_paged",
+    anchor,
+    page,
+    pageSize,
+    total,
+    rows,
+  });
+} catch (err) {
     console.error("ADMIN users-stats error:", err);
     return res.status(500).json({ error: "Error stats users" });
   }
 });
-
+// =====================
+// ADMIN: TOTAL USUARIOS HISTÓRICO
+// =====================
+app.get("/admin/users-total", requireAdmin09, async (req, res) => {
+  try {
+    const total = await prisma.user.count();
+    return res.json({ total });
+  } catch (err) {
+    console.error("ADMIN users-total error:", err);
+    return res.status(500).json({ error: "Error contando usuarios" });
+  }
+});
 app.get("/admin/payments-stats", requireAdmin09, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query?.page || 1));
@@ -608,7 +673,7 @@ const totalArs = allForSum.reduce((sum, e) => {
 app.get("/admin/user-balances", requireAdmin09, async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query?.page || 1));
-    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 50)));
+    const pageSize = Math.min(200, Math.max(1, Number(req.query?.pageSize || 20)));
     const skip = (page - 1) * pageSize;
 
     const userQ = String(req.query?.user || "").trim().toLowerCase();

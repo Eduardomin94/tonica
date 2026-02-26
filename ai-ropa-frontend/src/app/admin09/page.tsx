@@ -84,10 +84,11 @@ const PAY_PAGE_SIZE = 20;
 const [payUserQ, setPayUserQ] = useState("");
 const [payFrom, setPayFrom] = useState("");
 const [payTo, setPayTo] = useState("");
-  // ===== Tabla 1 filtros =====
-  const [userQ, setUserQ] = useState("");
-  const [from, setFrom] = useState(""); // YYYY-MM-DD
-  const [to, setTo] = useState("");     // YYYY-MM-DD
+ // ===== Tabla 1 filtros =====
+const [userQ, setUserQ] = useState("");
+const [from, setFrom] = useState(""); // YYYY-MM-DD
+const [to, setTo] = useState("");     // YYYY-MM-DD
+const [exactDate, setExactDate] = useState(""); // YYYY-MM-DD
   const [entries, setEntries] = useState<any[]>([]);
   const [entriesPage, setEntriesPage] = useState(1);
 const [entriesTotal, setEntriesTotal] = useState(0);
@@ -98,16 +99,20 @@ const [userMovements, setUserMovements] = useState<Record<string, any[]>>({});
 const [userMovementsLoading, setUserMovementsLoading] = useState<Record<string, boolean>>({});
 
   // ===== Tabla 2/3 intervalos =====
-  const [usersInterval, setUsersInterval] = useState<"day" | "week" | "month">("day");
+  const [usersExactDate, setUsersExactDate] = useState(() => new Date().toISOString().split("T")[0]); // YYYY-MM-DD
+  const [usersPage, setUsersPage] = useState(1);
+const [usersTotal, setUsersTotal] = useState(0);
+const USERS_PAGE_SIZE = 20;
   const [payInterval, setPayInterval] = useState<"day" | "week" | "month">("day");
 
   const [usersRows, setUsersRows] = useState<any[]>([]);
+  const [usersGlobalTotal, setUsersGlobalTotal] = useState<number>(0);
   // === Tabla 2: desplegable por periodo (lista de usuarios) ===
 const [openUsersBucket, setOpenUsersBucket] = useState<string | null>(null);
 const [bucketUsers, setBucketUsers] = useState<Record<string, any[]>>({});
 const [bucketUsersLoading, setBucketUsersLoading] = useState<Record<string, boolean>>({});
   const [payRows, setPayRows] = useState<any[]>([]);
-  const [openMovements, setOpenMovements] = useState(true);
+  const [openMovements, setOpenMovements] = useState(false);
 const [openUsers, setOpenUsers] = useState(false);
 const [openPayments, setOpenPayments] = useState(false);
 // Tabla 4: Créditos por usuario
@@ -130,8 +135,14 @@ const [balancesLoading, setBalancesLoading] = useState(false);
       qs.set("page", String(entriesPage));
 qs.set("pageSize", String(PAGE_SIZE));
       if (userQ.trim()) qs.set("user", userQ.trim());
-      if (from) qs.set("from", from);
-      if (to) qs.set("to", to);
+
+// ✅ Si hay fecha exacta, manda solo date (y NO from/to)
+if (exactDate) {
+  qs.set("date", exactDate);
+} else {
+  if (from) qs.set("from", from);
+  if (to) qs.set("to", to);
+}
 
       const r = await fetch(`${API}/admin/entries?${qs.toString()}`, { headers });
 const data = await r.json().catch(() => ({}));
@@ -224,7 +235,7 @@ async function loadUsersForBucket(bucket: string) {
 
   try {
     const qs = new URLSearchParams();
-    qs.set("interval", usersInterval);     // day | week | month
+    qs.set("interval", "day");
     qs.set("bucket", bucket);              // el bucket que viene en usersRows
 
     const r = await fetch(`${API}/admin/users-by-bucket?${qs.toString()}`, { headers });
@@ -250,7 +261,18 @@ async function loadUsersForBucket(bucket: string) {
 
     setStatsLoading(true);
     try {
-     const uRes = await fetch(`${API}/admin/users-stats?interval=${usersInterval}`, { headers });
+      // ✅ Total histórico de usuarios
+const totalRes = await fetch(`${API}/admin/users-total`, { headers });
+const totalData = await totalRes.json().catch(() => ({}));
+if (totalRes.ok) {
+  setUsersGlobalTotal(Number(totalData?.total || 0));
+}
+     const uQs = new URLSearchParams();
+uQs.set("date", usersExactDate);
+uQs.set("page", String(usersPage));
+uQs.set("pageSize", String(USERS_PAGE_SIZE));
+
+const uRes = await fetch(`${API}/admin/users-stats?${uQs.toString()}`, { headers });
 const u = await uRes.json().catch(() => ({}));
 
 if (!uRes.ok) {
@@ -265,6 +287,7 @@ if (!uRes.ok) {
 }
 
 setUsersRows(Array.isArray(u?.rows) ? u.rows : []);
+setUsersTotal(Number(u?.total || 0));
 
 // ===== Pagos como listado (NO por día) =====
 const payQs = new URLSearchParams();
@@ -459,6 +482,21 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     <div style={{ maxWidth: 1100, margin: "40px auto", padding: 20, fontFamily: "system-ui", color: "#0f172a" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
         <h1 style={{ margin: 0 }}>Admin 09</h1>
+        <div
+  style={{
+    marginTop: 12,
+    marginBottom: 20,
+    padding: "16px 20px",
+    borderRadius: 18,
+    background: "#0f172a",
+    color: "#fff",
+    fontWeight: 1000,
+    fontSize: 22,
+    letterSpacing: -0.5,
+  }}
+>
+  USUARIOS DE FOTONINE = {usersGlobalTotal.toLocaleString("es-AR")} usuarios
+</div>
         <button
           onClick={() => {
             sessionStorage.removeItem("admin09_pass");
@@ -614,7 +652,7 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
   className="admin09-movementsGrid"
   style={{
     display: "grid",
-    gridTemplateColumns: "4fr 1fr",
+    gridTemplateColumns: "3fr 2fr 1fr",
     gap: 10,
     alignItems: "end",
   }}
@@ -634,6 +672,32 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
   fontSize: 15,
 }}
           />
+          <div>
+  <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>
+    Fecha exacta (YYYY-MM-DD)
+  </div>
+  <input
+    type="date"
+    value={exactDate}
+    onChange={(e) => {
+      const v = e.target.value;
+      setExactDate(v);
+
+      // ✅ si elegís fecha exacta, limpiamos rango
+      if (v) {
+        setFrom("");
+        setTo("");
+      }
+    }}
+    style={{
+      width: "100%",
+      padding: "14px 12px",
+      borderRadius: 14,
+      border: "1px solid #cbd5e1",
+      fontSize: 15,
+    }}
+  />
+</div>
         </div>
 
         <button
@@ -861,15 +925,15 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
   >
     <div style={{ paddingTop: 6 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <select
-          value={usersInterval}
-          onChange={(e) => setUsersInterval(e.target.value as any)}
-          style={{ padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
-        >
-          <option value="day">Día</option>
-          <option value="week">Semana</option>
-          <option value="month">Mes</option>
-        </select>
+        <input
+  type="date"
+  value={usersExactDate}
+  onChange={(e) => {
+  setUsersExactDate(e.target.value);
+  setUsersPage(1); // ← reset a página 1
+}}
+  style={{ padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
+/>
 
         <button
           onClick={loadStats}
@@ -900,8 +964,8 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
   </div>
 
   <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
-    ({usersInterval === "day" ? "por día" : usersInterval === "week" ? "por semana" : "por mes"})
-  </div>
+  (del día {usersExactDate})
+</div>
 </div>
       {/* Desktop: tabla */}
 <div className="admin09-desktopTable" style={{ marginTop: 12 }}>
@@ -1011,8 +1075,8 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
               <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
             </div>
             <div className="admin09-cardSub">
-              {usersInterval === "day" ? "Día" : usersInterval === "week" ? "Semana" : "Mes"}
-            </div>
+  Día {usersExactDate}
+</div>
           </div>
           <div className="admin09-vStrong">{r.count}</div>
         </div>
@@ -1053,6 +1117,59 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
 </div>
     </div>
   </div>
+  {(() => {
+  const totalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
+      <button
+        type="button"
+        onClick={() => {
+          setUsersPage((p) => Math.max(1, p - 1));
+          setTimeout(loadStats, 0);
+        }}
+        disabled={usersPage <= 1}
+        style={{
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: "1px solid #cbd5e1",
+          background: "#fff",
+          fontWeight: 900,
+          cursor: usersPage <= 1 ? "not-allowed" : "pointer",
+          opacity: usersPage <= 1 ? 0.5 : 1,
+        }}
+      >
+        Anterior
+      </button>
+
+      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+        Página {usersPage} de {totalPages}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setUsersPage((p) => Math.min(totalPages, p + 1));
+          setTimeout(loadStats, 0);
+        }}
+        disabled={usersPage >= totalPages}
+        style={{
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: "1px solid #cbd5e1",
+          background: "#0f172a",
+          color: "#fff",
+          fontWeight: 900,
+          cursor: usersPage >= totalPages ? "not-allowed" : "pointer",
+          opacity: usersPage >= totalPages ? 0.5 : 1,
+        }}
+      >
+        Siguiente
+      </button>
+    </div>
+  );
+})()}
 </section>
      {/* Tabla 3 */}
 <section style={{ marginTop: 16, padding: 16, border: "1px solid #e5e7eb", borderRadius: 16, background: "#fff" }}>
