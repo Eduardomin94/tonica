@@ -68,9 +68,9 @@ const [nowTick, setNowTick] = useState(Date.now()); // para refrescar countdown
 
  const adminPass = savedPass; // ✅ solo usar la guardada al apretar "Entrar"
 
-  const headers = useMemo(() => {
-    return adminPass ? { "X-Admin-Password": adminPass } : {};
-  }, [adminPass]);
+  const headers = useMemo<Record<string, string>>(() => {
+  return adminPass ? { "X-Admin-Password": adminPass } : {};
+}, [adminPass]);
 
 
   const [payments, setPayments] = useState<any[]>([]);
