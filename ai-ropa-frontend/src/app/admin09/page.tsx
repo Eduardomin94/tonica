@@ -68,8 +68,10 @@ const [nowTick, setNowTick] = useState(Date.now()); // para refrescar countdown
 
  const adminPass = String(savedPass || ""); // ✅ siempre string
 
-  const headers = useMemo<Record<string, string>>(() => {
-  return adminPass ? { "X-Admin-Password": adminPass } : {};
+  const headers = useMemo(() => {
+  const h: Record<string, string> = {};
+  if (adminPass) h["X-Admin-Password"] = adminPass;
+  return h;
 }, [adminPass]);
 
 
