@@ -102,6 +102,10 @@ const [userMovementsLoading, setUserMovementsLoading] = useState<Record<string, 
   const [payInterval, setPayInterval] = useState<"day" | "week" | "month">("day");
 
   const [usersRows, setUsersRows] = useState<any[]>([]);
+  // === Tabla 2: desplegable por periodo (lista de usuarios) ===
+const [openUsersBucket, setOpenUsersBucket] = useState<string | null>(null);
+const [bucketUsers, setBucketUsers] = useState<Record<string, any[]>>({});
+const [bucketUsersLoading, setBucketUsersLoading] = useState<Record<string, boolean>>({});
   const [payRows, setPayRows] = useState<any[]>([]);
   const [openMovements, setOpenMovements] = useState(true);
 const [openUsers, setOpenUsers] = useState(false);
@@ -206,6 +210,39 @@ async function loadUserMovements(userId: string) {
     setUserMovementsLoading((m) => ({ ...m, [userId]: false }));
   }
 }
+async function loadUsersForBucket(bucket: string) {
+  if (!API) return alert("Falta NEXT_PUBLIC_API_URL");
+  if (!adminPass) return;
+
+  // si ya lo estamos cargando, no repetir
+  if (bucketUsersLoading[bucket]) return;
+
+  // si ya lo tenemos cacheado, no volver a pedir
+  if (bucketUsers[bucket]) return;
+
+  setBucketUsersLoading((m) => ({ ...m, [bucket]: true }));
+
+  try {
+    const qs = new URLSearchParams();
+    qs.set("interval", usersInterval);     // day | week | month
+    qs.set("bucket", bucket);              // el bucket que viene en usersRows
+
+    const r = await fetch(`${API}/admin/users-by-bucket?${qs.toString()}`, { headers });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data?.error || "Error cargando usuarios del periodo");
+
+    setBucketUsers((prev) => ({
+      ...prev,
+      [bucket]: Array.isArray(data?.users) ? data.users : [],
+    }));
+  } catch (e: any) {
+    alert(e?.message || String(e));
+    setBucketUsers((prev) => ({ ...prev, [bucket]: [] }));
+  } finally {
+    setBucketUsersLoading((m) => ({ ...m, [bucket]: false }));
+  }
+}
+
 
   async function loadStats() {
     if (!API) return alert("Falta NEXT_PUBLIC_API_URL");
@@ -453,6 +490,10 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     display: inline-block;
     vertical-align: bottom;
   }
+      .admin09-wrap {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
 
   /* Desktop table visible */
   .admin09-desktopTable { display: block; }
@@ -522,7 +563,16 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     /* Hide table, show cards */
     .admin09-desktopTable { display: none; }
     .admin09-mobileCards { display: block; }
+    .admin09-movementsGrid {
+  grid-template-columns: 1fr !important;
+}
 
+.admin09-btnFull {
+  width: 100%;
+}
+.admin09-btnSmall {
+  width: 100%;
+}
     .admin09-clip { max-width: 140px; }
 
     .admin09-kv { grid-template-columns: 110px 1fr; }
@@ -560,45 +610,48 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     }}
   >
     <div style={{ paddingTop: 6 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px 140px", gap: 10, alignItems: "end" }}>
+      <div
+  className="admin09-movementsGrid"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "4fr 1fr",
+    gap: 10,
+    alignItems: "end",
+  }}
+>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>Usuario (email contiene)</div>
+          <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>
+  Usuario (email contiene)
+</div>
           <input
             value={userQ}
             onChange={(e) => setUserQ(e.target.value)}
-            style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
-          />
-        </div>
-
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>Desde</div>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
-          />
-        </div>
-
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>Hasta</div>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #cbd5e1" }}
+            style={{
+  width: "100%",
+  padding: "14px 12px",
+  borderRadius: 14,
+  border: "1px solid #cbd5e1",
+  fontSize: 15,
+}}
           />
         </div>
 
         <button
-          onClick={() => {
-            setEntriesPage(1);
-            setTimeout(loadEntries, 0);
-          }}
-          style={{ padding: 10, borderRadius: 12, border: "none", fontWeight: 900, cursor: "pointer" }}
-        >
-          {entriesLoading ? "Cargando..." : "Filtrar"}
-        </button>
+  className="admin09-btnFull"
+  onClick={() => {
+    setEntriesPage(1);
+    setTimeout(loadEntries, 0);
+  }}
+  style={{
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "none",
+    fontWeight: 900,
+    cursor: "pointer",
+  }}
+>
+  {entriesLoading ? "Cargando..." : "Filtrar"}
+</button>
       </div>
 
       {/* Desktop: tabla */}
@@ -850,33 +903,154 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     ({usersInterval === "day" ? "por día" : usersInterval === "week" ? "por semana" : "por mes"})
   </div>
 </div>
-      <div style={{ overflowX: "auto", marginTop: 12 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ textAlign: "left", background: "#f8fafc" }}>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Periodo</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Usuarios</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usersRows.map((r, i) => (
-              <tr key={i}>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(r.bucket)}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-                  {r.count}
-                </td>
-              </tr>
-            ))}
-            {usersRows.length === 0 && (
-              <tr>
-                <td colSpan={2} style={{ padding: 12, color: "#64748b" }}>
-                  Sin datos.
-                </td>
-              </tr>
+      {/* Desktop: tabla */}
+<div className="admin09-desktopTable" style={{ marginTop: 12 }}>
+  <table className="admin09-table">
+    <thead>
+      <tr style={{ textAlign: "left", background: "#f8fafc" }}>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Periodo</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Usuarios</th>
+      </tr>
+    </thead>
+    <tbody>
+      {usersRows.map((r, i) => {
+  const bucket = String(r.bucket);
+  const isOpen = openUsersBucket === bucket;
+  const list = bucketUsers[bucket] || [];
+  const isLoading = !!bucketUsersLoading[bucket];
+
+  return (
+    <React.Fragment key={bucket || i}>
+      <tr
+        onClick={() => {
+          const next = isOpen ? null : bucket;
+          setOpenUsersBucket(next);
+
+          if (!isOpen) {
+            loadUsersForBucket(bucket);
+          }
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
+          {fmt(r.bucket)}{" "}
+          <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+        </td>
+
+        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
+          {r.count}
+        </td>
+      </tr>
+
+      {isOpen && (
+        <tr>
+          <td colSpan={2} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+            <div style={{ fontWeight: 900, marginBottom: 8 }}>Usuarios registrados</div>
+
+            {isLoading ? (
+              <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
+            ) : list.length === 0 ? (
+              <div style={{ color: "#64748b", fontWeight: 800 }}>Sin usuarios.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 6 }}>
+                {list.map((u: any) => (
+                  <div key={u.id || u.email} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div className="admin09-wrap" style={{ fontWeight: 900 }}>
+                      {u.name || "—"}
+                    </div>
+                    <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800 }}>
+                      {u.email || "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-          </tbody>
-        </table>
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+})}
+      {usersRows.length === 0 && (
+        <tr>
+          <td colSpan={2} style={{ padding: 12, color: "#64748b" }}>
+            Sin datos.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+
+{/* Mobile: cards */}
+<div className="admin09-mobileCards">
+  <div className="admin09-cardList">
+    {usersRows.map((r, i) => {
+  const bucket = String(r.bucket);
+  const isOpen = openUsersBucket === bucket;
+  const list = bucketUsers[bucket] || [];
+  const isLoading = !!bucketUsersLoading[bucket];
+
+  return (
+    <div key={bucket || i} className="admin09-card">
+      <div
+        onClick={() => {
+          const next = isOpen ? null : bucket;
+          setOpenUsersBucket(next);
+
+          if (!isOpen) {
+            loadUsersForBucket(bucket);
+          }
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="admin09-cardTop">
+          <div>
+            <div className="admin09-cardTitle">
+              {fmt(r.bucket)}{" "}
+              <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            <div className="admin09-cardSub">
+              {usersInterval === "day" ? "Día" : usersInterval === "week" ? "Semana" : "Mes"}
+            </div>
+          </div>
+          <div className="admin09-vStrong">{r.count}</div>
+        </div>
       </div>
+
+      {isOpen && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>Usuarios registrados</div>
+
+          {isLoading ? (
+            <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
+          ) : list.length === 0 ? (
+            <div style={{ color: "#64748b", fontWeight: 800 }}>Sin usuarios.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {list.map((u: any) => (
+                <div key={u.id || u.email} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10 }}>
+                  <div style={{ fontWeight: 1000 }}>{u.name || "—"}</div>
+                  <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>
+                    {u.email || "—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+})}
+
+    {usersRows.length === 0 && (
+      <div style={{ padding: 12, color: "#64748b", fontWeight: 800 }}>
+        Sin datos.
+      </div>
+    )}
+  </div>
+</div>
     </div>
   </div>
 </section>
@@ -988,52 +1162,75 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     </div>
   </div>
 </div>
-      <div style={{ overflowX: "auto", marginTop: 12 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-  <tr style={{ textAlign: "left", background: "#f8fafc" }}>
-    <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
-    <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
-    <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Créditos</th>
-    <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>ARS</th>
-    <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Payment ID</th>
-  </tr>
-</thead>
-          <tbody>
-  {payments.map((p) => (
-    <tr key={p.id}>
-      <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-        {fmt(p.createdAt)}
-      </td>
+      {/* Desktop: tabla */}
+<div className="admin09-desktopTable" style={{ marginTop: 12 }}>
+  <table className="admin09-table">
+    <thead>
+      <tr style={{ textAlign: "left", background: "#f8fafc" }}>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Créditos</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>ARS</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Payment ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {payments.map((p) => (
+        <tr key={p.id}>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(p.createdAt)}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{p.email || "—"}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>{p.credits}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>{p.ars ?? "—"}</td>
+          <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+            <span className="admin09-wrap">{p.paymentId || "—"}</span>
+          </td>
+        </tr>
+      ))}
 
-      <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-        {p.email || "—"}
-      </td>
+      {payments.length === 0 && (
+        <tr>
+          <td colSpan={5} style={{ padding: 12, color: "#64748b" }}>
+            Sin pagos.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
 
-      <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-        {p.credits}
-      </td>
+{/* Mobile: cards */}
+<div className="admin09-mobileCards">
+  <div className="admin09-cardList">
+    {payments.map((p) => (
+      <div key={p.id} className="admin09-card">
+        <div className="admin09-cardTop">
+          <div style={{ minWidth: 0 }}>
+            <div className="admin09-cardTitle admin09-wrap">{p.email || "—"}</div>
+            <div className="admin09-cardSub">{fmt(p.createdAt)}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div className="admin09-vStrong">{p.credits}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>créditos</div>
+          </div>
+        </div>
 
-      <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-        {p.ars ?? "—"}
-      </td>
+        <div className="admin09-kv">
+          <div className="admin09-k">ARS</div>
+          <div className="admin09-v admin09-vStrong">${Number(p.ars || 0).toLocaleString("es-AR")}</div>
 
-      <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-        {p.paymentId || "—"}
-      </td>
-    </tr>
-  ))}
-
-  {payments.length === 0 && (
-    <tr>
-      <td colSpan={5} style={{ padding: 12, color: "#64748b" }}>
-        Sin pagos.
-      </td>
-    </tr>
-  )}
-</tbody>
-        </table>
+          <div className="admin09-k">Payment ID</div>
+          <div className="admin09-v admin09-wrap">{p.paymentId || "—"}</div>
+        </div>
       </div>
+    ))}
+
+    {payments.length === 0 && (
+      <div style={{ padding: 12, color: "#64748b", fontWeight: 800 }}>
+        Sin pagos.
+      </div>
+    )}
+  </div>
+</div>
     </div>
   </div>
 </section>
@@ -1068,7 +1265,15 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
     }}
   >
     <div style={{ paddingTop: 6 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 10, alignItems: "end" }}>
+      <div
+  className="admin09-movementsGrid"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "4fr 1fr",
+    gap: 10,
+    alignItems: "end",
+  }}
+>
         <div>
           <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 6 }}>Usuario (email o nombre)</div>
           <input
@@ -1083,162 +1288,257 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
             setBalancesPage(1);
             setTimeout(loadBalances, 0);
           }}
-          style={{ padding: 10, borderRadius: 12, border: "none", fontWeight: 900, cursor: "pointer" }}
+          style={{
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "none",
+  fontWeight: 800,
+  fontSize: 13,
+  cursor: "pointer",
+}}
         >
           {balancesLoading ? "Cargando..." : "Filtrar"}
         </button>
       </div>
 
-      <div className="admin09-tableWrap" style={{ marginTop: 12 }}>
+      {/* Desktop: tabla */}
+<div className="admin09-desktopTable" style={{ marginTop: 12 }}>
   <table className="admin09-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ textAlign: "left", background: "#f8fafc" }}>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Email</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Créditos</th>
-              <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Alta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {balances.map((u: any) => {
-  const isOpen = openUserId === u.id;
-  const moves = userMovements[u.id] || [];
-  const isLoading = !!userMovementsLoading[u.id];
-
-  return (
-    <React.Fragment key={u.id}>
-      <tr
-        onClick={() => {
-          const nextOpen = isOpen ? null : u.id;
-          setOpenUserId(nextOpen);
-
-          // cargar movimientos al abrir
-          if (!isOpen && !userMovements[u.id]) {
-            loadUserMovements(u.id);
-          }
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
-          {u.name || "—"} <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
-        </td>
-        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-  <span className="admin09-clip">{u.email || "—"}</span>
-</td>
-        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-          {u.credits}
-        </td>
-        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(u.createdAt)}</td>
+    <thead>
+      <tr style={{ textAlign: "left", background: "#f8fafc" }}>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Email</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Créditos</th>
+        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Alta</th>
       </tr>
+    </thead>
 
-      {isOpen && (
-        <tr>
-          <td colSpan={4} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ fontWeight: 900, marginBottom: 8 }}>Movimientos</div>
+    <tbody>
+      {balances.map((u: any) => {
+        const isOpen = openUserId === u.id;
+        const moves = userMovements[u.id] || [];
+        const isLoading = !!userMovementsLoading[u.id];
 
-            {isLoading ? (
-              <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
-            ) : moves.length === 0 ? (
-              <div style={{ color: "#64748b", fontWeight: 800 }}>Sin movimientos.</div>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "#fff", borderRadius: 12 }}>
-                  <thead>
-                    <tr style={{ textAlign: "left", background: "#ffffff" }}>
-                      <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
-                      <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Tipo</th>
-                      <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Ref</th>
-                      <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Monto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {moves.map((m: any) => (
-                      <tr key={m.id}>
-                        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(m.createdAt)}</td>
-                        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-                          {m.type}{m.mode ? ` (${m.mode})` : ""}
-                        </td>
-                        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{m.refType || "—"}</td>
-                        <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-                          {m.amount}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </td>
-        </tr>
-      )}
-    </React.Fragment>
-  );
-})}
+        return (
+          <React.Fragment key={u.id}>
+            <tr
+              onClick={() => {
+                const nextOpen = isOpen ? null : u.id;
+                setOpenUserId(nextOpen);
 
-            {balances.length === 0 && (
+                if (!isOpen && !userMovements[u.id]) {
+                  loadUserMovements(u.id);
+                }
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
+                {u.name || "—"} <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+              </td>
+
+              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+                <span className="admin09-clip">{u.email || "—"}</span>
+              </td>
+
+              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
+                {u.credits}
+              </td>
+
+              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(u.createdAt)}</td>
+            </tr>
+
+            {isOpen && (
               <tr>
-                <td colSpan={4} style={{ padding: 12, color: "#64748b" }}>
-                  Sin usuarios.
+                <td colSpan={4} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>Movimientos</div>
+
+                  {isLoading ? (
+                    <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
+                  ) : moves.length === 0 ? (
+                    <div style={{ color: "#64748b", fontWeight: 800 }}>Sin movimientos.</div>
+                  ) : (
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "#fff", borderRadius: 12 }}>
+                        <thead>
+                          <tr style={{ textAlign: "left", background: "#ffffff" }}>
+                            <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Fecha</th>
+                            <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Tipo</th>
+                            <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Ref</th>
+                            <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Monto</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {moves.map((m: any) => (
+                            <tr key={m.id}>
+                              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(m.createdAt)}</td>
+                              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+                                {m.type}{m.mode ? ` (${m.mode})` : ""}
+                              </td>
+                              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{m.refType || "—"}</td>
+                              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
+                                {m.amount}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </td>
               </tr>
             )}
-          </tbody>
-        </table>
+          </React.Fragment>
+        );
+      })}
 
-        {(() => {
-          const totalPages = Math.max(1, Math.ceil(balancesTotal / BAL_PAGE_SIZE));
-          if (totalPages <= 1) return null;
+      {balances.length === 0 && (
+        <tr>
+          <td colSpan={4} style={{ padding: 12, color: "#64748b" }}>
+            Sin usuarios.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
 
-          return (
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setBalancesPage((p) => Math.max(1, p - 1));
-                  setTimeout(loadBalances, 0);
-                }}
-                disabled={balancesPage <= 1}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#fff",
-                  fontWeight: 900,
-                  cursor: balancesPage <= 1 ? "not-allowed" : "pointer",
-                  opacity: balancesPage <= 1 ? 0.5 : 1,
-                }}
-              >
-                Anterior
-              </button>
+{/* Mobile: cards */}
+<div className="admin09-mobileCards">
+  <div className="admin09-cardList">
+    {balances.map((u: any) => {
+      const isOpen = openUserId === u.id;
+      const moves = userMovements[u.id] || [];
+      const isLoading = !!userMovementsLoading[u.id];
 
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
-                Página {balancesPage} de {totalPages}
+      return (
+        <div key={u.id} className="admin09-card">
+          <div
+            onClick={() => {
+              const nextOpen = isOpen ? null : u.id;
+              setOpenUserId(nextOpen);
+
+              if (!isOpen && !userMovements[u.id]) {
+                loadUserMovements(u.id);
+              }
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <div className="admin09-cardTop">
+              <div style={{ minWidth: 0 }}>
+                <div className="admin09-cardTitle">
+                  {u.name || "—"}{" "}
+                  <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+                </div>
+                <div className="admin09-cardSub admin09-wrap">{u.email || "—"}</div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setBalancesPage((p) => Math.min(totalPages, p + 1));
-                  setTimeout(loadBalances, 0);
-                }}
-                disabled={balancesPage >= totalPages}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "1px solid #cbd5e1",
-                  background: "#0f172a",
-                  color: "#fff",
-                  fontWeight: 900,
-                  cursor: balancesPage >= totalPages ? "not-allowed" : "pointer",
-                  opacity: balancesPage >= totalPages ? 0.5 : 1,
-                }}
-              >
-                Siguiente
-              </button>
+              <div className="admin09-vStrong">{u.credits}</div>
             </div>
-          );
-        })()}
+
+            <div className="admin09-kv">
+              <div className="admin09-k">Alta</div>
+              <div className="admin09-v">{fmt(u.createdAt)}</div>
+            </div>
+          </div>
+
+          {isOpen && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #e5e7eb" }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>Movimientos</div>
+
+              {isLoading ? (
+                <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
+              ) : moves.length === 0 ? (
+                <div style={{ color: "#64748b", fontWeight: 800 }}>Sin movimientos.</div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {moves.map((m: any) => (
+                    <div key={m.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "#fff" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>{fmt(m.createdAt)}</div>
+                        <div style={{ fontWeight: 1000 }}>{m.amount}</div>
+                      </div>
+
+                      <div style={{ marginTop: 8 }} className="admin09-kv">
+                        <div className="admin09-k">Tipo</div>
+                        <div className="admin09-v admin09-wrap">
+                          {m.type}{m.mode ? ` (${m.mode})` : ""}
+                        </div>
+
+                        <div className="admin09-k">Ref</div>
+                        <div className="admin09-v admin09-wrap">{m.refType || "—"}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    })}
+
+    {balances.length === 0 && (
+      <div style={{ padding: 12, color: "#64748b", fontWeight: 800 }}>
+        Sin usuarios.
       </div>
+    )}
+  </div>
+</div>
+
+{/* Paginación (vale para ambos: desktop y mobile) */}
+{(() => {
+  const totalPages = Math.max(1, Math.ceil(balancesTotal / BAL_PAGE_SIZE));
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center", paddingTop: 12 }}>
+      <button
+        type="button"
+        onClick={() => {
+          setBalancesPage((p) => Math.max(1, p - 1));
+          setTimeout(loadBalances, 0);
+        }}
+        disabled={balancesPage <= 1}
+        style={{
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: "1px solid #cbd5e1",
+          background: "#fff",
+          fontWeight: 900,
+          cursor: balancesPage <= 1 ? "not-allowed" : "pointer",
+          opacity: balancesPage <= 1 ? 0.5 : 1,
+        }}
+      >
+        Anterior
+      </button>
+
+      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+        Página {balancesPage} de {totalPages}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setBalancesPage((p) => Math.min(totalPages, p + 1));
+          setTimeout(loadBalances, 0);
+        }}
+        disabled={balancesPage >= totalPages}
+        style={{
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: "1px solid #cbd5e1",
+          background: "#0f172a",
+          color: "#fff",
+          fontWeight: 900,
+          cursor: balancesPage >= totalPages ? "not-allowed" : "pointer",
+          opacity: balancesPage >= totalPages ? 0.5 : 1,
+        }}
+      >
+        Siguiente
+      </button>
+    </div>
+  );
+})()}
     </div>
   </div>
 </section>

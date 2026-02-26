@@ -100,8 +100,65 @@ app.use(express.json({ limit: "10mb" }));
 // =====================
 app.use("/auth", authRoutes);
 // =====================
-// FEEDBACK FORM
+// ADMIN: usuarios por periodo (bucket)
 // =====================
+app.get("/admin/users-by-bucket", async (req, res) => {
+  try {
+    const pass = String(req.header("X-Admin-Password") || "");
+    if (!pass || pass !== String(process.env.ADMIN09_PASSWORD || "")) {
+      return res.status(401).json({ error: "ADMIN09_UNAUTHORIZED" });
+    }
+
+    const interval = String(req.query.interval || "day"); // day | week | month
+    const bucket = String(req.query.bucket || "");
+    if (!bucket) return res.status(400).json({ error: "MISSING_BUCKET" });
+
+    // Parse del bucket que te devuelve users-stats (viene como fecha ISO)
+    const dt = new Date(bucket);
+    if (Number.isNaN(dt.getTime())) {
+      return res.status(400).json({ error: "INVALID_BUCKET" });
+    }
+
+    let start = new Date(dt);
+    let end = new Date(dt);
+
+    if (interval === "day") {
+      end = new Date(start);
+      end.setDate(end.getDate() + 1);
+    } else if (interval === "week") {
+      end = new Date(start);
+      end.setDate(end.getDate() + 7);
+    } else if (interval === "month") {
+      end = new Date(start);
+      end.setDate(end.getDate() + 30);
+    } else {
+      return res.status(400).json({ error: "INVALID_INTERVAL" });
+    }
+
+    // Traer usuarios creados en ese rango
+    const users = await prisma.user.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lt: end,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    });
+
+    return res.json({ users });
+  } catch (e) {
+    console.error("users-by-bucket error:", e);
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
 // =====================
 // FEEDBACK FORM
 // =====================

@@ -4,7 +4,8 @@
 
 
 
-hacer deploy /admin09
 
+
+que en movimientos solo muestre momivientos del día y lo de los días anteriores no aparezcan y se borren para no almacenar basura en el servidor
 
 preguntar a chatgpt cuando aguanta mi plan de railway actual y mis archivos
