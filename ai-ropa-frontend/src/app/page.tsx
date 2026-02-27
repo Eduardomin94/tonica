@@ -768,7 +768,7 @@ async function handleRegenerateOne(
   bail(t("errSceneMissing"));
   return;
 }
-if (wordCount(scene) > 10) {
+if (wordCount(scene) > 25) {
   bail(t("errSceneTooLong"));
   return;
 }
@@ -801,7 +801,7 @@ if (!background.trim()) {
   bail(t("errBgMissing"));
   return;
 }
-if (wordCount(background) > 10) {
+if (wordCount(background) > 25) {
   bail(t("errBgTooLong"));
   return;
 }
@@ -2045,6 +2045,15 @@ const res = await fetch(`${API}/suggest-background`, {
   ? t("insufficientCredits", selectedCount)
   : t("generate", selectedCount)}
             </Button>
+            {loading && queueNotice && (
+  <div style={{ ...styles.inlineWarn, marginTop: 12 }}>
+    {typeof queuePosition === "number" && queuePosition > 0 ? (
+      <>⏳ Alta demanda. <b>Eres el número {queuePosition} en la fila</b>. Tu generación comenzará pronto…</>
+    ) : (
+      <>⏳ Procesando… (puede tardar unos segundos)</>
+    )}
+  </div>
+)}
 {failedViews.length > 0 && (
   <div style={styles.inlineWarn}>
     ⚠️ No se pudieron generar estas vistas:{" "}
@@ -2836,15 +2845,7 @@ const label =
           <section style={styles.panel}>
             {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
             {error && <div style={styles.inlineErr}>{error}</div>}
-            {queueNotice && (
-  <div style={styles.inlineWarn}>
-    {typeof queuePosition === "number" && queuePosition > 0 ? (
-      <>⏳ Alta demanda. <b>Eres el número {queuePosition} en la fila</b>. Tu generación comenzará pronto…</>
-    ) : (
-  <>⏳ Procesando… (puede tardar unos segundos)</>
-)}
-  </div>
-)}
+          
             {panel}
 
             <div style={styles.footer}>
