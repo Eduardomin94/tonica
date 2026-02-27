@@ -32,7 +32,7 @@ let queueSeq = 1;
 const queueJobs = new Map(); // id -> { id, createdAt }
 
 // máximo de requests esperando en cola
-const MAX_QUEUE = 80;
+const MAX_QUEUE = 100;
 
 // Esperar turno
 function acquireGenerationSlot() {
@@ -2370,9 +2370,15 @@ app.post(
 
 try {
   const slot = acquireGenerationSlot();
-  queuePosition = slot.position;
-  res.setHeader("X-Queue-Position", String(queuePosition || 0));
-  await slot.promise;
+queuePosition = slot.position;
+
+// 👇 RESPONDEMOS LA POSICIÓN AL INSTANTE
+if (queuePosition > 0) {
+  res.setHeader("X-Queue-Position", String(queuePosition));
+  res.flushHeaders?.();
+}
+
+await slot.promise;
 } catch (e) {
   if (e.code === "QUEUE_FULL") {
     return res.status(429).json({ error: "QUEUE_FULL" });
