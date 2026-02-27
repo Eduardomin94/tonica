@@ -358,6 +358,7 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [queueNotice, setQueueNotice] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -731,9 +732,6 @@ async function handleRegenerateOne(
   index: number
 ) {
 
-
-
-
   setError(null);
 
   const lockKey = `regen:${viewKey}:${index}`;
@@ -860,7 +858,7 @@ for (const [k, v] of fd.entries()) {
   }
 }
 console.log("=== END FORM DATA DEBUG ===");
-    const res = await fetch(`${API}/generate`, {
+    const res = await fetch(`${API}/generate/run`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: fd,
@@ -868,6 +866,10 @@ console.log("=== END FORM DATA DEBUG ===");
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.error || data?.message || "Error rehaciendo");
+    if (typeof data?.queuePosition === "number" && data.queuePosition > 0) {
+  setQueueNotice(true);
+  setQueuePosition(data.queuePosition);
+}
 
     let url = "";
     if (Array.isArray(data?.imageUrls) && data.imageUrls[0]) url = data.imageUrls[0];
@@ -902,23 +904,26 @@ void fetchEntries();
 
   setError(friendly);
 } finally {
-    // ✅ esperar 2 frames para que el <img> pinte antes de sacar el overlay
-    setTimeout(() => {
-  setRegenLoading((m) => {
-    const copy = { ...m };
-    delete copy[lockKey];
-    return copy;
-  });
 
-  setRegenStartedAt((m) => {
-    const copy = { ...m };
-    delete copy[lockKey];
-    return copy;
-  });
+  setQueueNotice(false);    
+  setQueuePosition(null);  
 
-  delete regenLockRef.current[lockKey];
-}, 80);
-  }
+  setTimeout(() => {
+    setRegenLoading((m) => {
+      const copy = { ...m };
+      delete copy[lockKey];
+      return copy;
+    });
+
+    setRegenStartedAt((m) => {
+      const copy = { ...m };
+      delete copy[lockKey];
+      return copy;
+    });
+
+    delete regenLockRef.current[lockKey];
+  }, 80);
+}
 }
 
 
@@ -956,8 +961,8 @@ const res = await fetch(`${API}/suggest-background`, {
   setError(null);
   setResult(null);
   setFailedViews([]);
-  
   setQueueNotice(false);
+  setQueuePosition(null);
 
 // ⏳ Si tarda, mostramos aviso de cola (Railway/Gemini)
 const queueTimer = window.setTimeout(() => {
@@ -1030,11 +1035,40 @@ const queueTimer = window.setTimeout(() => {
     else appendModelFormData(fd);
 
     const token = localStorage.getItem("accessToken");
-    const res = await fetch(`${API}/generate`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: fd,
-    });
+
+// ✅ 1) JOIN: responde inmediato con posición
+const joinRes = await fetch(`${API}/generate/join`, {
+  method: "POST",
+  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+});
+
+const joinData = await joinRes.json().catch(() => ({}));
+if (!joinRes.ok) {
+  if (joinRes.status === 429) {
+    setError("⚠️ Alta demanda. Cola llena, intentá más tarde.");
+    return;
+  }
+  setError(joinData?.error || "Error entrando a la cola");
+  return;
+}
+
+if (joinData?.queued && typeof joinData?.position === "number" && joinData.position > 0) {
+  setQueueNotice(true);
+  setQueuePosition(joinData.position);
+}
+
+const queueId = joinData?.queueId ? String(joinData.queueId) : "";
+
+// ✅ 2) RUN: generación real
+const runUrl = queueId
+  ? `${API}/generate/run?queueId=${encodeURIComponent(queueId)}`
+  : `${API}/generate/run`;
+
+const res = await fetch(runUrl, {
+  method: "POST",
+  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  body: fd,
+});
 
     const text = await res.text();
     let data: any = null;
@@ -1056,6 +1090,12 @@ const queueTimer = window.setTimeout(() => {
       `Error ${res.status}: ${String(text).slice(0, 200)}`
   );
   return;
+}
+
+// ✅ si el server devolvió posición de cola
+if (typeof data?.queuePosition === "number" && data.queuePosition > 0) {
+  setQueueNotice(true); // mostramos aviso inmediatamente
+  setQueuePosition(data.queuePosition);
 }
     const failed = Array.isArray(data?.failedViews) ? data.failedViews : [];
 setFailedViews(failed);
@@ -1083,9 +1123,11 @@ setFailedViews(failed);
     
   } catch (e: any) {
     setError(String(e?.message || e));
-  } finally {
+} finally {
   window.clearTimeout(queueTimer);
-  setQueueNotice(false);
+  // ❌ NO borres la cola acá
+  // setQueueNotice(false);
+  // setQueuePosition(null);
   setLoading(false);
 }
 }
@@ -2797,7 +2839,11 @@ const label =
             {error && <div style={styles.inlineErr}>{error}</div>}
             {queueNotice && (
   <div style={styles.inlineWarn}>
-    ⏳ Alta demanda. Estás en cola, tu generación comenzará pronto…
+    {typeof queuePosition === "number" && queuePosition > 0 ? (
+      <>⏳ Alta demanda. <b>Eres el número {queuePosition} en la fila</b>. Tu generación comenzará pronto…</>
+    ) : (
+  <>⏳ Procesando… (puede tardar unos segundos)</>
+)}
   </div>
 )}
             {panel}
