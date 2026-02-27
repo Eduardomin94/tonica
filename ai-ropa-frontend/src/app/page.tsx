@@ -1044,10 +1044,10 @@ const joinRes = await fetch(`${API}/generate/join`, {
 
 const joinData = await joinRes.json().catch(() => ({}));
 if (!joinRes.ok) {
-  if (joinRes.status === 429) {
-    setError("⚠️ Alta demanda. Cola llena, intentá más tarde.");
-    return;
-  }
+  if (!joinRes.ok || joinData?.error === "QUEUE_FULL") {
+  setError("🔥 Alta demanda. Cola llena, hay más de 100 personas generando al mismo tiempo, volvé a intentar en 90 segundos.");
+  return;
+}
   setError(joinData?.error || "Error entrando a la cola");
   return;
 }
