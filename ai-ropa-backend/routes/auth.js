@@ -226,60 +226,59 @@ const welcomeBonusActive =
 
 router.get("/me", requireAuth, async (req, res) => {
   try {
+    // 1) Traer solo lo mínimo del usuario + wallet (sin entries, sin generations)
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      include: {
-        wallet: {
-          include: {
-            entries: {
-              orderBy: { createdAt: "desc" },
-              take: 20,
-            },
-          },
-        },
-        generations: {
-          orderBy: { createdAt: "desc" },
-          take: 20,
-        },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        wallet: { select: { id: true, balance: true } },
       },
     });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user.wallet) return res.status(400).json({ error: "Wallet not found" });
 
     const now = Date.now();
 
-const entries = user.wallet?.entries || [];
-const bonusEntries = entries.filter(
-  (e) => typeof e.refType === "string" && e.refType.startsWith("WELCOME_BONUS")
-);
+    // 2) Leer expiresAt del GRANT original
+    const grant = await prisma.creditEntry.findFirst({
+      where: { walletId: user.wallet.id, refType: "WELCOME_BONUS" },
+      select: { metadata: true },
+    });
 
-const grant = bonusEntries.find((e) => e.refType === "WELCOME_BONUS");
-const expiresAtIso = grant?.metadata?.expiresAt;
-const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
+    const expiresAtIso = grant?.metadata?.expiresAt;
+    const expiresAtMs = expiresAtIso ? new Date(expiresAtIso).getTime() : null;
 
-const bonusActive = expiresAtMs && now < expiresAtMs;
+    const bonusActive = expiresAtMs && Number.isFinite(expiresAtMs) && now < expiresAtMs;
 
-const welcomeBonus = bonusActive
-  ? Math.max(0, bonusEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0))
-  : 0;
+    // 3) Si está activo, sumamos WELCOME_BONUS* con aggregate
+    let welcomeBonus = 0;
+    if (bonusActive) {
+      const agg = await prisma.creditEntry.aggregate({
+        where: { walletId: user.wallet.id, refType: { startsWith: "WELCOME_BONUS" } },
+        _sum: { amount: true },
+      });
+      welcomeBonus = Math.max(0, Number(agg?._sum?.amount || 0));
+    }
 
-const paidBalance = user.wallet?.balance ?? 0;
-const totalBalance = paidBalance + welcomeBonus;
+    const paidBalance = user.wallet.balance ?? 0;
+    const totalBalance = paidBalance + welcomeBonus;
 
-return res.json({
-  ...user,
-  wallet: user.wallet
-    ? {
-        ...user.wallet,
+    return res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      wallet: {
         paidBalance,
         welcomeBonus,
         welcomeExpiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
-        balance: totalBalance, // 👈 este es el que usa tu frontend
-      }
-    : null,
-});
+        balance: totalBalance,
+      },
+    });
   } catch (err) {
     console.error("AUTH /me error:", err);
     return res.status(500).json({ error: "Error fetching user" });

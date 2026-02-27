@@ -1,9 +1,5 @@
 
 
-que el dato de las tablas se puedan descargar en un excel por mes.
-
-preguntar a chatgpt donde puedo entrar a borrar datos de hace 1 año para que no pese tanto el backend
-
 
 
 

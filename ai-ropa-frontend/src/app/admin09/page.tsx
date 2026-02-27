@@ -11,6 +11,24 @@ function fmt(d: any) {
   }
 }
 
+function amountStyle(amount: any) {
+  const n = Number(amount);
+
+  // neutro (0 o no numérico)
+  if (!Number.isFinite(n) || n === 0) {
+    return { color: "#0f172a", bg: "transparent", border: "#e5e7eb" };
+  }
+
+  // suma créditos (verde)
+  if (n > 0) {
+    return { color: "#166534", bg: "#f0fdf4", border: "#86efac" };
+  }
+
+  // resta créditos (rojo)
+  return { color: "#991b1b", bg: "#fef2f2", border: "#fca5a5" };
+}
+
+
 export default function Admin09Page() {
   const [passInput, setPassInput] = useState("");
   const [savedPass, setSavedPass] = useState<string>("");
@@ -1010,7 +1028,23 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         <tr>
           <td colSpan={2} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ fontWeight: 900, marginBottom: 8 }}>Usuarios registrados</div>
-
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "2fr 2fr 1.2fr",
+    gap: 10,
+    padding: "6px 0",
+    borderBottom: "1px solid #e5e7eb",
+    marginBottom: 8,
+    fontSize: 12,
+    fontWeight: 1000,
+    color: "#64748b",
+  }}
+>
+  <div>Usuario</div>
+  <div>Email</div>
+  <div style={{ textAlign: "right" }}>Fecha de alta</div>
+</div>
             {isLoading ? (
               <div style={{ color: "#64748b", fontWeight: 800 }}>Cargando...</div>
             ) : list.length === 0 ? (
@@ -1018,15 +1052,28 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {list.map((u: any) => (
-                  <div key={u.id || u.email} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                    <div className="admin09-wrap" style={{ fontWeight: 900 }}>
-                      {u.name || "—"}
-                    </div>
-                    <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800 }}>
-                      {u.email || "—"}
-                    </div>
-                  </div>
-                ))}
+  <div
+    key={u.id || u.email}
+    style={{
+      display: "grid",
+      gridTemplateColumns: "2fr 2fr 1.2fr",
+      gap: 10,
+      alignItems: "baseline",
+    }}
+  >
+    <div className="admin09-wrap" style={{ fontWeight: 900 }}>
+      {u.name || "—"}
+    </div>
+
+    <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800 }}>
+      {u.email || "—"}
+    </div>
+
+    <div style={{ textAlign: "right", color: "#0f172a", fontWeight: 900, fontSize: 12 }}>
+      {u.createdAt ? fmt(u.createdAt) : "—"}
+    </div>
+  </div>
+))}
               </div>
             )}
           </td>
@@ -1093,13 +1140,18 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               {list.map((u: any) => (
-                <div key={u.id || u.email} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10 }}>
-                  <div style={{ fontWeight: 1000 }}>{u.name || "—"}</div>
-                  <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>
-                    {u.email || "—"}
-                  </div>
-                </div>
-              ))}
+  <div key={u.id || u.email} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10 }}>
+    <div style={{ fontWeight: 1000 }}>{u.name || "—"}</div>
+
+    <div className="admin09-wrap" style={{ color: "#64748b", fontWeight: 800, marginTop: 4 }}>
+      {u.email || "—"}
+    </div>
+
+    <div style={{ marginTop: 6, fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+      Alta: {u.createdAt ? fmt(u.createdAt) : "—"}
+    </div>
+  </div>
+))}
             </div>
           )}
         </div>
@@ -1403,7 +1455,6 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Usuario</th>
         <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Email</th>
         <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>Créditos</th>
-        <th style={{ padding: 10, borderBottom: "1px solid #e5e7eb" }}>Alta</th>
       </tr>
     </thead>
 
@@ -1416,34 +1467,32 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
         return (
           <React.Fragment key={u.id}>
             <tr
-              onClick={() => {
-                const nextOpen = isOpen ? null : u.id;
-                setOpenUserId(nextOpen);
+  onClick={() => {
+    const nextOpen = isOpen ? null : u.id;
+    setOpenUserId(nextOpen);
 
-                if (!isOpen && !userMovements[u.id]) {
-                  loadUserMovements(u.id);
-                }
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
-                {u.name || "—"} <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
-              </td>
+    if (!isOpen && !userMovements[u.id]) {
+      loadUserMovements(u.id);
+    }
+  }}
+  style={{ cursor: "pointer" }}
+>
+  <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", fontWeight: 900 }}>
+    {u.name || "—"} <span style={{ color: "#64748b", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+  </td>
 
-              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
-                <span className="admin09-clip">{u.email || "—"}</span>
-              </td>
+  <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
+    <span className="admin09-clip">{u.email || "—"}</span>
+  </td>
 
-              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-                {u.credits}
-              </td>
-
-              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(u.createdAt)}</td>
-            </tr>
+  <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
+    {u.credits}
+  </td>
+</tr>
 
             {isOpen && (
               <tr>
-                <td colSpan={4} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
+                <td colSpan={3} style={{ padding: 12, background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}>
                   <div style={{ fontWeight: 900, marginBottom: 8 }}>Movimientos</div>
 
                   {isLoading ? (
@@ -1462,18 +1511,35 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
                           </tr>
                         </thead>
                         <tbody>
-                          {moves.map((m: any) => (
-                            <tr key={m.id}>
+                          {moves.map((m: any) => {
+  const s = amountStyle(m.amount);
+
+  return (
+                           <tr
+  key={m.id}
+  style={{
+    color: s.color,
+    background: s.bg,
+  }}
+>
                               <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{fmt(m.createdAt)}</td>
                               <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>
                                 {m.type}{m.mode ? ` (${m.mode})` : ""}
                               </td>
                               <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9" }}>{m.refType || "—"}</td>
-                              <td style={{ padding: 10, borderBottom: "1px solid #f1f5f9", textAlign: "right", fontWeight: 900 }}>
-                                {m.amount}
-                              </td>
+                              <td
+  style={{
+    padding: 10,
+    borderBottom: "1px solid #f1f5f9",
+    textAlign: "right",
+    fontWeight: 900,
+  }}
+>
+  {m.amount}
+</td>
                             </tr>
-                          ))}
+                         );
+})}
                         </tbody>
                       </table>
                     </div>
@@ -1487,7 +1553,7 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
 
       {balances.length === 0 && (
         <tr>
-          <td colSpan={4} style={{ padding: 12, color: "#64748b" }}>
+          <td colSpan={3} style={{ padding: 12, color: "#64748b" }}>
             Sin usuarios.
           </td>
         </tr>
@@ -1528,11 +1594,6 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
 
               <div className="admin09-vStrong">{u.credits}</div>
             </div>
-
-            <div className="admin09-kv">
-              <div className="admin09-k">Alta</div>
-              <div className="admin09-v">{fmt(u.createdAt)}</div>
-            </div>
           </div>
 
           {isOpen && (
@@ -1545,25 +1606,38 @@ pointerEvents: Date.now() < lockedUntil ? "none" : "auto",
                 <div style={{ color: "#64748b", fontWeight: 800 }}>Sin movimientos.</div>
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {moves.map((m: any) => (
-                    <div key={m.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 10, background: "#fff" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
-                        <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>{fmt(m.createdAt)}</div>
-                        <div style={{ fontWeight: 1000 }}>{m.amount}</div>
-                      </div>
+  {moves.map((m: any) => {
+    const s = amountStyle(m.amount);
 
-                      <div style={{ marginTop: 8 }} className="admin09-kv">
-                        <div className="admin09-k">Tipo</div>
-                        <div className="admin09-v admin09-wrap">
-                          {m.type}{m.mode ? ` (${m.mode})` : ""}
-                        </div>
+    return (
+      <div
+        key={m.id}
+        style={{
+          border: `1px solid ${s.border}`,
+          borderRadius: 12,
+          padding: 10,
+          background: s.bg,
+          color: s.color,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>{fmt(m.createdAt)}</div>
+          <div style={{ fontWeight: 1000 }}>{m.amount}</div>
+        </div>
 
-                        <div className="admin09-k">Ref</div>
-                        <div className="admin09-v admin09-wrap">{m.refType || "—"}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div style={{ marginTop: 8 }} className="admin09-kv">
+          <div className="admin09-k">Tipo</div>
+          <div className="admin09-v admin09-wrap">
+            {m.type}{m.mode ? ` (${m.mode})` : ""}
+          </div>
+
+          <div className="admin09-k">Ref</div>
+          <div className="admin09-v admin09-wrap">{m.refType || "—"}</div>
+        </div>
+      </div>
+    );
+  })}
+</div>
               )}
             </div>
           )}

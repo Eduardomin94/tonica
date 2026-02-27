@@ -28,11 +28,20 @@ let activeGenerations = 0;
 // Cola FIFO
 const waitQueue = [];
 
+// máximo de requests esperando en cola
+const MAX_QUEUE = 80;
+
 // Esperar turno
 function acquireGenerationSlot() {
   if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
     activeGenerations++;
     return Promise.resolve();
+  }
+
+  if (waitQueue.length >= MAX_QUEUE) {
+    const err = new Error("QUEUE_FULL");
+    err.code = "QUEUE_FULL";
+    throw err;
   }
 
   return new Promise((resolve) => {
@@ -346,17 +355,13 @@ async function requireAdmin(req, res, next) {
 }
 
 async function applyWelcomeBonusExpiry(walletId) {
-  // 1) traer todos los movimientos del bonus (GRANT + CONSUME + RESTORE)
-  const bonusEntries = await prisma.creditEntry.findMany({
-    where: { walletId, refType: { startsWith: "WELCOME_BONUS" } },
-    select: { id: true, amount: true, refType: true, metadata: true },
+  // 1) buscar el GRANT original para leer expiresAt
+  const grant = await prisma.creditEntry.findFirst({
+    where: { walletId, refType: "WELCOME_BONUS" },
+    select: { metadata: true },
   });
 
-  if (!bonusEntries.length) return;
-
-  // 2) encontrar algún movimiento que tenga expiresAt en metadata (no depende de refType exacto)
-  const withExpiry = bonusEntries.find((e) => e?.metadata?.expiresAt);
-  const expiresAtIso = withExpiry?.metadata?.expiresAt;
+  const expiresAtIso = grant?.metadata?.expiresAt;
   if (!expiresAtIso) return;
 
   const expiresAtMs = new Date(expiresAtIso).getTime();
@@ -365,27 +370,45 @@ async function applyWelcomeBonusExpiry(walletId) {
   // si todavía no venció, no hacemos nada
   if (Date.now() < expiresAtMs) return;
 
-  // 3) si ya registramos expiración, no duplicar
+  // 2) si ya registramos expiración, no duplicar
   const alreadyExpired = await prisma.creditEntry.findFirst({
     where: { walletId, refType: "WELCOME_BONUS_EXPIRE" },
     select: { id: true },
   });
   if (alreadyExpired) return;
 
-  // 4) bonus restante = suma de WELCOME_BONUS* excepto EXPIRE
-const remaining = Math.max(
-  0,
-  bonusEntries
-    .filter((e) => e.refType !== "WELCOME_BONUS_EXPIRE")
-    .reduce((sum, e) => sum + Number(e.amount || 0), 0)
-);
+  // 3) calcular remaining con SUM en DB (solo WELCOME_BONUS*)
+  // (incluye GRANT, CONSUME, RESTORE, etc. mientras empiecen con WELCOME_BONUS)
+  const agg = await prisma.creditEntry.aggregate({
+    where: { walletId, refType: { startsWith: "WELCOME_BONUS" } },
+    _sum: { amount: true },
+  });
 
-  // 5) crear movimiento "expirado" consumiendo lo que quedaba
+  const remaining = Math.max(0, Number(agg?._sum?.amount || 0));
+  if (remaining <= 0) {
+    // igual marcamos expiración para no recalcular en el futuro
+    await prisma.creditEntry.create({
+      data: {
+        walletId,
+        type: "CONSUME",
+        amount: 0,
+        idempotencyKey: `welcome-expire:${walletId}:${expiresAtIso}`,
+        refType: "WELCOME_BONUS_EXPIRE",
+        metadata: {
+          expiresAt: expiresAtIso,
+          expiredAt: new Date().toISOString(),
+        },
+      },
+    });
+    return;
+  }
+
+  // 4) crear movimiento "expirado" consumiendo lo que quedaba
   await prisma.creditEntry.create({
     data: {
       walletId,
       type: "CONSUME",
-      amount: remaining > 0 ? -remaining : 0,
+      amount: -remaining,
       idempotencyKey: `welcome-expire:${walletId}:${expiresAtIso}`,
       refType: "WELCOME_BONUS_EXPIRE",
       metadata: {
@@ -408,11 +431,9 @@ app.get("/wallet/entries", requireAuth, async (req, res) => {
     });
 
     if (!user?.wallet) return res.status(400).json({ error: "Wallet not found" });
-    const allEntries = await prisma.creditEntry.findMany({
-  where: { walletId: user.wallet.id },
-  select: { refType: true, metadata: true, amount: true },
-});
-console.log("BONUS ENTRIES DEBUG:", allEntries);
+    
+   
+
     await applyWelcomeBonusExpiry(user.wallet.id);
     const entries = await prisma.creditEntry.findMany({
       where: { walletId: user.wallet.id },
@@ -856,29 +877,68 @@ const upload = multer({
 async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
   if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
 
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), timeoutMs);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
+  const maxAttempts = 4; // 1 intento + 3 reintentos
+  const baseDelayMs = 900;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: ac.signal,
-      }
-    );
+      });
 
-    const data = await res.json().catch(() => ({}));
-    return { status: res.status, data };
-  } catch (err) {
-    const msg =
-      err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
-    return { status: 599, data: { error: msg } };
-  } finally {
-    clearTimeout(t);
+      const data = await res.json().catch(() => ({}));
+
+      // ✅ OK
+      if (res.status < 400) {
+        return { status: res.status, data };
+      }
+
+      // ✅ Reintentar solo en 429/503
+      const retryable = res.status === 429 || res.status === 503;
+
+      if (!retryable || attempt === maxAttempts) {
+        return { status: res.status, data };
+      }
+
+      // Backoff exponencial + jitter
+      const backoff = baseDelayMs * Math.pow(2, attempt - 1);
+      const jitter = Math.floor(Math.random() * 300);
+      const wait = backoff + jitter;
+
+      console.log(`Gemini retryable status=${res.status} attempt=${attempt}/${maxAttempts} wait=${wait}ms`);
+      await new Promise((r) => setTimeout(r, wait));
+      continue;
+    } catch (err) {
+      const msg =
+        err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
+
+      // Si es timeout/red, reintentar salvo último
+      if (attempt < maxAttempts) {
+        const backoff = baseDelayMs * Math.pow(2, attempt - 1);
+        const jitter = Math.floor(Math.random() * 300);
+        const wait = backoff + jitter;
+
+        console.log(`Gemini network/timeout retry attempt=${attempt}/${maxAttempts} wait=${wait}ms msg=${msg}`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+
+      return { status: 599, data: { error: msg } };
+    } finally {
+      clearTimeout(t);
+    }
   }
+
+  // fallback (no debería llegar)
+  return { status: 599, data: { error: "Unknown geminiGenerate error" } };
 }
 
 function extractImageBase64(data) {
@@ -1131,7 +1191,14 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
-    await acquireGenerationSlot();
+    try {
+  await acquireGenerationSlot();
+} catch (e) {
+  if (e.code === "QUEUE_FULL") {
+    return res.status(429).json({ error: "QUEUE_FULL" });
+  }
+  throw e;
+}
     const mode = String(req.body?.mode || "model").toLowerCase();
     const language = String(req.body?.language || "es").toLowerCase();
     const langLine =

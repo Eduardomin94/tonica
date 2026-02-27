@@ -1045,9 +1045,18 @@ const queueTimer = window.setTimeout(() => {
     }
 
     if (!res.ok) {
-      setError(data?.error || data?.message || `Error ${res.status}: ${String(text).slice(0, 200)}`);
-      return;
-    }
+  if (res.status === 429) {
+    setError("⚠️ Alta demanda en este momento. Intentá nuevamente en unos segundos.");
+    return;
+  }
+
+  setError(
+    data?.error ||
+      data?.message ||
+      `Error ${res.status}: ${String(text).slice(0, 200)}`
+  );
+  return;
+}
     const failed = Array.isArray(data?.failedViews) ? data.failedViews : [];
 setFailedViews(failed);
 
