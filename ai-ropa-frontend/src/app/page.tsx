@@ -103,7 +103,7 @@ function labelFromList<T extends { value: string; labelKey: string }>(
 }
 
   const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-  //console.log("API URL:", API);
+  console.log("API URL:", API);
   const LAST_RESULT_KEY = "last_generation_result_v1";
 
   const [regenStartedAt, setRegenStartedAt] = useState<Record<string, number>>({});
@@ -112,7 +112,7 @@ function labelFromList<T extends { value: string; labelKey: string }>(
   
 const [genProgress, setGenProgress] = useState<{ total: number; done: number; current?: string } | null>(null);
 const [genStatuses, setGenStatuses] = useState<Record<string, "pending" | "ok" | "fail">>({});
-  //console.log("PAGE LOADED ✅", { isMobile });
+  console.log("PAGE LOADED ✅", { isMobile });
 
   const [resultKeys, setResultKeys] = useState<Array<"front" | "back">>([]);
   const [regenLoading, setRegenLoading] = useState<Record<string, boolean>>({});
@@ -359,8 +359,6 @@ const [bodyType, setBodyType] = useState<BodyTypeValue | "">("");
   const [loading, setLoading] = useState(false);
   const [queueNotice, setQueueNotice] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  const [queueId, setQueueId] = useState<string | null>(null);
-const queuePollRef = React.useRef<number | null>(null);
   const [helpLoading, setHelpLoading] = useState(false);
   const [bgSuggestions, setBgSuggestions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -963,8 +961,8 @@ const res = await fetch(`${API}/suggest-background`, {
   setError(null);
   setResult(null);
   setFailedViews([]);
-  setQueueNotice(true);
-setQueuePosition(0);
+  setQueueNotice(false);
+  setQueuePosition(null);
 
 // ⏳ Si tarda, mostramos aviso de cola (Railway/Gemini)
 const queueTimer = window.setTimeout(() => {
@@ -1047,7 +1045,7 @@ const joinRes = await fetch(`${API}/generate/join`, {
 const joinData = await joinRes.json().catch(() => ({}));
 if (!joinRes.ok) {
   if (!joinRes.ok || joinData?.error === "QUEUE_FULL") {
-  setError("🔥 Alta demanda. Hay demasiados usuarios generando al mismo tiempo, volvé a intentar en 90 segundos.");
+  setError("🔥 Alta demanda. Cola llena, hay más de 100 personas generando al mismo tiempo, volvé a intentar en 90 segundos.");
   return;
 }
   setError(joinData?.error || "Error entrando a la cola");
@@ -1059,47 +1057,12 @@ if (joinData?.queued && typeof joinData?.position === "number" && joinData.posit
   setQueuePosition(joinData.position);
 }
 
-const qid = joinData?.queueId ? String(joinData.queueId) : "";
-setQueueId(qid || null);
-// ✅ arrancar polling de posición (1 solo interval)
-if (queuePollRef.current) {
-  window.clearInterval(queuePollRef.current);
-  queuePollRef.current = null;
-}
-
-if (qid) {
-  setQueueNotice(true);
-  if (typeof joinData.position === "number") setQueuePosition(joinData.position);
-
-  queuePollRef.current = window.setInterval(async () => {
-    try {
-      const r = await fetch(`${API}/generate/status?queueId=${encodeURIComponent(qid)}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      const s = await r.json().catch(() => ({}));
-
-      if (typeof s?.position === "number") {
-  if (s.position > 0) {
-    // Sigue en cola
-    setQueueNotice(true);
-    setQueuePosition(s.position);
-  } else {
-    // Ya salió de la cola → está ejecutando
-    setQueueNotice(true);
-    setQueuePosition(0); // mostramos 0 explícitamente
-  }
-}
-    } catch {
-      // si falla, no hacemos nada (evita spam)
-    }
-  }, 1000);
-}
-
+const queueId = joinData?.queueId ? String(joinData.queueId) : "";
 
 // ✅ 2) RUN: generación real
-const runUrl = qid
-  ? `${API}/generate/run?queueId=${encodeURIComponent(qid)}&test=1`
-  : `${API}/generate/run?test=1`;
+const runUrl = queueId
+  ? `${API}/generate/run?queueId=${encodeURIComponent(queueId)}`
+  : `${API}/generate/run`;
 
 const res = await fetch(runUrl, {
   method: "POST",
@@ -1115,19 +1078,11 @@ const res = await fetch(runUrl, {
       data = { raw: text };
     }
 
-   if (!res.ok) {
+    if (!res.ok) {
   if (res.status === 429) {
-    setQueueNotice(false);
-    setQueuePosition(null);
-    setQueueId(null);
-
     setError("⚠️ Alta demanda en este momento. Intentá nuevamente en unos segundos.");
     return;
   }
-
-  setQueueNotice(false);
-  setQueuePosition(null);
-  setQueueId(null);
 
   setError(
     data?.error ||
@@ -1137,12 +1092,10 @@ const res = await fetch(runUrl, {
   return;
 }
 
-
-
-// ✅ si el server devolvió posición de cola (incluye 0)
-if (typeof data?.queuePosition === "number") {
-  setQueueNotice(true);
-  setQueuePosition(data.queuePosition); // puede ser 0
+// ✅ si el server devolvió posición de cola
+if (typeof data?.queuePosition === "number" && data.queuePosition > 0) {
+  setQueueNotice(true); // mostramos aviso inmediatamente
+  setQueuePosition(data.queuePosition);
 }
     const failed = Array.isArray(data?.failedViews) ? data.failedViews : [];
 setFailedViews(failed);
@@ -1152,21 +1105,9 @@ setFailedViews(failed);
     else if (typeof data?.imageUrl === "string") urls = [data.imageUrl];
 
     if (!urls.length) {
-  // ✅ MODO TEST (run-test): no hay imágenes, solo simulación de cola
-  if (data?.test === true || data?.ok === true) {
-    setQueueNotice(false);
-    setQueuePosition(null);
-    setQueueId(null);
-    setError(null);
-    // mostramos un “resultado” fake para confirmar que terminó
-    setResult({ imageUrls: [], promptUsed: "TEST_OK" });
-    return;
-  }
-
-  setError("El servidor no devolvió imágenes.");
-  return;
-}
-
+      setError("El servidor no devolvió imágenes.");
+      return;
+    }
 
     const absolute = urls.map((u) =>
   u.startsWith("data:") ? u : (u.startsWith("http") ? u : `${API}${u.startsWith("/") ? "" : "/"}${u}`)
@@ -1178,26 +1119,17 @@ setFailedViews(failed);
 
     await fetchMe();
     await fetchEntries();
-    setQueueNotice(false);
-setQueuePosition(null);
-setQueueId(null);
 
     
   } catch (e: any) {
     setError(String(e?.message || e));
 } finally {
   window.clearTimeout(queueTimer);
-
-  // ✅ detener polling
-  if (queuePollRef.current) {
-    window.clearInterval(queuePollRef.current);
-    queuePollRef.current = null;
-  }
-
-  // ✅ NO apagar el aviso acá si querés que quede mientras corre
-  // lo apagamos cuando ya hay resultado o error abajo
+  setQueueNotice(false);   
+  setQueuePosition(null);   
   setLoading(false);
-}}
+}
+}
   // ============ RENDER PANEL POR PASO ============
   const panel = useMemo(() => {
     switch (steps[step].key) {
@@ -2684,7 +2616,7 @@ const consumeLabel =
     : consumeMode === "product"
     ? t("consumeProduct")
     : t("consumeGeneric");
-//console.log("ENTRY:", e);
+console.log("ENTRY:", e);
 const label =
   e.refType === "WELCOME_BONUS_EXPIRE"
     ? t("expired")

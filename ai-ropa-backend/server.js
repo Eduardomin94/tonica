@@ -24,11 +24,9 @@ const app = express();
 // =====================
 const MAX_CONCURRENT_GENERATIONS = 12;
 let activeGenerations = 0;
-let inflightGenerations = 0; // running + en cola
+
 // Cola FIFO
 const waitQueue = [];
-
-
 // ✅ Jobs en cola (para poder informar posición)
 let queueSeq = 1;
 const queueJobs = new Map(); // id -> { id, createdAt }
@@ -37,16 +35,15 @@ const queueJobs = new Map(); // id -> { id, createdAt }
 const MAX_QUEUE = 100;
 
 // Esperar turno
-function acquireGenerationSlot(queueId = null) {
+function acquireGenerationSlot() {
   // ✅ si hay slot inmediato
- if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
-  activeGenerations++;
-  inflightGenerations++; // 👈 NUEVO
-  return {
-    position: 0,
-    promise: Promise.resolve(),
-  };
-}
+  if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
+    activeGenerations++;
+    return {
+      position: 0, // 0 = no hizo cola
+      promise: Promise.resolve(),
+    };
+  }
 
   // ✅ si la cola está llena
   if (waitQueue.length >= MAX_QUEUE) {
@@ -55,15 +52,14 @@ function acquireGenerationSlot(queueId = null) {
     throw err;
   }
 
-  const qid = String(queueId || "");
-
   // ✅ posición en la cola (1 = primero esperando)
- const promise = new Promise((resolve) => {
-  waitQueue.push({ queueId: qid, resolve });
-}).then(() => {
-  activeGenerations++;
-  inflightGenerations++; // 👈 NUEVO
-});
+  const position = waitQueue.length + 1;
+
+  const promise = new Promise((resolve) => {
+    waitQueue.push(resolve);
+  }).then(() => {
+    activeGenerations++;
+  });
 
   return { position, promise };
 }
@@ -71,10 +67,8 @@ function acquireGenerationSlot(queueId = null) {
 // Liberar turno
 function releaseGenerationSlot() {
   activeGenerations = Math.max(0, activeGenerations - 1);
-  inflightGenerations = Math.max(0, inflightGenerations - 1); // 👈 NUEVO
-
   const next = waitQueue.shift();
-  if (next?.resolve) next.resolve();
+  if (next) next();
 }
 const PORT = process.env.PORT || 3001;
 
@@ -895,35 +889,8 @@ const upload = multer({
   limits: { fileSize: 12 * 1024 * 1024 }, // 12MB por archivo (ajustable)
 });
 
-// =====================
-// CIRCUIT BREAKER (anti-crash) para Gemini
-// =====================
-let geminiFailCount = 0;
-let geminiCircuitOpenUntil = 0;
-
-function geminiCircuitIsOpen() {
-  return Date.now() < geminiCircuitOpenUntil;
-}
-
-function geminiCircuitOnSuccess() {
-  geminiFailCount = 0;
-}
-
-function geminiCircuitOnFailure(statusOrMsg) {
-  geminiFailCount++;
-
-  // Si hay varios fallos seguidos, abrimos el circuito por 20s
-  if (geminiFailCount >= 6) {
-    geminiCircuitOpenUntil = Date.now() + 20_000;
-    console.log("⚠️ GEMINI CIRCUIT OPEN 20s (fails=", geminiFailCount, "last=", statusOrMsg, ")");
-  }
-}
 async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
   if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
-    // ✅ Si el circuito está abierto, fallamos rápido
-  if (geminiCircuitIsOpen()) {
-    return { status: 503, data: { error: "GEMINI_CIRCUIT_OPEN" } };
-  }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -944,15 +911,13 @@ async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
 
       const data = await res.json().catch(() => ({}));
 
-   // ✅ OK
-if (res.status < 400) {
-  geminiCircuitOnSuccess();
-  return { status: res.status, data };
-}
+      // ✅ OK
+      if (res.status < 400) {
+        return { status: res.status, data };
+      }
 
       // ✅ Reintentar solo en 429/503
       const retryable = res.status === 429 || res.status === 503;
-      if (retryable) geminiCircuitOnFailure(res.status);
 
       if (!retryable || attempt === maxAttempts) {
         return { status: res.status, data };
@@ -969,8 +934,6 @@ if (res.status < 400) {
     } catch (err) {
       const msg =
         err?.name === "AbortError" ? `Timeout (${timeoutMs}ms)` : String(err?.message || err);
-
-        geminiCircuitOnFailure(err?.name === "AbortError" ? "timeout" : "network");
 
       // Si es timeout/red, reintentar salvo último
       if (attempt < maxAttempts) {
@@ -1232,20 +1195,16 @@ Tipo de cuerpo: ${bodyType || "Estandar"}
 });
 
 app.post("/generate/join", requireAuth, (req, res) => {
- // ✅ Siempre devolvemos queueId (aunque haya slot libre)
-// Así el frontend puede trackear estado/polling igual.
-const queueId = String(queueSeq++);
-queueJobs.set(queueId, { id: queueId, createdAt: Date.now() });
+  // Si hay slot libre, no hace falta cola
+  if (activeGenerations < MAX_CONCURRENT_GENERATIONS) {
+    return res.json({ queued: false, position: 0, queueId: null });
+  }
 
-// ✅ consideramos también los que ya están esperando + los que están activos
-const inflightNow = activeGenerations + waitQueue.length;
-
-if (inflightGenerations < MAX_CONCURRENT_GENERATIONS) {
-  return res.json({ queued: false, position: 0, queueId });
-}
   if (waitQueue.length >= MAX_QUEUE) {
     return res.status(429).json({ error: "QUEUE_FULL" });
   }
+
+  const queueId = String(queueSeq++);
   queueJobs.set(queueId, { id: queueId, createdAt: Date.now() });
 
   // posición: los que ya esperan + 1
@@ -1267,44 +1226,17 @@ app.get("/generate/status", requireAuth, (req, res) => {
   const queueId = String(req.query.queueId || "");
   if (!queueId) return res.status(400).json({ error: "MISSING_QUEUE_ID" });
 
-  // ✅ posición real mirando la cola FIFO (waitQueue)
-  // IMPORTANTE: para que esto funcione, waitQueue debe guardar objetos con { queueId, resolve }.
-  const idx = waitQueue.findIndex((x) => x?.queueId === queueId);
-
-  if (idx >= 0) {
-    // 1 = primero esperando
-    return res.json({ position: idx + 1, done: false });
+  // si ya no existe, es porque ya salió de la cola (o es inválido)
+  if (!queueJobs.has(queueId)) {
+    return res.json({ position: 0, done: true });
   }
 
-  // si ya no está en la cola:
-  // o está corriendo o ya terminó → para UI es "0"
-  return res.json({ position: 0, done: true });
-});
+  // calculamos posición real recorriendo el orden de llegada por createdAt
+  const jobs = Array.from(queueJobs.values()).sort((a, b) => a.createdAt - b.createdAt);
+  const idx = jobs.findIndex((j) => j.id === queueId);
+  const position = idx >= 0 ? idx + 1 : 0;
 
-app.post("/generate/run-test", requireAuth, async (req, res) => {
-  let slotAcquired = false;
-
-  try {
-    const queueId = String(req.query.queueId || "");
-
-    // ✅ usa la cola REAL
-    const slot = acquireGenerationSlot(queueId || null);
-    slotAcquired = true;
-
-    // espera turno si está en cola
-    await slot.promise;
-
-    // simula trabajo (10s)
-    await new Promise((r) => setTimeout(r, 10_000));
-
-    return res.json({ ok: true, test: true });
-  } catch (e) {
-    if (e?.code === "QUEUE_FULL") return res.status(429).json({ error: "QUEUE_FULL" });
-    console.error("RUN-TEST ERROR:", e);
-    return res.status(500).json({ error: "RUN_TEST_ERROR", details: String(e?.message || e) });
-  } finally {
-    if (slotAcquired) releaseGenerationSlot();
-  }
+  return res.json({ position, done: false });
 });
 
 // =====================
@@ -1323,18 +1255,10 @@ app.post(
     let queuePosition = 0;
 
 try {
-  if (waitQueue.length >= MAX_QUEUE) {
-    return res.status(429).json({ error: "QUEUE_FULL" });
-  }
-
-  const queueId = String(req.query.queueId || "");
-  const slot = acquireGenerationSlot(queueId || null);
-
+  const slot = acquireGenerationSlot();
   queuePosition = slot.position;
-
   res.setHeader("X-Queue-Position", String(queuePosition || 0));
-  res.flushHeaders?.();
-
+  res.flushHeaders?.(); // ✅ manda headers inmediatamente
   await slot.promise;
 } catch (e) {
   if (e.code === "QUEUE_FULL") {
@@ -2301,7 +2225,7 @@ if (v.key === "front" || v.key === "frontDetail") {
   });
 }
             if (status >= 400) throw new Error("Gemini model error");
-            //console.log("MODEL RAW RESPONSE:", JSON.stringify(data).slice(0, 1000));
+            console.log("MODEL RAW RESPONSE:", JSON.stringify(data).slice(0, 1000));
             const imgB64 = extractImageBase64(data);
             if (!imgB64) throw new Error("No model image returned");
 
@@ -2442,46 +2366,25 @@ app.post(
     { name: "product_images", maxCount: 12 },
   ]),
   async (req, res) => {
-    
-    let slotAcquired = false;
     let queuePosition = 0;
-    try {
 
+try {
+  const slot = acquireGenerationSlot();
+queuePosition = slot.position;
 
-  const queueId = String(req.query.queueId || "");
-
-  // ✅ Anti-pico PRIMERO (antes de ocupar slot / sumar carga)
-  const HARD_INFLIGHT_LIMIT = MAX_CONCURRENT_GENERATIONS + MAX_QUEUE; // 12 + 100 = 112
-  const inflightNow = activeGenerations + waitQueue.length;
-
-  if (inflightNow >= HARD_INFLIGHT_LIMIT) {
-    return res.status(429).json({ error: "QUEUE_FULL" });
-  }
-
-  // ✅ recién ahora pedimos slot
-  const slot = acquireGenerationSlot(queueId || null);
-slotAcquired = true;
-  queuePosition = slot.position;
-
-  res.setHeader("X-Queue-Position", String(queuePosition || 0));
+// 👇 RESPONDEMOS LA POSICIÓN AL INSTANTE
+if (queuePosition > 0) {
+  res.setHeader("X-Queue-Position", String(queuePosition));
   res.flushHeaders?.();
-
-  await slot.promise;
-
-  // ✅ MODO TEST: solo probar cola sin Gemini/Prisma
-if (req.query.test === "1") {
-  await new Promise((r) => setTimeout(r, 2000));
-  res.locals.__skipRest = true;
-  return res.json({ queuePosition, ok: true, test: true });
 }
 
+await slot.promise;
 } catch (e) {
   if (e.code === "QUEUE_FULL") {
     return res.status(429).json({ error: "QUEUE_FULL" });
   }
-  console.error("GENERATE/RUN ERROR:", e);
-return res.status(500).json({ error: "SERVER_ERROR", details: String(e?.message || e) });
-} 
+  throw e;
+}
     const mode = String(req.body?.mode || "model").toLowerCase();
     const language = String(req.body?.language || "es").toLowerCase();
     const langLine =
@@ -2536,7 +2439,7 @@ if (requestedKeys.length !== 1) {
     error: "ONLY_ONE_VIEW_ALLOWED",
   });
 }
-    //console.log("DEBUG COST", { mode, requestedKeys, COST });
+    console.log("DEBUG COST", { mode, requestedKeys, COST });
 
     if (COST <= 0) {
       return res.status(400).json({ error: "NO_VIEWS_SELECTED" });
@@ -2787,8 +2690,8 @@ const requestedCost = views.length;
 const successCost = fulfilled.length;
 const refundCount = Math.max(0, requestedCost - successCost);
 
-//console.log("MODEL requested:", views.map(v => v.key));
-//console.log("MODEL failed:", failed);
+console.log("MODEL requested:", views.map(v => v.key));
+console.log("MODEL failed:", failed);
 
 // Si no salió ninguna, ahí sí devolvemos error (y tu catch hace refund total)
 if (successCost === 0) {
@@ -3563,17 +3466,16 @@ return res.json({
     console.error("REFUND FAILED:", refundError);
   }
 
-return res.status(500).json({
-  error: "Error en generate",
-  details: String(err?.message || err),
-});
-} finally {
-  if (slotAcquired) {
-    releaseGenerationSlot();
-  }
+  return res.status(500).json({
+    error: "Error en generate",
+    details: String(err?.message || err),
+  });
+} finally{
+  releaseGenerationSlot();
 }
   }
 );
+
 // =====================
 // MERCADO PAGO: CREATE PREFERENCE
 // =====================
@@ -3699,14 +3601,7 @@ app.get("/", (req, res) => res.json({ status: "OK" }));
 app.get("/admin09-test", requireAdmin09, (req, res) => {
   res.json({ ok: true, message: "Admin09 autorizado correctamente" });
 });
-app.get("/debug/queue", (req, res) => {
-  return res.json({
-    activeGenerations,
-    waiting: waitQueue.length,
-    maxConcurrent: MAX_CONCURRENT_GENERATIONS,
-    maxQueue: MAX_QUEUE,
-  });
-});
+
 // =====================
 // MP RETURN ROUTES
 // =====================
