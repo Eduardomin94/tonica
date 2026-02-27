@@ -1125,9 +1125,8 @@ setFailedViews(failed);
     setError(String(e?.message || e));
 } finally {
   window.clearTimeout(queueTimer);
-  // ❌ NO borres la cola acá
-  // setQueueNotice(false);
-  // setQueuePosition(null);
+  setQueueNotice(false);   
+  setQueuePosition(null);   
   setLoading(false);
 }
 }
