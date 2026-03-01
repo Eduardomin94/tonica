@@ -4,8 +4,3 @@
 
 
 
-en pagos aprobados tener un filtro para ver por mes.
-
-
-en total usuarios sacar total usuarios
-y que se pueda ver por mes en vez del total porque el total se ve arriba de todo en el header.

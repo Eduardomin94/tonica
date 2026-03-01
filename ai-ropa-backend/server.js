@@ -22,7 +22,7 @@ const app = express();
 // =====================
 // QUEUE / SEMAPHORE (FIFO) para /generate
 // =====================
-const MAX_CONCURRENT_GENERATIONS = 12;
+const MAX_CONCURRENT_GENERATIONS = Number(process.env.MAX_CONCURRENT_GENERATIONS) || 12;
 let activeGenerations = 0;
 
 // Cola FIFO
