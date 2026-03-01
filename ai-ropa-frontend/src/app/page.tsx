@@ -893,14 +893,17 @@ void fetchEntries();
   const msg = String(e?.message || e);
 
   // Mensaje más claro si parece error de red/timeout/cola
-  const friendly =
-    msg.includes("Failed to fetch") ||
-    msg.includes("NetworkError") ||
-    msg.includes("Load failed") ||
-    msg.includes("timeout") ||
-    msg.includes("Timeout")
-      ? "No se pudo completar la generación (posible cola/timeout). Por favor volvé a reintentarlo otra vez."
-      : msg;
+ const isContentFilter = msg.includes("CONTENT_FILTERED");
+
+  const friendly = isContentFilter
+    ? "⚠️ La imagen fue bloqueada por los filtros de contenido. Intentá con otra foto de la prenda o con una descripción diferente."
+    : msg.includes("Failed to fetch") ||
+      msg.includes("NetworkError") ||
+      msg.includes("Load failed") ||
+      msg.includes("timeout") ||
+      msg.includes("Timeout")
+    ? "No se pudo completar la generación (posible cola/timeout). Por favor volvé a reintentarlo otra vez."
+    : msg;
 
   setError(friendly);
 } finally {
@@ -1078,9 +1081,14 @@ const res = await fetch(runUrl, {
       data = { raw: text };
     }
 
-    if (!res.ok) {
+  if (!res.ok) {
   if (res.status === 429) {
     setError("⚠️ Alta demanda en este momento. Intentá nuevamente en unos segundos.");
+    return;
+  }
+
+  if (data?.error === "CONTENT_FILTERED") {
+    setError("⚠️ La imagen fue bloqueada por los filtros de contenido. Intentá con otra foto de la prenda o con una descripción diferente.");
     return;
   }
 
@@ -2045,6 +2053,16 @@ const res = await fetch(`${API}/suggest-background`, {
   ? t("insufficientCredits", selectedCount)
   : t("generate", selectedCount)}
             </Button>
+            {stepError && (
+  <div style={{ ...styles.inlineWarn, marginTop: 12 }}>
+    {stepError}
+  </div>
+)}
+            {error && (
+  <div style={{ ...styles.inlineErr, marginTop: 12 }}>
+    {error}
+  </div>
+)}
             {loading && queueNotice && (
   <div style={{ ...styles.inlineWarn, marginTop: 12 }}>
     {typeof queuePosition === "number" && queuePosition > 0 ? (
@@ -2843,8 +2861,7 @@ const label =
 
           {/* Panel */}
           <section style={styles.panel}>
-            {stepError && <div style={styles.inlineWarn}>{stepError}</div>}
-            {error && <div style={styles.inlineErr}>{error}</div>}
+            
           
             {panel}
 
