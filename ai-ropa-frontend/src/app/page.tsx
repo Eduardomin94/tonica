@@ -2050,7 +2050,7 @@ const res = await fetch(`${API}/suggest-background`, {
     {typeof queuePosition === "number" && queuePosition > 0 ? (
       <>⏳ Alta demanda. <b>Eres el número {queuePosition} en la fila</b>. Tu generación comenzará pronto…</>
     ) : (
-      <>⏳ Procesando… (puede tardar unos segundos)</>
+      <>⏳ Procesando… (puede tardar hasta 90 segundos)</>
     )}
   </div>
 )}
