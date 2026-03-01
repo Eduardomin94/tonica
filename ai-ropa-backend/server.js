@@ -3176,7 +3176,7 @@ PROHIBIDO cambiar: color, material, textura, forma, costuras, cierres, botones, 
 MANTENER:
 - MISMO producto (idéntico modelo).
 - MISMO encuadre general: producto centrado, fondo continuo.
-- MISMA escena base: ${scene}
+- MISMA escena base: ${background}
 
 SOLO PODÉS CAMBIAR (elige 2 o 3):
 1) Luz: suavidad/contraste leve, dirección ligeramente distinta (siempre estudio).
