@@ -1701,7 +1701,7 @@ Devolvé SOLO JSON válido con esta forma exacta:
 Reglas:
 - Mirá la FOTO y describí la PRENDA exactamente como se ve.
 - No inventes forro ni prendas interiores.
-- Si es encaje/transparente, marcá transparency correctamente y agregá en must_keep: "mantener transparencia real".
+- Si es encaje/tela calada, marcá transparency correctamente y agregá en must_keep: "respetar textura calada del encaje".
 `.trim();
 
 const garmentParts = [
@@ -1740,12 +1740,12 @@ IMPORTANTE (LA FOTO DE REFERENCIA PUEDE ESTAR EN MANIQUÍ):
 - IGNORAR el maniquí/cuerpo de referencia.
 - Extraer SOLO la prenda y aplicarla a la modelo sin rediseñar.
 
-PRENDA TRANSPARENTE / ENCAJE (CRÍTICO):
-- Mantener transparencia real del encaje (se ve piel debajo).
-- NO agregar forro, NO “rellenar”, NO hacerla opaca.
-- NO agregar top interno debajo (no inventar remera/corpiño).
-- Mantener abertura frontal (prenda abierta) y las tiras en el centro.
-- Mantener los volados/ruffles del frente y el corte corto (crop).
+PRENDA DE ENCAJE / TELA CALADA (CRÍTICO):
+- Respetar la calidad visual del encaje: tela calada con patron floral visible.
+- Mantener la caída y el volumen natural de la tela sin agregar capas internas.
+- Respetar la abertura frontal con tiras al centro tal como aparece en la referencia.
+- Mantener los volados en el frente y el largo crop de la prenda.
+- NO cerrar la prenda ni modificar su silueta abierta.
 
 REGLAS OBLIGATORIAS:
 - Usar EXACTAMENTE la prenda de las fotos referencia.
@@ -2820,7 +2820,7 @@ Devolvé SOLO JSON válido con esta forma exacta:
 Reglas:
 - Mirá la FOTO y describí la PRENDA exactamente como se ve.
 - No inventes forro ni prendas interiores.
-- Si es encaje/transparente, marcá transparency correctamente y agregá en must_keep: "mantener transparencia real".
+- Si es encaje/tela calada, marcá transparency correctamente y agregá en must_keep: "respetar textura calada del encaje".
 `.trim();
 
 const garmentParts = [
@@ -2859,12 +2859,12 @@ IMPORTANTE (LA FOTO DE REFERENCIA PUEDE ESTAR EN MANIQUÍ):
 - IGNORAR el maniquí/cuerpo de referencia.
 - Extraer SOLO la prenda y aplicarla a la modelo sin rediseñar.
 
-PRENDA TRANSPARENTE / ENCAJE (CRÍTICO):
-- Mantener transparencia real del encaje (se ve piel debajo).
-- NO agregar forro, NO “rellenar”, NO hacerla opaca.
-- NO agregar top interno debajo (no inventar remera/corpiño).
-- Mantener abertura frontal (prenda abierta) y las tiras en el centro.
-- Mantener los volados/ruffles del frente y el corte corto (crop).
+PRENDA DE ENCAJE / TELA CALADA (CRÍTICO):
+- Respetar la calidad visual del encaje: tela calada con patron floral visible.
+- Mantener la caída y el volumen natural de la tela sin agregar capas internas.
+- Respetar la abertura frontal con tiras al centro tal como aparece en la referencia.
+- Mantener los volados en el frente y el largo crop de la prenda.
+- NO cerrar la prenda ni modificar su silueta abierta.
 
 REGLAS OBLIGATORIAS:
 - Usar EXACTAMENTE la prenda de las fotos referencia.
@@ -3466,10 +3466,15 @@ return res.json({
     console.error("REFUND FAILED:", refundError);
   }
 
-  return res.status(500).json({
-    error: "Error en generate",
-    details: String(err?.message || err),
-  });
+  const isContentFilter = String(err?.message || "").includes("IMAGE_SAFETY") 
+  || String(err?.message || "").includes("SAFETY");
+
+return res.status(500).json({
+  error: isContentFilter
+    ? "CONTENT_FILTERED"
+    : "Error en generate",
+  details: String(err?.message || err),
+});
 } finally{
   releaseGenerationSlot();
 }
