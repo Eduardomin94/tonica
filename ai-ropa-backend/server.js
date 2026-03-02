@@ -913,6 +913,58 @@ async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
 
       // ✅ OK
       if (res.status < 400) {
+        // ✅ Si Gemini respondió pero con IMAGE_SAFETY, reintentar 1 vez con prompt más seguro
+try {
+  const finish = data?.candidates?.[0]?.finishReason || data?.candidates?.[0]?.finish_reason;
+
+  const isImageSafety =
+    String(finish || "").includes("IMAGE_SAFETY") ||
+    JSON.stringify(data || {}).includes("IMAGE_SAFETY");
+
+  const alreadyRetried = body?.__safetyRetry === true;
+
+  if (isImageSafety && !alreadyRetried) {
+    // Marcamos que ya reintentamos para evitar loops
+    const safeBody = {
+      ...body,
+      __safetyRetry: true,
+    };
+
+    // Agregamos un prefijo “safe” al primer texto que exista
+    const safePrefix =
+      `REGLAS DE SEGURIDAD (OBLIGATORIAS): Persona adulta (25+). ` +
+      `Imagen 100% no sexualizada. NO desnudez. NO contenido explícito. ` +
+      `Si la prenda es calada/encaje: mantener el diseño, pero asegurar que NO se vea pezón/areola ` +
+      `(permitido: forro interior nude sutil o pezoneras color piel invisibles).`;
+
+    // Insertar el prefijo en el primer part de texto
+    const c0 = safeBody?.contents?.[0];
+    if (c0?.parts?.length) {
+      let injected = false;
+      c0.parts = c0.parts.map((p) => {
+        if (!injected && typeof p?.text === "string" && p.text.trim().length > 0) {
+          injected = true;
+          return { ...p, text: `${safePrefix}\n\n${p.text}` };
+        }
+        return p;
+      });
+
+      // si no encontramos texto, lo metemos como primer part
+      if (!injected) {
+        c0.parts = [{ text: safePrefix }, ...c0.parts];
+      }
+    }
+
+    console.log("Gemini IMAGE_SAFETY -> auto-retry once with safer prompt");
+    // Reusar el mismo endpoint
+    // Nota: hacemos un fetch recursivo simple: llamamos geminiGenerate de nuevo con safeBody
+    return await geminiGenerate({ model, body: safeBody, timeoutMs });
+  }
+} catch (e) {
+  console.log("Safety retry check failed:", String(e?.message || e));
+}
+
+return { status: res.status, data };
         return { status: res.status, data };
       }
 
@@ -3503,14 +3555,21 @@ return res.json({
     console.error("REFUND FAILED:", refundError);
   }
 
-  const isContentFilter = String(err?.message || "").includes("IMAGE_SAFETY") 
-  || String(err?.message || "").includes("SAFETY");
+  const msg = String(err?.message || "");
+
+const isContentFilter =
+  msg.includes("IMAGE_SAFETY") ||
+  msg.includes("SAFETY");
+
+const isTimeout =
+  msg.includes("Timeout");
 
 return res.status(500).json({
   error: isContentFilter
-    ? "CONTENT_FILTERED"
-    : "Error en generate",
-  details: String(err?.message || err),
+    ? "⚠️ La imagen fue bloqueada por los filtros de contenido explícito. Intentá con otra foto de la prenda o con una descripción diferente."
+    : isTimeout
+    ? "⚠️ El servidor tardó demasiado en responder. Intentá nuevamente."
+    : "⚠️ No se pudo generar la imagen. Probá rehacer.",
 });
 } finally{
   releaseGenerationSlot();
