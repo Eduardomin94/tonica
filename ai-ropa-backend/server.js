@@ -1825,13 +1825,19 @@ const frontFullHint =
     ? `
 TOMA OBLIGATORIA – FRENTE COMPLETO (SIEMPRE CABEZA A PIES):
 
-ENCUADRE:
-- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
-- NO recortar cabeza.
-- NO recortar pies.
-- Dejar aire arriba y abajo (margen visible).
+ENCUADRE OBLIGATORIO:
+- Cuerpo completo desde la cabeza hasta los pies.
+- Los PIES deben verse completamente dentro del encuadre.
+- Dejar espacio visible debajo de los pies (margen inferior).
+- No cortar zapatos ni dedos.
+- No cortar cabeza.
+- No usar encuadre 3/4.
+- Cámara lo suficientemente lejos para incluir todo el cuerpo.
+
+FORMATO:
+- Vertical 4:5.
 - Modelo centrada.
-- Formato vertical 4:5.
+- Sin recortes artísticos.
 
 CÁMARA:
 - Vista completamente frontal (NO 3/4, NO perfil).
@@ -1846,6 +1852,11 @@ POSE:
 ILUMINACIÓN:
 - Estudio blanco o gris claro.
 - Luz suave y uniforme (sin sombras duras).
+
+PROHIBIDO:
+- Cropped framing.
+- Editorial crop.
+- Fashion magazine style crop.
 
 REGLA CRÍTICA:
 - Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
@@ -2203,12 +2214,19 @@ const garmentPart = {
 };
 
 // 3) Armamos parts: primero la PRENDA recortada (para que “atienda” eso primero)
-const parts = [
-  { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
-  garmentPart,
-  { text: viewPrompt },
-  ...refParts,
-];
+const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side";
+
+const parts = isFullBodyView
+  ? [
+      { text: viewPrompt },
+      ...refParts,
+    ]
+  : [
+      { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
+      garmentPart,
+      { text: viewPrompt },
+      ...refParts,
+    ];
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
@@ -2944,13 +2962,19 @@ const frontFullHint =
     ? `
 TOMA OBLIGATORIA – FRENTE COMPLETO (SIEMPRE CABEZA A PIES):
 
-ENCUADRE:
-- Cuerpo completo head-to-toe (cabeza y pies 100% visibles).
-- NO recortar cabeza.
-- NO recortar pies.
-- Dejar aire arriba y abajo (margen visible).
+ENCUADRE OBLIGATORIO:
+- Cuerpo completo desde la cabeza hasta los pies.
+- Los PIES deben verse completamente dentro del encuadre.
+- Dejar espacio visible debajo de los pies (margen inferior).
+- No cortar zapatos ni dedos.
+- No cortar cabeza.
+- No usar encuadre 3/4.
+- Cámara lo suficientemente lejos para incluir todo el cuerpo.
+
+FORMATO:
+- Vertical 4:5.
 - Modelo centrada.
-- Formato vertical 4:5.
+- Sin recortes artísticos.
 
 CÁMARA:
 - Vista completamente frontal (NO 3/4, NO perfil).
@@ -2965,6 +2989,11 @@ POSE:
 ILUMINACIÓN:
 - Estudio blanco o gris claro.
 - Luz suave y uniforme (sin sombras duras).
+
+PROHIBIDO:
+- Cropped framing.
+- Editorial crop.
+- Fashion magazine style crop.
 
 REGLA CRÍTICA:
 - Si el encuadre no entra cabeza y pies, ALEJAR la cámara hasta que entren.
@@ -3322,12 +3351,19 @@ const garmentPart = {
 };
 
 // 3) Armamos parts: primero la PRENDA recortada (para que “atienda” eso primero)
-const parts = [
-  { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
-  garmentPart,
-  { text: viewPrompt },
-  ...refParts,
-];
+const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side";
+
+const parts = isFullBodyView
+  ? [
+      { text: viewPrompt },
+      ...refParts,
+    ]
+  : [
+      { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
+      garmentPart,
+      { text: viewPrompt },
+      ...refParts,
+    ];
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
@@ -3428,6 +3464,7 @@ return res.json({
       return res.status(400).json({ error: "Modo inválido" });
 } catch (err) {
   console.error("GENERATE ERROR:", err);
+  console.error("GENERATE ERROR MESSAGE:", err?.message);
 
   // REFUND (devolver pagos y bonus)
   try {
