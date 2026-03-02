@@ -888,7 +888,14 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024 }, // 12MB por archivo (ajustable)
 });
-
+async function resizeImageForGemini(buffer, mimetype) {
+  const sharp = (await import("sharp")).default;
+  const resized = await sharp(buffer)
+    .resize({ width: 800, withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+  return { buffer: resized, mimetype: "image/jpeg" };
+}
 async function geminiGenerate({ model, body, timeoutMs = 60000 }) {
   if (!GEMINI_API_KEY) throw new Error("Falta GEMINI_API_KEY en .env");
 
@@ -1703,29 +1710,35 @@ return res.json({
         const pose = String(req.body?.pose || "");
         const bodyType = String(req.body?.body_type || "");
 
-        const refParts = [];
+   const [frontResized, backResized, faceResized] = await Promise.all([
+  resizeImageForGemini(front.buffer, front.mimetype),
+  back ? resizeImageForGemini(back.buffer, back.mimetype) : null,
+  face ? resizeImageForGemini(face.buffer, face.mimetype) : null,
+]);
 
-if (face) {
+const refParts = [];
+
+if (faceResized) {
   refParts.push({
     inlineData: {
-      mimeType: face.mimetype,
-      data: face.buffer.toString("base64"),
+      mimeType: faceResized.mimetype,
+      data: faceResized.buffer.toString("base64"),
     },
   });
 }
 
 refParts.push({
   inlineData: {
-    mimeType: front.mimetype,
-    data: front.buffer.toString("base64"),
+    mimeType: frontResized.mimetype,
+    data: frontResized.buffer.toString("base64"),
   },
 });
 
-if (back) {
+if (backResized) {
   refParts.push({
     inlineData: {
-      mimeType: back.mimetype,
-      data: back.buffer.toString("base64"),
+      mimeType: backResized.mimetype,
+      data: backResized.buffer.toString("base64"),
     },
   });
 }
@@ -1760,8 +1773,8 @@ const garmentParts = [
   { text: garmentPrompt },
   {
     inlineData: {
-      mimeType: front.mimetype,
-      data: front.buffer.toString("base64"),
+      mimeType: frontResized.mimetype,
+      data: frontResized.buffer.toString("base64"),
     },
   },
 ];
@@ -2848,29 +2861,35 @@ return res.json({
         const pose = String(req.body?.pose || "");
         const bodyType = String(req.body?.body_type || "");
 
-        const refParts = [];
+        const [frontResized, backResized, faceResized] = await Promise.all([
+  resizeImageForGemini(front.buffer, front.mimetype),
+  back ? resizeImageForGemini(back.buffer, back.mimetype) : null,
+  face ? resizeImageForGemini(face.buffer, face.mimetype) : null,
+]);
 
-if (face) {
+const refParts = [];
+
+if (faceResized) {
   refParts.push({
     inlineData: {
-      mimeType: face.mimetype,
-      data: face.buffer.toString("base64"),
+      mimeType: faceResized.mimetype,
+      data: faceResized.buffer.toString("base64"),
     },
   });
 }
 
 refParts.push({
   inlineData: {
-    mimeType: front.mimetype,
-    data: front.buffer.toString("base64"),
+    mimeType: frontResized.mimetype,
+    data: frontResized.buffer.toString("base64"),
   },
 });
 
-if (back) {
+if (backResized) {
   refParts.push({
     inlineData: {
-      mimeType: back.mimetype,
-      data: back.buffer.toString("base64"),
+      mimeType: backResized.mimetype,
+      data: backResized.buffer.toString("base64"),
     },
   });
 }
@@ -2905,8 +2924,8 @@ const garmentParts = [
   { text: garmentPrompt },
   {
     inlineData: {
-      mimeType: front.mimetype,
-      data: front.buffer.toString("base64"),
+      mimeType: frontResized.mimetype,
+      data: frontResized.buffer.toString("base64"),
     },
   },
 ];
