@@ -22,7 +22,7 @@ const app = express();
 // =====================
 // QUEUE / SEMAPHORE (FIFO) para /generate
 // =====================
-const MAX_CONCURRENT_GENERATIONS = Number(process.env.MAX_CONCURRENT_GENERATIONS) || 12;
+const MAX_CONCURRENT_GENERATIONS = Number(process.env.MAX_CONCURRENT_GENERATIONS) || 50;
 let activeGenerations = 0;
 
 // Cola FIFO
@@ -32,7 +32,7 @@ let queueSeq = 1;
 const queueJobs = new Map(); // id -> { id, createdAt }
 
 // máximo de requests esperando en cola
-const MAX_QUEUE = 100;
+const MAX_QUEUE = 500;
 
 // Esperar turno
 function acquireGenerationSlot() {
