@@ -1766,11 +1766,26 @@ const garmentParts = [
   },
 ];
 
-const garmentDescResp = await geminiGenerate({
-  model: MODEL_TEXT,
-  body: { contents: [{ role: "user", parts: garmentParts }] },
-  timeoutMs: 15000,
-});
+const [garmentDescResp, bboxResp0] = await Promise.all([
+  geminiGenerate({
+    model: MODEL_TEXT,
+    body: { contents: [{ role: "user", parts: garmentParts }] },
+    timeoutMs: 15000,
+  }),
+  geminiGenerate({
+    model: MODEL_TEXT,
+    body: {
+      contents: [{
+        role: "user",
+        parts: [
+          { text: `Devolvé SOLO JSON válido:\n{"x":0.0,"y":0.0,"w":1.0,"h":1.0}\n\nReglas:\n- Bounding box alrededor de la PRENDA únicamente.\n- Excluir fondo y maniquí.\n- Coordenadas normalizadas 0..1.\n- Si hay dudas, incluir toda la prenda.` },
+          { inlineData: { mimeType: front.mimetype, data: front.buffer.toString("base64") } },
+        ],
+      }],
+    },
+    timeoutMs: 15000,
+  }),
+]);
 
 let garmentDesc = null;
 try {
@@ -1778,6 +1793,18 @@ try {
   garmentDesc = JSON.parse(txt);
 } catch {
   garmentDesc = null;
+}
+
+let box0 = null;
+try {
+  const txt = bboxResp0?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parsed = JSON.parse(txt);
+  if (parsed && Number.isFinite(parsed.x) && Number.isFinite(parsed.y) &&
+      Number.isFinite(parsed.w) && Number.isFinite(parsed.h)) {
+    box0 = parsed;
+  }
+} catch {
+  box0 = null;
 }
 
     
@@ -2182,26 +2209,7 @@ Reglas:
 - Si hay dudas, incluir toda la prenda (mejor grande que chico).
 `.trim();
 
-const bboxResp = await geminiGenerate({
-  model: MODEL_TEXT,
-  body: {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: bboxPrompt },
-          {
-            inlineData: {
-              mimeType: front.mimetype,
-              data: frontBuf.toString("base64"),
-            },
-          },
-        ],
-      },
-    ],
-  },
-  timeoutMs: 15000,
-});
+const bboxResp = { data: { candidates: [{ content: { parts: [{ text: JSON.stringify(box0 || {x:0.18,y:0.08,w:0.64,h:0.62}) }] } }] } };
 
 let box = null;
 try {
@@ -2903,11 +2911,26 @@ const garmentParts = [
   },
 ];
 
-const garmentDescResp = await geminiGenerate({
-  model: MODEL_TEXT,
-  body: { contents: [{ role: "user", parts: garmentParts }] },
-  timeoutMs: 15000,
-});
+const [garmentDescResp, bboxResp0] = await Promise.all([
+  geminiGenerate({
+    model: MODEL_TEXT,
+    body: { contents: [{ role: "user", parts: garmentParts }] },
+    timeoutMs: 15000,
+  }),
+  geminiGenerate({
+    model: MODEL_TEXT,
+    body: {
+      contents: [{
+        role: "user",
+        parts: [
+          { text: `Devolvé SOLO JSON válido:\n{"x":0.0,"y":0.0,"w":1.0,"h":1.0}\n\nReglas:\n- Bounding box alrededor de la PRENDA únicamente.\n- Excluir fondo y maniquí.\n- Coordenadas normalizadas 0..1.\n- Si hay dudas, incluir toda la prenda.` },
+          { inlineData: { mimeType: front.mimetype, data: front.buffer.toString("base64") } },
+        ],
+      }],
+    },
+    timeoutMs: 15000,
+  }),
+]);
 
 let garmentDesc = null;
 try {
@@ -2915,6 +2938,18 @@ try {
   garmentDesc = JSON.parse(txt);
 } catch {
   garmentDesc = null;
+}
+
+let box0 = null;
+try {
+  const txt = bboxResp0?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parsed = JSON.parse(txt);
+  if (parsed && Number.isFinite(parsed.x) && Number.isFinite(parsed.y) &&
+      Number.isFinite(parsed.w) && Number.isFinite(parsed.h)) {
+    box0 = parsed;
+  }
+} catch {
+  box0 = null;
 }
 
     
@@ -3319,26 +3354,7 @@ Reglas:
 - Si hay dudas, incluir toda la prenda (mejor grande que chico).
 `.trim();
 
-const bboxResp = await geminiGenerate({
-  model: MODEL_TEXT,
-  body: {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: bboxPrompt },
-          {
-            inlineData: {
-              mimeType: front.mimetype,
-              data: frontBuf.toString("base64"),
-            },
-          },
-        ],
-      },
-    ],
-  },
-  timeoutMs: 15000,
-});
+const bboxResp = { data: { candidates: [{ content: { parts: [{ text: JSON.stringify(box0 || {x:0.18,y:0.08,w:0.64,h:0.62}) }] } }] } };
 
 let box = null;
 try {
