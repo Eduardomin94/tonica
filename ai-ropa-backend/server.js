@@ -882,7 +882,7 @@ app.get("/admin/purchases", requireAuth, requireAdmin, async (req, res) => {
 // =====================
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_TEXT = "gemini-flash-latest";
-const MODEL_IMAGE = "gemini-2.5-flash-image";
+const MODEL_IMAGE = "gemini-2.0-flash-preview-image-generation";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -2291,8 +2291,8 @@ const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side"
 
 const parts = isFullBodyView
   ? [
-      { text: viewPrompt },
       ...refParts,
+      { text: viewPrompt },
     ]
   : [
       { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
@@ -3442,8 +3442,8 @@ const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side"
 
 const parts = isFullBodyView
   ? [
-      { text: viewPrompt },
       ...refParts,
+      { text: viewPrompt },
     ]
   : [
       { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
