@@ -1164,7 +1164,12 @@ Vibe: ${vibe}
 
     const { status, data } = await geminiGenerate({
       model: MODEL_TEXT,
-      body: { contents: [{ role: "user", parts }] },
+    body: {
+  contents: [{ role: "user", parts }],
+  generationConfig: {
+    responseModalities: ["TEXT", "IMAGE"]
+  }
+},
       timeoutMs: 15000,
     });
 
@@ -1598,9 +1603,14 @@ IMPORTANTE:
 
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
-            const { status, data } = await geminiGenerate({
+           const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: { contents: [{ role: "user", parts }] },
+              body: {
+                contents: [{ role: "user", parts }],
+                generationConfig: {
+                  responseModalities: ["TEXT", "IMAGE"]
+                }
+              },
               timeoutMs: 60000,
             });
 
@@ -2303,7 +2313,12 @@ const parts = isFullBodyView
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: { contents: [{ role: "user", parts }] },
+              body: {
+  contents: [{ role: "user", parts }],
+  generationConfig: {
+    responseModalities: ["TEXT", "IMAGE"]
+  }
+},
               timeoutMs: 60000,
             });
 if (v.key === "front" || v.key === "frontDetail") {
@@ -2751,7 +2766,12 @@ IMPORTANTE:
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: { contents: [{ role: "user", parts }] },
+              body: {
+  contents: [{ role: "user", parts }],
+  generationConfig: {
+    responseModalities: ["TEXT", "IMAGE"]
+  }
+},
               timeoutMs: 60000,
             });
 
@@ -3454,7 +3474,12 @@ const parts = isFullBodyView
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: { contents: [{ role: "user", parts }] },
+              body: {
+  contents: [{ role: "user", parts }],
+  generationConfig: {
+    responseModalities: ["TEXT", "IMAGE"]
+  }
+},
               timeoutMs: 60000,
             });
 if (v.key === "front" || v.key === "frontDetail") {
