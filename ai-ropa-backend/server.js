@@ -882,7 +882,7 @@ app.get("/admin/purchases", requireAuth, requireAdmin, async (req, res) => {
 // =====================
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_TEXT = "gemini-flash-latest";
-const MODEL_IMAGE = "gemini-2.0-flash-preview-image-generation";
+const MODEL_IMAGE = "gemini-2.0-flash-exp-image-generation";
 
 const upload = multer({
   storage: multer.memoryStorage(),
