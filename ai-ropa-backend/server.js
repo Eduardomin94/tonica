@@ -882,7 +882,7 @@ app.get("/admin/purchases", requireAuth, requireAdmin, async (req, res) => {
 // =====================
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_TEXT = "gemini-flash-latest";
-const MODEL_IMAGE = "gemini-2.0-flash-exp-image-generation";
+const MODEL_IMAGE = "gemini-3.1-flash-image-preview";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -1164,12 +1164,7 @@ Vibe: ${vibe}
 
     const { status, data } = await geminiGenerate({
       model: MODEL_TEXT,
-    body: {
-  contents: [{ role: "user", parts }],
-  generationConfig: {
-    responseModalities: ["TEXT", "IMAGE"]
-  }
-},
+      body: { contents: [{ role: "user", parts }] },
       timeoutMs: 15000,
     });
 
@@ -1603,14 +1598,9 @@ IMPORTANTE:
 
             const parts = [{ text: viewPrompt }, ...imagesParts];
 
-           const { status, data } = await geminiGenerate({
+            const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: {
-                contents: [{ role: "user", parts }],
-                generationConfig: {
-                  responseModalities: ["TEXT", "IMAGE"]
-                }
-              },
+              body: { contents: [{ role: "user", parts }] },
               timeoutMs: 60000,
             });
 
@@ -2301,8 +2291,8 @@ const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side"
 
 const parts = isFullBodyView
   ? [
-      ...refParts,
       { text: viewPrompt },
+      ...refParts,
     ]
   : [
       { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
@@ -2313,12 +2303,7 @@ const parts = isFullBodyView
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: {
-  contents: [{ role: "user", parts }],
-  generationConfig: {
-    responseModalities: ["TEXT", "IMAGE"]
-  }
-},
+              body: { contents: [{ role: "user", parts }] },
               timeoutMs: 60000,
             });
 if (v.key === "front" || v.key === "frontDetail") {
@@ -2766,12 +2751,7 @@ IMPORTANTE:
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: {
-  contents: [{ role: "user", parts }],
-  generationConfig: {
-    responseModalities: ["TEXT", "IMAGE"]
-  }
-},
+              body: { contents: [{ role: "user", parts }] },
               timeoutMs: 60000,
             });
 
@@ -3462,8 +3442,8 @@ const isFullBodyView = v.key === "front" || v.key === "back" || v.key === "side"
 
 const parts = isFullBodyView
   ? [
-      ...refParts,
       { text: viewPrompt },
+      ...refParts,
     ]
   : [
       { text: "IMAGEN PRENDA (RECORTE): COPIAR ESTA PRENDA EXACTA. No inventar, no rediseñar." },
@@ -3474,12 +3454,7 @@ const parts = isFullBodyView
 
             const { status, data } = await geminiGenerate({
               model: MODEL_IMAGE,
-              body: {
-  contents: [{ role: "user", parts }],
-  generationConfig: {
-    responseModalities: ["TEXT", "IMAGE"]
-  }
-},
+              body: { contents: [{ role: "user", parts }] },
               timeoutMs: 60000,
             });
 if (v.key === "front" || v.key === "frontDetail") {
