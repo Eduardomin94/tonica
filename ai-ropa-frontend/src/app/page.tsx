@@ -701,22 +701,37 @@ setEntriesPage(1);
   }
 
   async function downloadImage(url: string, filename = "imagen.png") {
-    try {
-      const r = await fetch(url);
-      const blob = await r.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      window.open(url, "_blank");
-    }
-  }
+  try {
+    const r = await fetch(url);
+    const blob = await r.blob();
 
+    // iOS: Web Share API → abre sheet nativo con "Guardar en Fotos"
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS && navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: blob.type || "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+    }
+
+    // Android / Desktop: descarga directa normal
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (err: any) {
+    if (err?.name === "AbortError") return; // usuario canceló el sheet, no es error
+    window.open(url, "_blank");
+  }
+}
 async function handleRegenerateOne(
   viewKey:
     | "front"
